@@ -11,19 +11,22 @@ spring:
       hibernate:
         format_sql: true
   mail:
-    host: smtp.example.com
+    host: smtp.gmail.com
     port: 587
-    username: lungbaphe772003@example.com
+    username: lungbaphe772003@gmail.com
     password: jiit yhyr pvua pywb
     protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   application:
     security:
       jwt:
         secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
         expiration: 86400000
-      mailing:
-        frontend:
-          activation-url: http://localhost:8080/auth/activate-account
     file:
       upload:
         photos-output-path: ./upload

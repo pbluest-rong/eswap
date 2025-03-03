@@ -1,6 +1,6 @@
 spring:
   application:
-    name: pass-ldh
+    name: ecoswap
   profiles:
     active: dev
   servlet:
