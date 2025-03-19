@@ -1,0 +1,360 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/common/uitls.dart';
+import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/pages/forgotpw/forgotpw_provider.dart';
+import 'package:eswap/pages/forgotpw/forgotpw_reset_page.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+class VerifyEmailPage extends StatefulWidget {
+  const VerifyEmailPage({super.key});
+
+  @override
+  State<VerifyEmailPage> createState() => _VerifyEmailPageState();
+}
+
+class _VerifyEmailPageState extends State<VerifyEmailPage> {
+  int remainingSeconds = 0;
+  Timer? countdownTimer;
+  List<String> otpValues = List.filled(6, '');
+
+  String getOtpCode() {
+    return otpValues.join(); // Nối tất cả giá trị lại
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final minutes =
+        Provider.of<ForgotPwProvider>(context, listen: true).otpMinutes;
+    remainingSeconds = minutes * 60;
+    startCountdown();
+  }
+
+  void startCountdown() {
+    countdownTimer?.cancel();
+    countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (remainingSeconds > 0) {
+            remainingSeconds--;
+          } else {
+            timer.cancel();
+          }
+        });
+      }
+    });
+  }
+
+  int resendCooldown = 120;
+  Timer? resendTimer;
+  bool canResend = true;
+
+  void startResendCooldown() {
+    resendTimer?.cancel();
+    resendCooldown = 120;
+    setState(() {});
+
+    resendTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (resendCooldown > 0) {
+            resendCooldown--;
+          } else {
+            timer.cancel();
+            canResend = true;
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  String get formattedTime {
+    int minutes = remainingSeconds ~/ 60;
+    int seconds = remainingSeconds % 60;
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> resend() async {
+    if (!mounted || !canResend) return;
+    bool confirmResend = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(""),
+          content: Text("confirm_send_otp".tr()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("cancel".tr()),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("resend".tr()),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmResend != true) return;
+
+    setState(() {
+      canResend = false;
+      startResendCooldown();
+    });
+
+    final dio = Dio();
+    const url = ServerInfo.requireForgotPw_url;
+    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+
+    try {
+      final response = await dio.post(
+        url,
+        queryParameters: {"email": email},
+        options: Options(headers: {
+          "Content-Type": "application/json",
+          "Accept-Language": context.locale.languageCode,
+        }),
+      );
+      if (response.statusCode == 200 && response.data["success"] == true) {
+        final minutes = response.data["data"]["minutes"];
+        Provider.of<ForgotPwProvider>(context, listen: true)
+            .updateOTPMinutes(minutes);
+        remainingSeconds = minutes * 60;
+        startCountdown();
+      } else {
+        showErrorDialog(context, response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        showErrorDialog(
+            context, e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        showErrorDialog(context, "network_error".tr());
+      }
+    }
+  }
+
+  Future<void> verifyForgotPw() async {
+    final otp = getOtpCode();
+    if (otp.isEmpty) {
+      showErrorDialog(context, "alert_null_value".tr(args: ["OTP"]));
+      return;
+    }
+
+    if (!mounted) return;
+    LoadingOverlay.show(context);
+
+    final dio = Dio();
+    const url = ServerInfo.verifyForgotpw_url;
+
+    try {
+      final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+
+      final response = await dio.post(
+        url,
+        data: {"email": email, "otp": otp},
+        options: Options(headers: {
+          "Content-Type": "application/json",
+          "Accept-Language": context.locale.languageCode,
+        }),
+      );
+      if (response.statusCode == 200 && response.data["success"] == true) {
+        if (mounted) {
+          Provider.of<ForgotPwProvider>(context, listen: false).updateOTP(otp);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ResetPasswordPage()),
+          );
+        }
+      } else {
+        showErrorDialog(context, response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        showErrorDialog(
+            context, e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        showErrorDialog(context, "network_error".tr());
+      }
+    } finally {
+        LoadingOverlay.hide();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text("signup_verify_title".tr(),
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.fade),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.05,
+            vertical: MediaQuery.of(context).size.height * 0.02,
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.black, fontSize: 24),
+                      children: [
+                        TextSpan(text: "signup_verify_desc_head".tr()),
+                        TextSpan(
+                          text: " $email ",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(text: "signup_verify_desc_tail".tr()),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildCodeInputAll(context),
+                  SizedBox(height: 16),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.black, fontSize: 18),
+                      children: [
+                        TextSpan(text: "resend_question".tr()),
+                        if (canResend)
+                          TextSpan(
+                            text: " ${"resend".tr()}",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => resend(),
+                          )
+                        else
+                          TextSpan(
+                            text: " (${resendCooldown}s)",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.black, fontSize: 18),
+                      children: [
+                        TextSpan(text: "expires_in".tr()),
+                        TextSpan(
+                          text: " $formattedTime",
+                          style: TextStyle(
+                              color: const Color(0xFF1F41BB),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    margin: EdgeInsets.only(bottom: 32),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        verifyForgotPw();
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1F41BB),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4))),
+                      child: Text(
+                        "next".tr(),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: "Lato",
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCodeInputAll(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+      child: Form(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children:
+              List.generate(6, (index) => _buildCodeInput(context, index)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCodeInput(BuildContext context, int index) {
+    return SizedBox(
+      height: 68,
+      width: 64,
+      child: TextFormField(
+        onChanged: (value) {
+          if (value.length == 1) {
+            otpValues[index] = value; // Lưu số vào danh sách
+            if (index < 5) {
+              FocusScope.of(context).nextFocus(); // Chuyển sang ô tiếp theo
+            } else {
+              FocusScope.of(context)
+                  .unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
+            }
+          }
+        },
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(1),
+          FilteringTextInputFormatter.digitsOnly,
+        ],
+        decoration: InputDecoration(
+          border: OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+}

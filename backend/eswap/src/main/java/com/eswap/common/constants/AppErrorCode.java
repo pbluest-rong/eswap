@@ -1,0 +1,30 @@
+package com.eswap.common.constants;
+
+public enum AppErrorCode {
+    USER_NOT_FOUND("USER_NOT_FOUND", "error.user.not_found"),
+    POST_NOT_FOUND("POST_NOT_FOUND", "error.post.not_found"),
+    MEDIA_NOT_FOUND("MEDIA_NOT_FOUND", "error.media.not_found"),
+    USER_EXISTS("USER_EXISTS", "error.user.exists"),
+    USER_INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "error.auth.invalid_credentials"),
+    USER_LOCKED("USER_LOCKED", "error.user.locked"),
+    AUTH_INVALID_CODE("AUTH_INVALID_CODE", "error.auth.invalid_code"),
+    AUTH_FORBIDDEN("AUTH_FORBIDDEN", "error.auth.forbidden"),
+    VALIDATION_FAILED("VALIDATION_FAILED", "error.auth.validation_failed"),
+    PROVINCE_NOT_FOUND("PROVINCE_NOT_FOUND", "error.province.not_found"),
+    OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded");
+    private final String code;
+    private final String messageKey;
+
+    AppErrorCode(String code, String messageKey) {
+        this.code = code;
+        this.messageKey = messageKey;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getMessageKey() {
+        return messageKey;
+    }
+}
