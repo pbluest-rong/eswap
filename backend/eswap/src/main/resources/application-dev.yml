@@ -1,0 +1,57 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 6000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+          max-wait: 3000ms
+  datasource:
+    url: jdbc:mysql://localhost:3306/eswap
+    username: root
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: lungbaphe772003@gmail.com
+    password: jiit yhyr pvua pywb
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  application:
+    security:
+      jwt:
+        secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+        expiration: 86400000
+    file:
+      upload:
+        media-output-path: ./media
+  server:
+    port: 8080
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG

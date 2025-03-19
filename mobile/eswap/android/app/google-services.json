@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "317711655242",
+    "project_id": "eswap-78276",
+    "storage_bucket": "eswap-78276.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:317711655242:android:1396d62ed438c31c6321b3",
+        "android_client_info": {
+          "package_name": "com.pblues.eswap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLaejIUklzaaqiJB7wkm-Ukr8tItoPh9c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
