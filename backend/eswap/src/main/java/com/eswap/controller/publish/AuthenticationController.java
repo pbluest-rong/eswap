@@ -1,0 +1,99 @@
+package com.eswap.controller.publish;
+
+import com.eswap.common.ApiResponse;
+import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.exception.ResourceNotFoundException;
+import com.eswap.repository.UserRepository;
+import com.eswap.request.AuthenticationRequest;
+import com.eswap.request.ForgotPasswordRequest;
+import com.eswap.request.ResgistrationRequest;
+import com.eswap.request.VerifyForgotPassword;
+import com.eswap.response.OTPResponse;
+import com.eswap.service.OTPService;
+import com.eswap.model.User;
+import com.eswap.service.AuthenticationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("auth")
+@RequiredArgsConstructor
+@Tag(name = "Authentication")
+public class AuthenticationController {
+    private final AuthenticationService authenticationService;
+    private final OTPService otpService;
+    private final UserRepository userRepository;
+
+
+    @PostMapping("/require-activate-email")
+    public ResponseEntity<ApiResponse> requireActivateEmail(
+            @RequestParam
+            @Email(message = "Email is not formatted")
+            @NotEmpty(message = "Email is mandatory") String email) {
+
+        OTPResponse otpResponse = otpService.sendCodeToken(email, 10);
+        return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", otpResponse));
+    }
+
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse> register(@RequestBody @Valid ResgistrationRequest request) {
+        User user = authenticationService.register(request);
+        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", null));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse> authenticate(@RequestBody @Valid AuthenticationRequest request) {
+        return ResponseEntity.ok(new ApiResponse(true, "User authenticated successfully", authenticationService.authenticate(request)));
+    }
+
+    @PostMapping("/require-forgotpw")
+    public ResponseEntity<ApiResponse> requireForgotPw(
+            @RequestParam
+            @Email(message = "Email is not formatted")
+            @NotEmpty(message = "Email is mandatory") String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", email));
+        OTPResponse codeTokenResponse = otpService.sendCodeToken(email, 10, 1);
+        return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", codeTokenResponse));
+    }
+
+    @PostMapping("/verify-forgotpw")
+    public ResponseEntity<ApiResponse> verifyForgotPw(@RequestBody VerifyForgotPassword verifyForgotPassword) {
+        System.out.println("===>> " + verifyForgotPassword.getEmail());
+        System.out.println("===>> " + verifyForgotPassword.getOtp());
+        authenticationService.verifyForgotPw(verifyForgotPassword.getEmail(), verifyForgotPassword.getOtp());
+        return ResponseEntity.ok(new ApiResponse(true, "OTP verified successfully.", null));
+    }
+
+
+    @PostMapping("/forgotpw")
+    public ResponseEntity<ApiResponse> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        authenticationService.forgotPassword(request);
+        return ResponseEntity.ok(new ApiResponse(true, "User forgot password successfully", null));
+    }
+
+    @PostMapping("/check-exist-email")
+    public ResponseEntity<ApiResponse> checkExistEmail(
+            @RequestParam @Email(message = "Email is not formatted")
+            @NotEmpty(message = "Email is mandatory") String email) {
+        try {
+            boolean exists = authenticationService.checkExistEmail(email);
+            Map<String, Boolean> result = new HashMap<>();
+            result.put("isExistEmail", exists);
+
+            return ResponseEntity.ok(new ApiResponse(true, exists ? "Email already exists" : "Email is available", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Internal server error", null));
+        }
+    }
+}
