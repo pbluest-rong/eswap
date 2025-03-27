@@ -2,11 +2,17 @@ package com.eswap.model;
 
 import com.eswap.common.constants.NotificationCategory;
 import com.eswap.common.constants.NotificationType;
+import com.eswap.common.constants.RecipientType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "notifications")
@@ -18,17 +24,25 @@ public class Notification implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;  // Người nhận thông báo
-
-    private String message;  // Nội dung thông báo
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
-    private NotificationType type; // Loại thông báo (IMPORTANT, TEMPORARY)
+    private RecipientType recipientType; // Loại người nhận (Cá nhân, Nhóm, Tất cả)
+
+    private Long recipientId; // NULL nếu gửi cho toàn bộ người dùng
+    @Enumerated(EnumType.STRING)
+    private NotificationCategory category;
 
     @Enumerated(EnumType.STRING)
-    private NotificationCategory category; // Danh mục thông báo (ORDER, MESSAGE, SYSTEM, PROMOTION)
+    private NotificationType type;
 
-    private boolean isRead = false; // Đã đọc chưa?
+    private String title;
 
-    private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo
+    private String message;
+
+    private boolean isRead = false;
+
+    @CreationTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private Timestamp createdAt;
 }

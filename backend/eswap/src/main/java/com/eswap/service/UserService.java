@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -104,8 +106,7 @@ public class UserService {
         if (user.isEnabled() && user.isAccountNonLocked()) {
             Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
             if (optionalToken.isPresent() &&
-                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) &&
-                    optionalToken.get().getValidatedAt() == null && request.getCodeToken().equals(optionalToken.get().getOtp())) {
+                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getCodeToken().equals(optionalToken.get().getOtp())) {
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
                 userRepository.save(user);
             } else {
@@ -151,8 +152,7 @@ public class UserService {
             }
             Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
             if (optionalToken.isPresent() &&
-                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) &&
-                    optionalToken.get().getValidatedAt() == null && request.getCodeToken().equals(optionalToken.get().getOtp())) {
+                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getCodeToken().equals(optionalToken.get().getOtp())) {
                 user.setEmail(request.getNewEmail());
                 return userRepository.save(user);
             } else {
@@ -360,5 +360,10 @@ public class UserService {
         String avtUrl = uploadService.upload(file);
         user.setAvatarUrl(avtUrl);
         uploadService.deleteByUrl(oldAvt);
+    }
+
+    public List<User> getFollowers(long userId) {
+        List<User> followser = followRepository.findFollowersByUserId(userId);
+        return followser;
     }
 }

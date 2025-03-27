@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/core/utils/enums.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:eswap/enums/onboarding_page_position.dart';
 
 class OnboardingChildPage extends StatelessWidget {
   final OnBoardingPagePosition onBoardingPagePosition;

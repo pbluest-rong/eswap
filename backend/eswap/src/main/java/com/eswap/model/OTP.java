@@ -19,8 +19,6 @@ public class OTP {
     private String otp;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
-    private LocalDateTime validatedAt;
     private String email;
-    private int increaseTimeCount = 0;
     private int requestCount = 0;
 }

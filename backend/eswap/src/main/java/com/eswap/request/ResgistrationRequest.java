@@ -28,7 +28,11 @@ public class ResgistrationRequest {
     private String email;
     @NotEmpty(message = "Password is mandatory")
     @NotBlank(message = "Password is mandatory")
-    @Size(min = 8, message = "Password should be 8 characters long minimum")
+    @Size(min = 8, message = "Password should be at least 8 characters long")
+    @Pattern(
+            regexp = "^(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_])(?!.*\\s)[A-Za-z\\d\\W_]{8,}$",
+            message = "Password must contain at least one uppercase letter, one number, and one special character"
+    )
     private String password;
     @NotEmpty(message = "Code is mandatory")
     @NotBlank(message = "Code is mandatory")
