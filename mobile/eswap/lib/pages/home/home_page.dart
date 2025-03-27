@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
               ),
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                      (context, index) => ListTile(
+                  (context, index) => ListTile(
                     title: Text('Item $index'),
                   ),
                   childCount: 50,
@@ -140,7 +140,6 @@ class _HomePageState extends State<HomePage> {
             height: 40,
           ),
         ),
-
         Expanded(
           child: Text(
             "🌏 Đại học Nông Lâm TPHCM",
@@ -157,35 +156,24 @@ class _HomePageState extends State<HomePage> {
           },
           child: Stack(
             children: [
-              Image.asset(
-                "assets/images/message.png",
-                width: 40,
-                height: 40,
+              Icon(
+                Icons.notifications,
               ),
               Positioned(
                 right: 0,
-                child: _buildNotificationBadge("9+"),
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildNotificationBadge(String count) {
-    bool isSingleDigit = count.length < 2;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: isSingleDigit ? 6.5 : 3),
-      decoration: BoxDecoration(
-        color: Colors.red.shade500,
-        borderRadius: BorderRadius.circular(isSingleDigit ? 100 : 10),
-        border: Border.all(width: 2, color: Colors.white),
-      ),
-      child: Text(
-        count,
-        style: TextStyle(fontSize: 12, color: Colors.white),
-      ),
     );
   }
 }

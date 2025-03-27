@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/components.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
+import 'package:eswap/widgets/password_tf.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/pages/login/login_page.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       try {
         final response = await dio.post(
           url,
-          data: Provider.of<ForgotPwProvider>(context, listen: false).toJson(),
+          data: Provider.of<ForgotPwProvider>(context, listen: false).toJsonForChangePw(),
           options: Options(headers: {
             "Content-Type": "application/json",
             "Accept-Language": context.locale.languageCode,

@@ -47,6 +47,7 @@ public class Post {
     private BigDecimal salePrice;
 
     private int quantity;
+
     private int sold;
 
     @Enumerated(EnumType.STRING)

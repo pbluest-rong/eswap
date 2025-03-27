@@ -1,13 +1,18 @@
 package com.eswap.service;
 
-import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.exception.ResourceNotFoundException;
+import com.eswap.common.constants.PageResponse;
+import com.eswap.kafka.post.PostProducer;
 import com.eswap.model.*;
 import com.eswap.repository.*;
 import com.eswap.request.AddPostRequest;
+import com.eswap.response.PostResponse;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,24 +29,27 @@ public class PostService {
     private final BrandRepository brandRepository;
     private final PostMediaRepository postMediaRepository;
     private final UploadService uploadService;
+    private final PostProducer postProducer;
 
     @Transactional
-    public void addPost(AddPostRequest request, Authentication connectedUser) {
+    public void addPost(
+            Authentication connectedUser,
+            AddPostRequest request,
+            MultipartFile[] mediaFiles) {
         User user = (User) connectedUser.getPrincipal();
 
         // Lấy entity liên quan từ database
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
-        Brand brand = brandRepository.findById(request.getBrandId())
-                .orElseThrow(() -> new IllegalArgumentException("Brand not found"));
+        Brand brand = (request.getBrandId() != null) ? brandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new IllegalArgumentException("Brand not found")) : null;
 
         EducationInstitution educationInstitution = null;
         if (request.getEducationInstitutionId() != null) {
             educationInstitution = educationInstitutionRepository.findById(request.getEducationInstitutionId())
                     .orElseThrow(() -> new IllegalArgumentException("Education Institution not found"));
         }
-
         // Tạo mới Post
         Post post = new Post();
         post.setName(request.getName());
@@ -59,13 +67,10 @@ public class PostService {
         post.setDeleted(false);
         // Lưu Post vào database
         post = postRepository.save(post);
-    }
-
-    public void uploadMedia(Long postId, MultipartFile[] mediaFiles) {
-        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.POST_NOT_FOUND, "id", postId));
+        // upload ảnh
         for (MultipartFile file : mediaFiles) {
             String url = uploadService.upload(file);
-            if (url != null){
+            if (url != null) {
                 PostMedia postMedia = new PostMedia();
                 postMedia.setOriginalUrl(url);
                 postMedia.setContentType(file.getContentType());
@@ -73,5 +78,42 @@ public class PostService {
                 postMediaRepository.save(postMedia);
             }
         }
+        // 5. Gửi thông báo tới Kafka
+        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post));
+    }
+
+    public PageResponse<PostResponse> getAllPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findAll(pageable);
+
+        List<PostResponse> postResponses = posts.stream()
+                .map(post -> PostResponse.builder()
+                        .id(post.getId())
+                        .name(post.getName())
+                        .description(post.getDescription())
+                        .brand(post.getBrand())
+                        .educationInstitution(post.getEducationInstitution())
+                        .originalPrice(post.getOriginalPrice())
+                        .salePrice(post.getSalePrice())
+                        .quantity(post.getQuantity())
+                        .sold(post.getSold())
+                        .status(post.getStatus())
+                        .privacy(post.getPrivacy())
+                        .availableTime(post.getAvailableTime())
+                        .createdAt(post.getCreatedAt())
+                        .media(post.getMedia())
+                        .build())
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                postResponses,
+                posts.getNumber(),
+                posts.getSize(),
+                (int) posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isFirst(),
+                posts.isLast()
+        );
     }
 }

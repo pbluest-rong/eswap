@@ -11,7 +11,10 @@ public enum AppErrorCode {
     AUTH_FORBIDDEN("AUTH_FORBIDDEN", "error.auth.forbidden"),
     VALIDATION_FAILED("VALIDATION_FAILED", "error.auth.validation_failed"),
     PROVINCE_NOT_FOUND("PROVINCE_NOT_FOUND", "error.province.not_found"),
-    OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded");
+    OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded"),
+    AUTH_TOKEN_MISSING("AUTH_TOKEN_MISSING", "error.auth.token_missing"),
+    AUTH_TOKEN_EXPRIED("AUTH_TOKEN_EXPRIED", "error.auth.token_expired");
+
     private final String code;
     private final String messageKey;
 

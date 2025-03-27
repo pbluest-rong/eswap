@@ -1,4 +1,4 @@
-import 'package:eswap/common/components.dart';
+import 'package:eswap/widgets/password_tf.dart';
 import 'package:eswap/theme/theme_manager.dart';
 import 'package:flutter/material.dart';
 
