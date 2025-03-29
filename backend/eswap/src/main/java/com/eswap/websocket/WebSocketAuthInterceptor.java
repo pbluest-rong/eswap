@@ -34,14 +34,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 
         if (accessToken != null) {
-            String userEmail = jwtService.extractEmailFromToken(accessToken);
-            Long userId = jwtService.extractUserIdFromToken(accessToken);
-
-            log.info("Email: {}", userEmail);
-            log.info("UserId: {}", userId);
-
-            if (userEmail != null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            String username = jwtService.extractUserName(accessToken);
+            if (username != null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 if (!jwtService.isTokenValid(accessToken, userDetails)) {
                     throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_EXPRIED);
                 }
@@ -49,11 +44,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                // Lưu userId vào session attributes nếu cần
-                accessor.getSessionAttributes().put("userId", userId);
                 return message;
             }
         }
-        throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_MISSING);
+        return message;
     }
 }

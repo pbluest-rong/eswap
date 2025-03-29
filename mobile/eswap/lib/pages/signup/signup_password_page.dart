@@ -31,14 +31,14 @@ class _SignupPasswordPageState extends State<SignupPasswordPage> {
     LoadingOverlay.show(context);
 
     final dio = Dio();
-    const url = ServerInfo.requireActivateEmail_url;
+    const url = ServerInfo.requireActivate_url;
     final languageCode = context.locale.languageCode;
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
+        queryParameters: {"usernameEmailPhoneNumber": usernameEmailPhoneNumber},
         options: Options(
           headers: {
             "Content-Type": "application/json",

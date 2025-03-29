@@ -27,12 +27,12 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
 
     final dio = Dio();
     const url = ServerInfo.requireForgotPw_url;
-    final email = emailController.text.trim();
+    final usernameEmailPhoneNumber = emailController.text.trim();
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
+        queryParameters: {"email": usernameEmailPhoneNumber},
         options: Options(headers: {
           "Content-Type": "application/json",
           "Accept-Language": context.locale.languageCode,
@@ -44,7 +44,9 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
         if (mounted) {
           Provider.of<ForgotPwProvider>(context, listen: false)
               .updateOTPMinutes(minutes);
-          context.read<ForgotPwProvider>().updateEmail(email);
+          context
+              .read<ForgotPwProvider>()
+              .updateUsernameEmailPhoneNumber(usernameEmailPhoneNumber);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => VerifyEmailPage()),
@@ -61,7 +63,7 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
         showErrorDialog(context, "network_error".tr());
       }
     } finally {
-        LoadingOverlay.hide();
+      LoadingOverlay.hide();
     }
   }
 

@@ -48,7 +48,7 @@ public class PostConsumer {
             followers.forEach(f -> {
                 System.out.println("Sending to user: " + f.getId());
                 messagingTemplate.convertAndSendToUser(
-                        f.getEmail(),
+                        f.getUsername(),
                         "/queue/new-posts",
                         post
                 );
@@ -57,8 +57,8 @@ public class PostConsumer {
             e.printStackTrace();
         }
     }
-    @KafkaListener(topics = "new-post", groupId = "post-group-websocket-test")
-    public void testWebSocket(PostResponse post) {
-        messagingTemplate.convertAndSend("/topic/new-post", post);
-    }
+//    @KafkaListener(topics = "new-post", groupId = "post-group-websocket-test")
+//    public void testWebSocket(PostResponse post) {
+//        messagingTemplate.convertAndSend("/topic/new-post", post);
+//    }
 }

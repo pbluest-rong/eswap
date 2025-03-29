@@ -23,9 +23,8 @@ public class ResgistrationRequest {
     private long educationInstitutionId;
     @NotNull(message = "Gender is mandatory")
     private Boolean gender;
-    @Email(message = "Email is not formatted")
-    @NotEmpty(message = "Email is mandatory")
-    private String email;
+    @NotEmpty(message = "Username or email or phone number is mandatory")
+    private String usernameEmailPhoneNumber;
     @NotEmpty(message = "Password is mandatory")
     @NotBlank(message = "Password is mandatory")
     @Size(min = 8, message = "Password should be at least 8 characters long")

@@ -7,6 +7,7 @@ import 'package:stomp_dart_client/stomp_dart_client.dart';
 class WebSocketService {
   StompClient? stompClient;
   String? accessToken;
+  Function(String)? onNewPost;
 
   WebSocketService() {
     _initialize();
@@ -15,14 +16,11 @@ class WebSocketService {
   Future<void> _initialize() async {
     final prefs = await SharedPreferences.getInstance();
     accessToken = prefs.getString("accessToken");
-    print("📌 Token từ SharedPreferences: $accessToken");
 
     if (accessToken == null || accessToken!.isEmpty) {
-      print("⚠️ Không tìm thấy accessToken!");
       return;
     }
 
-    // Tạo headers dùng chung
     final headers = {
       'Authorization': 'Bearer $accessToken',
       'Accept': 'application/json',
@@ -31,13 +29,13 @@ class WebSocketService {
     stompClient = StompClient(
       config: StompConfig(
         url: ServerInfo.ws_url,
-        onConnect: (frame) {
-          print("✅ WebSocket kết nối thành công!");
-          onConnect(frame);
-        },
         beforeConnect: () async {
           print('🔌 Đang kết nối WebSocket với token...');
           await Future.delayed(Duration(milliseconds: 300));
+        },
+        onConnect: (frame) {
+          print("✅ WebSocket kết nối thành công!");
+          onConnect(frame);
         },
         onWebSocketError: (dynamic error) {
           print("❌ WebSocket Error: $error");
@@ -66,20 +64,20 @@ class WebSocketService {
       destination: '/user/queue/new-posts',
       headers: {'Authorization': 'Bearer $accessToken'},
       callback: (frame) {
-        print("📩 Received message!");
-        print("Headers: ${frame.headers}");
-        print("Body: ${frame.body}");
-      },
-    );
-    stompClient?.subscribe(
-      destination: '/topic/new-post',
-      headers: {'Authorization': 'Bearer $accessToken'},
-      callback: (frame) {
+        // print("📩 Received message!");
+        // print("Headers: ${frame.headers}");
+        // print("Body: ${frame.body}");
         if (frame.body != null) {
-          Map<String, dynamic> postData = jsonDecode(frame.body!);
-          print(postData);
+          final String newPost = frame.body!;
+          print("📩 New post received: $newPost");
+          if (onNewPost != null) {
+            onNewPost!(newPost);
+          }
         }
       },
     );
+  }
+  void listenForNewPosts(Function(String) callback) {
+    onNewPost = callback;
   }
 }

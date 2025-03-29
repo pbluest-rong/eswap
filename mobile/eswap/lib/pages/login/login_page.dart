@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/dialogs/dialog.dart';
 import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/provider/info_provider.dart';
 import 'package:eswap/websocket/websocket.dart';
 import 'package:eswap/widgets/loading_overlay.dart';
 import 'package:eswap/widgets/password_tf.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_email_page.dart';
 import 'package:eswap/pages/main_page.dart';
 import 'package:eswap/pages/signup/signup_name_page.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
@@ -35,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
         final response = await dio.post(
           url,
           data: {
-            "email": emailController.text,
+            "usernameEmailPhoneNumber": emailController.text,
             "password": passwordController.text,
           },
           options: Options(headers: {
@@ -47,11 +49,17 @@ class _LoginPageState extends State<LoginPage> {
         if (response.statusCode == 200 && response.data["success"] == true) {
           final accessToken = response.data["data"]["accessToken"];
           final refreshToken = response.data["data"]["refreshToken"];
+          final educationInstitutionId =
+          response.data["data"]["educationInstitutionId"];
+          final educationInstitutionName =
+              response.data["data"]["educationInstitutionName"];
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString("accessToken", accessToken);
           await prefs.setString("refreshToken", refreshToken);
 
+          Provider.of<InfoProvider>(context, listen: false)
+              .updateEducationInstitution(educationInstitutionId, educationInstitutionName);
           // Lấy FCM token mới
           final fcmToken = await FirebaseMessaging.instance.getToken();
           if (fcmToken != null) {

@@ -1,3 +1,4 @@
+import 'package:eswap/pages/chat/Chat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/pages/home/home_page.dart';
@@ -16,14 +17,20 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _currentPageIndex = 0;
   final int _notificationCount = 12;
+  final HomePageController _homePageController = HomePageController();
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    SearchPage(),
-    SizedBox(),
-    NotificationPage(),
-    OtherPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(controller: _homePageController),
+      const SearchPage(),
+      const SizedBox(),
+      const ChatPage(),
+      const OtherPage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +82,13 @@ class _MainPageState extends State<MainPage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          setState(() {
-            _currentPageIndex = index;
-          });
+          if (index == _currentPageIndex && index == 0) {
+            _homePageController.scrollToTop();
+          } else {
+            setState(() {
+              _currentPageIndex = index;
+            });
+          }
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),

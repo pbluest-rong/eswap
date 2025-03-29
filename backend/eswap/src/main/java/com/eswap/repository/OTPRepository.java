@@ -9,8 +9,8 @@ import java.util.Optional;
 public interface OTPRepository extends JpaRepository<OTP, Integer> {
     Optional<OTP> findByOtp(String otp);
 
-    void deleteByEmail(String email);
+    void deleteByUsernameEmailPhoneNumber(String email);
 
-    @Query("SELECT ct FROM OTP ct WHERE ct.email = :email")
-    Optional<OTP> findByUserEmail(String email);
+    @Query("SELECT ct FROM OTP ct WHERE ct.usernameEmailPhoneNumber = :usernameEmailPhoneNumber")
+    Optional<OTP> findByUsernameEmailPhoneNumber(String usernameEmailPhoneNumber);
 }

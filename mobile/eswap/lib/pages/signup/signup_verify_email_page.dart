@@ -117,13 +117,13 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
     });
 
     final dio = Dio();
-    const url = ServerInfo.requireActivateEmail_url;
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    const url = ServerInfo.requireActivate_url;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
+        queryParameters: {"email": usernameEmailPhoneNumber},
         options: Options(headers: {
           "Content-Type": "application/json",
           "Accept-Language": context.locale.languageCode,
@@ -188,7 +188,7 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     return Scaffold(
       appBar: AppBar(
@@ -222,7 +222,7 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
                             children: [
                               TextSpan(text: "signup_verify_desc_head".tr()),
                               TextSpan(
-                                text: " $email ",
+                                text: " $usernameEmailPhoneNumber ",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               TextSpan(text: "signup_verify_desc_tail".tr()),

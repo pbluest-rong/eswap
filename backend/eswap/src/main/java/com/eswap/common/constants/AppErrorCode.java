@@ -3,6 +3,7 @@ package com.eswap.common.constants;
 public enum AppErrorCode {
     USER_NOT_FOUND("USER_NOT_FOUND", "error.user.not_found"),
     POST_NOT_FOUND("POST_NOT_FOUND", "error.post.not_found"),
+    EDUCATION_INSTITUTION_NOT_FOUND("POST_NOT_FOUND", "error.education_institution.not_found"),
     MEDIA_NOT_FOUND("MEDIA_NOT_FOUND", "error.media.not_found"),
     USER_EXISTS("USER_EXISTS", "error.user.exists"),
     USER_INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "error.auth.invalid_credentials"),

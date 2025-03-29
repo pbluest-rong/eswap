@@ -18,11 +18,18 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class PostResponse {
+    //user info
+    private long userId;
+    private String firstname;
+    private String lastname;
+    private String avtUrl;
+
+    //post
     private long id;
+    private EducationInstitution educationInstitution;
     private String name;
     private String description;
     private Brand brand;
-    private EducationInstitution educationInstitution;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
     private int quantity;
@@ -32,15 +39,19 @@ public class PostResponse {
     private AvailableTime availableTime;
     private Timestamp createdAt;
     private List<PostMedia> media;
-    private long userId;
+    private int likesNumber;
 
-    public static PostResponse mapperToResponse(Post post) {
+    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber) {
         return PostResponse.builder()
+                .userId(post.getUser().getId())
+                .firstname(firstname)
+                .lastname(lastname)
+                .avtUrl(avtUrl)
                 .id(post.getId())
+                .educationInstitution(post.getEducationInstitution())
                 .name(post.getName())
                 .description(post.getDescription())
                 .brand(post.getBrand())
-                .educationInstitution(post.getEducationInstitution())
                 .originalPrice(post.getOriginalPrice())
                 .salePrice(post.getSalePrice())
                 .quantity(post.getQuantity())
@@ -50,7 +61,7 @@ public class PostResponse {
                 .availableTime(post.getAvailableTime())
                 .createdAt(post.getCreatedAt())
                 .media(post.getMedia())
-                .userId(post.getUser().getId())
+                .likesNumber(likesNumber)
                 .build();
     }
 

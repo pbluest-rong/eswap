@@ -1,6 +1,8 @@
 package com.eswap.service;
 
+import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.constants.PageResponse;
+import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.kafka.post.PostProducer;
 import com.eswap.model.*;
 import com.eswap.repository.*;
@@ -17,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +33,8 @@ public class PostService {
     private final PostMediaRepository postMediaRepository;
     private final UploadService uploadService;
     private final PostProducer postProducer;
+    private final LikeRepository likeRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public void addPost(
@@ -68,6 +73,7 @@ public class PostService {
         // Lưu Post vào database
         post = postRepository.save(post);
         // upload ảnh
+        List<PostMedia> mediaList = new ArrayList<>();
         for (MultipartFile file : mediaFiles) {
             String url = uploadService.upload(file);
             if (url != null) {
@@ -75,35 +81,102 @@ public class PostService {
                 postMedia.setOriginalUrl(url);
                 postMedia.setContentType(file.getContentType());
                 postMedia.setPost(post);
-                postMediaRepository.save(postMedia);
+                mediaList.add(postMedia);
             }
         }
+        post.setMedia(mediaList);
+        postRepository.save(post);
         // 5. Gửi thông báo tới Kafka
-        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post));
+        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0));
     }
 
-    public PageResponse<PostResponse> getAllPosts(Authentication connectedUser, int page, int size) {
-        User user = (User) connectedUser.getPrincipal();
+    public PageResponse<PostResponse> getAllPosts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> posts = postRepository.findAll(pageable);
 
         List<PostResponse> postResponses = posts.stream()
-                .map(post -> PostResponse.builder()
-                        .id(post.getId())
-                        .name(post.getName())
-                        .description(post.getDescription())
-                        .brand(post.getBrand())
-                        .educationInstitution(post.getEducationInstitution())
-                        .originalPrice(post.getOriginalPrice())
-                        .salePrice(post.getSalePrice())
-                        .quantity(post.getQuantity())
-                        .sold(post.getSold())
-                        .status(post.getStatus())
-                        .privacy(post.getPrivacy())
-                        .availableTime(post.getAvailableTime())
-                        .createdAt(post.getCreatedAt())
-                        .media(post.getMedia())
-                        .build())
+                .map(post -> {
+                    int likeNumber = likeRepository.countByPostId(post.getId());
+                    return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
+                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                postResponses,
+                posts.getNumber(),
+                posts.getSize(),
+                (int) posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isFirst(),
+                posts.isLast()
+        );
+    }
+
+    public PageResponse<PostResponse> getOwnPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findByUser(user, pageable);
+
+        List<PostResponse> postResponses = posts.stream()
+                .map(post -> {
+                    int likeNumber = likeRepository.countByPostId(post.getId());
+                    return PostResponse
+                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber);
+                })
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                postResponses,
+                posts.getNumber(),
+                posts.getSize(),
+                (int) posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isFirst(),
+                posts.isLast()
+        );
+    }
+
+    public PageResponse<PostResponse> getUserPosts(long userId, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findByUser(user, pageable);
+
+        List<PostResponse> postResponses = posts.stream()
+                .map(post -> {
+                    int likeNumber = likeRepository.countByPostId(post.getId());
+                    return PostResponse
+                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber);
+                })
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                postResponses,
+                posts.getNumber(),
+                posts.getSize(),
+                (int) posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isFirst(),
+                posts.isLast()
+        );
+    }
+
+    public PageResponse<PostResponse> getPostsByEducationInstitution(long educationInstitutionId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        EducationInstitution educationInstitution = educationInstitutionRepository
+                .findById(educationInstitutionId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", educationInstitutionId));
+
+        Page<Post> posts = postRepository.findByEducationInstitution(educationInstitution, pageable);
+        List<PostResponse> postResponses = posts.stream()
+                .map(post -> {
+                    int likeNumber = likeRepository.countByPostId(post.getId());
+                    return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
+                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber
+                    );
+                })
                 .collect(Collectors.toList());
 
         return new PageResponse<>(
