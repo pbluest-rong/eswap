@@ -2,6 +2,7 @@ package com.eswap.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -13,10 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,7 +31,11 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    @Size(min = 3, max = 30, message = "Username must be between 3 and 30 characters")
+    @Pattern(
+            regexp = "^(?!.*\\.\\.)(?!.*\\.$)[a-zA-Z0-9._]+$",
+            message = "Username can only contain letters, numbers, periods, and underscores, but cannot start or end with a period or have consecutive periods"
+    )
     private String username;
     @Column(name = "first_name")
     private String firstName;
@@ -51,7 +53,7 @@ public class User implements UserDetails {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    private boolean requireFollowApproval  = false;
+    private boolean requireFollowApproval = false;
     private boolean accountLocked = false;
     private boolean enabled = true;
 
@@ -87,7 +89,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return username;
     }
 
     @Override
@@ -110,7 +112,24 @@ public class User implements UserDetails {
         return enabled;
     }
 
-    public String getFullName() {
-        return firstName + " " + lastName;
+    @PrePersist
+    public void generateUsernameIfEmpty() {
+        if (this.username == null || this.username.isEmpty()) {
+            this.username = "user" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4);
+        }
+    }
+    public static boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        return email != null && email.matches(emailRegex);
+    }
+
+    public static boolean isValidPhoneNumber(String phoneNumber) {
+        String phoneRegex = "^\\+?[0-9]{7,15}$";
+        return phoneNumber != null && phoneNumber.matches(phoneRegex);
+    }
+
+    public static boolean isValidUsername(String username) {
+        String usernameRegex = "^(?!.*\\.\\.)(?!.*\\.$)[a-zA-Z0-9._]{3,30}$";
+        return username != null && username.matches(usernameRegex);
     }
 }

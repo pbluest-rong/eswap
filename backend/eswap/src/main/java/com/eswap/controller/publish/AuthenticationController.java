@@ -33,20 +33,12 @@ public class AuthenticationController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
-    @GetMapping("/test")
-    public String getClaimToken(@RequestParam String token){
-        String email = jwtService.extractEmailFromToken(token);
-        long id = jwtService.extractUserIdFromToken(token);
-        return email + " - "+id;
-    }
-
-    @PostMapping("/require-activate-email")
+    @PostMapping("/require-activate")
     public ResponseEntity<ApiResponse> requireActivateEmail(
             @RequestParam
-            @Email(message = "Email is not formatted")
-            @NotEmpty(message = "Email is mandatory") String email) {
+            @NotEmpty(message = "Email or phone number is mandatory") String emailPhoneNumber) {
 
-        OTPResponse otpResponse = otpService.sendCodeToken(email, 10);
+        OTPResponse otpResponse = otpService.sendCodeToken(emailPhoneNumber, 10);
         return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", otpResponse));
     }
 
@@ -65,16 +57,14 @@ public class AuthenticationController {
     @PostMapping("/require-forgotpw")
     public ResponseEntity<ApiResponse> requireForgotPw(
             @RequestParam
-            @Email(message = "Email is not formatted")
-            @NotEmpty(message = "Email is mandatory") String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", email));
-        OTPResponse codeTokenResponse = otpService.sendCodeToken(email, 10);
+            @NotEmpty(message = "Username or email or phone number is mandatory") String usernameEmailPhoneNumber) {
+        OTPResponse codeTokenResponse = otpService.sendCodeToken(usernameEmailPhoneNumber, 10);
         return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", codeTokenResponse));
     }
 
     @PostMapping("/verify-forgotpw")
     public ResponseEntity<ApiResponse> verifyForgotPw(@RequestBody VerifyForgotPassword verifyForgotPassword) {
-        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(verifyForgotPassword.getEmail(), verifyForgotPassword.getOtp());
+        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(verifyForgotPassword.getUsernameEmailPhoneNumber(), verifyForgotPassword.getOtp());
         return ResponseEntity.ok(new ApiResponse(true, "OTP verified successfully.", authenticationResponse));
     }
 
@@ -87,10 +77,10 @@ public class AuthenticationController {
 
     @PostMapping("/check-exist-email")
     public ResponseEntity<ApiResponse> checkExistEmail(
-            @RequestParam @Email(message = "Email is not formatted")
-            @NotEmpty(message = "Email is mandatory") String email) {
+            @RequestParam
+            @NotEmpty(message = "Username or email or phone number is mandatory") String usernameEmailPhoneNumber) {
         try {
-            boolean exists = authenticationService.checkExistEmail(email);
+            boolean exists = authenticationService.checkExistUsernameEmailPhoneNumber(usernameEmailPhoneNumber);
             Map<String, Boolean> result = new HashMap<>();
             result.put("isExistEmail", exists);
 
@@ -100,6 +90,7 @@ public class AuthenticationController {
                     .body(new ApiResponse(false, "Internal server error", null));
         }
     }
+
     @PostMapping("/refresh-token")
     public AuthenticationResponse refreshToken(@RequestBody RefreshTokenRequest request) {
         return authenticationService.refreshToken(request);

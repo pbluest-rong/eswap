@@ -32,7 +32,7 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
       final response = await dio.post(
         url,
         queryParameters: {
-          "email": emailController.text,
+          "usernameEmailPhoneNumber": emailController.text,
         },
         options: Options(headers: {
           "Content-Type": "application/json",
@@ -44,7 +44,7 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
           showErrorDialog(context, "error_email_exist".tr());
         } else {
           Provider.of<SignupProvider>(context, listen: false)
-              .updateEmail(emailController.text.trim());
+              .updateUsernameEmailPhoneNumber(emailController.text.trim());
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => SignupPasswordPage()));
         }

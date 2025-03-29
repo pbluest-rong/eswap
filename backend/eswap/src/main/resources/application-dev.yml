@@ -3,6 +3,8 @@ spring:
     url: jdbc:mysql://localhost:3306/eswap
     username: root
     password: pblues_eswap
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
   jpa:
     hibernate:
       ddl-auto: update

@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -67,6 +68,6 @@ public class Post {
     @Column(name = "created_at")
     private Timestamp createdAt;
 
-    @OneToMany(mappedBy = "post")
-    private List<PostMedia> media;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostMedia> media = new ArrayList<>();
 }

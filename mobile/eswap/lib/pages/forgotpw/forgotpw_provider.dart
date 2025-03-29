@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ForgotPwProvider extends ChangeNotifier {
-  String email = "";
+  String usernameEmailPhoneNumber = "";
   String newPassword = "";
   String token = "";
   int otpMinutes = 0;
 
-  void updateEmail(String email) {
-    this.email = email;
+  void updateUsernameEmailPhoneNumber(String usernameEmailPhoneNumber) {
+    this.usernameEmailPhoneNumber = usernameEmailPhoneNumber;
     notifyListeners();
   }
 

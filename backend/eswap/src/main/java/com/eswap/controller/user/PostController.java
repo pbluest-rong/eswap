@@ -12,14 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 @RestController
-@RequestMapping("posts")
+@RequestMapping("/posts")
 @RequiredArgsConstructor
 public class PostController {
     private final PostService postService;
 
-    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse> addPost(
             @Valid @RequestPart("post") AddPostRequest request,
             @RequestPart(value = "mediaFiles", required = false) MultipartFile[] mediaFiles,
@@ -31,12 +30,34 @@ public class PostController {
 
     @GetMapping
     public ResponseEntity<ApiResponse> getAllPosts(
-            Authentication connectedUser,
-            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
-            @RequestParam(name = "size", defaultValue = "10", required = false) int size
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        PageResponse<PostResponse> postResponses = postService.getAllPosts(connectedUser, page, size);
+        PageResponse<PostResponse> postResponses = (userId == null)
+                ? postService.getAllPosts(page, size)
+                : postService.getUserPosts(userId, page, size);
 
-        return ResponseEntity.ok(new ApiResponse(true, "Get all posts success", postResponses));
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse> getOwnPosts(
+            Authentication connectedUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getOwnPosts(connectedUser, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Your posts retrieved successfully", postResponses));
+    }
+
+    @GetMapping("/education-institutions/{educationInstitutionId}")
+    public ResponseEntity<ApiResponse> getPostsByEducationInstitution(
+            @PathVariable long educationInstitutionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getPostsByEducationInstitution(educationInstitutionId, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
     }
 }

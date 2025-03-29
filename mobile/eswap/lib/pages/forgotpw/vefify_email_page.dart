@@ -38,7 +38,6 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     }
   }
 
-
   void startCountdown() {
     countdownTimer?.cancel();
     countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -120,7 +119,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
     final dio = Dio();
     const url = ServerInfo.requireForgotPw_url;
-    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+    final email = Provider.of<ForgotPwProvider>(context, listen: false)
+        .usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
@@ -166,7 +166,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     const url = ServerInfo.verifyForgotpw_url;
 
     try {
-      final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+      final email = Provider.of<ForgotPwProvider>(context, listen: false)
+          .usernameEmailPhoneNumber;
 
       final response = await dio.post(
         url,
@@ -178,8 +179,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
       );
       if (response.statusCode == 200 && response.data["success"] == true) {
         if (mounted) {
-          final token = response.data["data"]["token"];
-          Provider.of<ForgotPwProvider>(context, listen: false).updateToken(token);
+          final token = response.data["data"]["accessToken"];
+          Provider.of<ForgotPwProvider>(context, listen: false)
+              .updateToken(token);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => ResetPasswordPage()),
@@ -202,7 +204,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+    final email = Provider.of<ForgotPwProvider>(context, listen: false)
+        .usernameEmailPhoneNumber;
 
     return Scaffold(
       appBar: AppBar(
@@ -330,7 +333,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
           runSpacing: 8,
           alignment: WrapAlignment.center,
           children:
-          List.generate(6, (index) => _buildCodeInput(context, index)),
+              List.generate(6, (index) => _buildCodeInput(context, index)),
         ),
       ),
     );
@@ -350,7 +353,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
             if (index < 5) {
               FocusScope.of(context).nextFocus(); // Chuyển sang ô tiếp theo
             } else {
-              FocusScope.of(context).unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
+              FocusScope.of(context)
+                  .unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
             }
           } else if (value.isEmpty) {
             // Nếu người dùng xóa số

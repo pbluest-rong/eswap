@@ -45,6 +45,14 @@ public class AuthenticationService {
     private final EducationInstitutionRepository educationInstitutionRepository;
     private final UserDetailsService userDetailsService;
 
+    private boolean existsUser(String usernameEmailPhoneNumber) {
+        return User.isValidUsername(usernameEmailPhoneNumber) ?
+                userRepository.existsByUsername(usernameEmailPhoneNumber) :
+                (User.isValidEmail(usernameEmailPhoneNumber)) ?
+                        userRepository.existsByEmail(usernameEmailPhoneNumber) :
+                        userRepository.existsByPhoneNumber(usernameEmailPhoneNumber);
+    }
+
     /*
     1. Register
      */
@@ -53,9 +61,12 @@ public class AuthenticationService {
         var userRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new IllegalArgumentException("ROLE USER was not initialized"));
         return Optional.of(request)
-                .filter(user -> !userRepository.existsByEmail(request.getEmail()))
+                .filter(user -> (
+                                !existsUser(request.getUsernameEmailPhoneNumber())
+                        )
+                )
                 .map(req -> {
-                    Optional<OTP> optionalToken = otpRepository.findByUserEmail(request.getEmail());
+                    Optional<OTP> optionalToken = otpRepository.findByUsernameEmailPhoneNumber(request.getUsernameEmailPhoneNumber());
 
                     if (optionalToken.isPresent() &&
                             optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getOtp().equals(optionalToken.get().getOtp())) {
@@ -67,42 +78,56 @@ public class AuthenticationService {
                                 .educationInstitution(eduInstitution)
                                 .dob(request.getDob())
                                 .gender(request.getGender())
-                                .email(request.getEmail())
+                                .email(request.getUsernameEmailPhoneNumber())
                                 .password(passwordEncoder.encode(request.getPassword()))
                                 .accountLocked(false)
                                 .enabled(true)
                                 .role(userRole)
                                 .build();
                         ;
-                        otpRepository.deleteByEmail(request.getEmail());
+                        otpRepository.deleteByUsernameEmailPhoneNumber(request.getUsernameEmailPhoneNumber());
                         return userRepository.save(user);
                     } else {
                         throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
                     }
                 })
-                .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "email", request.getEmail()));
+                .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "usernameEmailPhoneNumber", request.getUsernameEmailPhoneNumber()));
     }
 
     /**
      * 3. login, authenticate -> jwtToken
      */
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        String username;
+        User info;
+        if (User.isValidEmail(request.getUsernameEmailPhoneNumber())) {
+            info = userRepository.findByEmail(request.getUsernameEmailPhoneNumber()).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", request.getUsernameEmailPhoneNumber()));
+
+        } else if (User.isValidPhoneNumber(request.getUsernameEmailPhoneNumber())) {
+            info = userRepository.findByPhoneNumber(request.getUsernameEmailPhoneNumber()).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "phone number", request.getUsernameEmailPhoneNumber()));
+        } else {
+            info = userRepository.findByUsername(request.getUsernameEmailPhoneNumber()).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "username", request.getUsernameEmailPhoneNumber()));
+        }
+        username = info.getUsername();
         try {
             var auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
+                            username,
                             request.getPassword()
                     )
             );
             var claims = new HashMap<String, Object>();
             var user = (User) auth.getPrincipal();
-            claims.put("fullName", user.getFullName());
 
             var jwtToken = jwtService.generateToken(claims, user);
             var refreshToken = jwtService.generateRefreshToken(user);
+
+
             return AuthenticationResponse.builder()
                     .accessToken(jwtToken)
                     .refreshToken(refreshToken)
+                    .educationInstitutionId(info.getEducationInstitution().getId())
+                    .educationInstitutionName(info.getEducationInstitution().getName())
                     .build();
         } catch (BadCredentialsException ex) {
             throw new InvalidCredentialsException(AppErrorCode.USER_INVALID_CREDENTIALS);
@@ -114,12 +139,21 @@ public class AuthenticationService {
     /**
      * 4 verify forgot password
      */
-    public AuthenticationResponse verifyForgotPw(String email, String otp) {
-        userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", email));
-        Optional<OTP> optionalOTP = otpRepository.findByUserEmail(email);
+    public AuthenticationResponse verifyForgotPw(String emailOrUsernameOrPhoneNumber, String otp) {
+        String username;
+        if (User.isValidEmail(emailOrUsernameOrPhoneNumber)) {
+            User user = userRepository.findByEmail(emailOrUsernameOrPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailOrUsernameOrPhoneNumber", emailOrUsernameOrPhoneNumber));
+            username = user.getUsername();
+        } else if (User.isValidPhoneNumber(emailOrUsernameOrPhoneNumber)) {
+            User user = userRepository.findByPhoneNumber(emailOrUsernameOrPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailOrUsernameOrPhoneNumber", emailOrUsernameOrPhoneNumber));
+            username = user.getUsername();
+        } else
+            username = emailOrUsernameOrPhoneNumber;
+
+        Optional<OTP> optionalOTP = otpRepository.findByUsernameEmailPhoneNumber(emailOrUsernameOrPhoneNumber);
         if (optionalOTP.isPresent() &&
                 optionalOTP.get().getExpiresAt().isAfter(LocalDateTime.now()) && otp.equals(optionalOTP.get().getOtp())) {
-            String token = jwtService.generateTemporaryToken(email);
+            String token = jwtService.generateTemporaryToken(username);
             return AuthenticationResponse.builder().accessToken(token).build();
         } else {
             throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
@@ -133,27 +167,26 @@ public class AuthenticationService {
         if (!jwtService.isTemporaryTokenValid(request.getToken())) {
             throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
-        String email = jwtService.extractEmailFromToken(request.getToken());
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", email));
+        String username = jwtService.extractUserName(request.getToken());
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "username", username));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 
-    public boolean checkExistEmail(@Email(message = "Email is not formatted") @NotEmpty(message = "Email is mandatory") String email) {
-        return userRepository.existsByEmail(email);
+    public boolean checkExistUsernameEmailPhoneNumber(String usernameEmailPhoneNumber) {
+        return existsUser(usernameEmailPhoneNumber);
     }
 
     public AuthenticationResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
-        String userEmail = jwtService.extractUserName(refreshToken);
+        String username = jwtService.extractUserName(refreshToken);
 
-        if (userEmail != null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+        if (username != null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             // Validate the refresh token
             if (jwtService.isTokenValid(refreshToken, userDetails)) {
                 // Generate new access token
                 Map<String, Object> claims = new HashMap<>();
-                claims.put("fullName", ((User) userDetails).getFullName());
 
                 String newAccessToken = jwtService.generateToken(claims, userDetails);
 

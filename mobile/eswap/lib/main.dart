@@ -1,13 +1,14 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/DemoNotification.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/pages/init_page.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
+import 'package:eswap/provider/info_provider.dart';
 import 'package:eswap/theme/theme_constant.dart';
 import 'package:eswap/theme/theme_manager.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:eswap/pages/notification/notification_page.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -21,6 +22,7 @@ void main() async {
     path: "assets/translations",
     child: MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => InfoProvider()),
         ChangeNotifierProvider(create: (_) => ForgotPwProvider()),
         ChangeNotifierProvider(create: (_) => SignupProvider()),
       ],
@@ -62,7 +64,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       routes: {
-        DemoNotification.route: (context) => const DemoNotification(),
+        NotificationPage.route: (context) => const NotificationPage(),
       },
       debugShowCheckedModeBanner: false,
       title: "eswap",

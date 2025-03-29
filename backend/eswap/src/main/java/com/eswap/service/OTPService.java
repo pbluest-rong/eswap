@@ -2,7 +2,9 @@ package com.eswap.service;
 
 import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.exception.OtpLimitExceededException;
+import com.eswap.common.exception.ValidationException;
 import com.eswap.model.OTP;
+import com.eswap.model.User;
 import com.eswap.repository.OTPRepository;
 import com.eswap.response.OTPResponse;
 import jakarta.mail.MessagingException;
@@ -21,8 +23,13 @@ public class OTPService {
     private final EmailService emailService;
     private final int REQUEST_COUNT_MAX = 5;
 
-    public OTPResponse sendCodeToken(String email, long minutes) {
-        OTP otp = tokenRepository.findByUserEmail(email).orElse(null);
+    public OTPResponse sendCodeToken(String emailPhoneNumber, long minutes) {
+        boolean isValidEmail = User.isValidEmail(emailPhoneNumber);
+        boolean isValidPhoneNumber = User.isValidPhoneNumber(emailPhoneNumber);
+        if (!isValidEmail && !isValidPhoneNumber) {
+            throw new ValidationException(AppErrorCode.VALIDATION_FAILED, "Invalid email or phone number", emailPhoneNumber);
+        }
+        OTP otp = tokenRepository.findByUsernameEmailPhoneNumber(emailPhoneNumber).orElse(null);
         String generatedToken = generateActivationCode(6);
         if (otp != null) {
             if (otp.getRequestCount() >= REQUEST_COUNT_MAX) {
@@ -40,16 +47,20 @@ public class OTPService {
                     .otp(generatedToken)
                     .createdAt(LocalDateTime.now())
                     .expiresAt(LocalDateTime.now().plusMinutes(minutes))
-                    .email(email)
+                    .usernameEmailPhoneNumber(emailPhoneNumber)
                     .requestCount(1)
                     .build();
         }
         tokenRepository.save(otp);
-        String htmlContent = emailService.buildVerificationEmail(otp.getOtp(), minutes);
-        try {
-            emailService.sendMail(email, "Xác thực Email!", htmlContent, minutes);
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
+        if (isValidEmail) {
+            String htmlContent = emailService.buildVerificationEmail(otp.getOtp(), minutes);
+            try {
+                emailService.sendMail(emailPhoneNumber, "Xác thực Email!", htmlContent, minutes);
+            } catch (MessagingException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (isValidPhoneNumber) {
+
         }
         return new OTPResponse(minutes);
     }

@@ -92,11 +92,11 @@ public class JwtService {
         return Keys.hmacShaKeyFor(ketBytes);
     }
 
-    public String generateTemporaryToken(String email) {
+    public String generateTemporaryToken(String emailOrUsernameOrPhoneNumber) {
         Map<String, Object> claims = new HashMap<>();
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)
+                .setSubject(emailOrUsernameOrPhoneNumber)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
                 .signWith(getSignInKey())
@@ -105,12 +105,5 @@ public class JwtService {
 
     public boolean isTemporaryTokenValid(String token) {
         return !isTokenExpired(token);
-    }
-
-    public String extractEmailFromToken(String token) {
-        return extractUserName(token);
-    }
-    public Long extractUserIdFromToken(String token) {
-        return extractClaim(token, claims -> claims.get("userId", Long.class));
     }
 }
