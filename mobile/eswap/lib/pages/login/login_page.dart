@@ -1,12 +1,17 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/components.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/provider/info_provider.dart';
+import 'package:eswap/websocket/websocket.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
+import 'package:eswap/widgets/password_tf.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_email_page.dart';
 import 'package:eswap/pages/main_page.dart';
 import 'package:eswap/pages/signup/signup_name_page.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
@@ -27,12 +32,12 @@ class _LoginPageState extends State<LoginPage> {
       LoadingOverlay.show(context);
 
       final dio = Dio();
-      const url = ServerInfo.login_url;
+      String url = ServerInfo.login_url;
       try {
         final response = await dio.post(
           url,
           data: {
-            "email": emailController.text,
+            "usernameEmailPhoneNumber": emailController.text,
             "password": passwordController.text,
           },
           options: Options(headers: {
@@ -42,14 +47,48 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (response.statusCode == 200 && response.data["success"] == true) {
-          final token = response.data["data"]["token"];
+          final accessToken = response.data["data"]["accessToken"];
+          final refreshToken = response.data["data"]["refreshToken"];
+          final educationInstitutionId =
+          response.data["data"]["educationInstitutionId"];
+          final educationInstitutionName =
+              response.data["data"]["educationInstitutionName"];
 
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString("token", token);
+          await prefs.setString("accessToken", accessToken);
+          await prefs.setString("refreshToken", refreshToken);
 
-          Navigator.pushReplacement(
+          Provider.of<InfoProvider>(context, listen: false)
+              .updateEducationInstitution(educationInstitutionId, educationInstitutionName);
+          // Lấy FCM token mới
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            await prefs.setString("fcmToken", fcmToken);
+
+            // Gửi FCM token lên server
+            url = ServerInfo.saveFcmToken_url;
+            await dio
+                .post(
+              url,
+              queryParameters: {"fcmToken": fcmToken},
+              options: Options(
+                headers: {
+                  "Content-Type": "application/json",
+                  "Accept-Language": context.locale.languageCode,
+                  "Authorization": "Bearer $accessToken",
+                },
+              ),
+            )
+                .catchError((error) {
+              print("Lỗi khi gửi FCM Token: $error");
+            });
+          }
+          final wsService = WebSocketService();
+          // Chuyển hướng đến MainPage
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => MainPage()),
+            (Route<dynamic> route) => false,
           );
         } else {
           showErrorDialog(context, response.data["message"]);
@@ -85,15 +124,21 @@ class _LoginPageState extends State<LoginPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  Image.asset(
-                    "assets/images/logo.png",
-                    width: 100,
+                  ClipOval(
+                    child: Image.asset(
+                      "assets/images/logo.png",
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.fill,
+                    ),
                   ),
-                  Text(
-                    "login_title".tr(),
-                    style: textTheme.headlineLarge,
+                  // Text(
+                  //   "login_title".tr(),
+                  //   style: textTheme.headlineLarge,
+                  // ),
+                  SizedBox(
+                    height: 40,
                   ),
-                  SizedBox(height: 40,),
                   TextField(
                     decoration: InputDecoration(
                       labelText: "email".tr(),
@@ -110,21 +155,25 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 10),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: RichText(
-                      text: TextSpan(
-                        style: textTheme.labelLarge,
-                        text: "forgot_your_password".tr(),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        ForgotpwEmailPage()));
-                          },
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ForgotpwEmailPage()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        color: Colors.transparent,
+                        child: Text(
+                          "forgot_your_password".tr(),
+                          style: textTheme.labelLarge,
+                        ),
                       ),
                     ),
                   ),
+
                   Container(
                     margin: EdgeInsets.symmetric(vertical: 30),
                     width: double.infinity,
@@ -137,19 +186,21 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   RichText(
                     text: TextSpan(
-                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                       text: "signup".tr(),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>
-                                      SignUpNamePage()));
+                                  builder: (context) => SignUpNamePage()));
                         },
                     ),
                   ),
-                  SizedBox(height: 15,),
+                  SizedBox(
+                    height: 15,
+                  ),
                   Text(
                     "or_continue_with".tr(),
                     style: textTheme.labelLarge,
@@ -166,8 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                           () {}),
                       SizedBox(width: 10),
                       _buildSocialButton(
-                          Image.asset("assets/images/facebook.png",
-                              width: 30),
+                          Image.asset("assets/images/facebook.png", width: 30),
                           () {}),
                     ],
                   )

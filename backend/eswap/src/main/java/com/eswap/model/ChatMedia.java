@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "post_media")
+@Table(name = "chat_media")
 @Getter
 @Setter
 public class ChatMedia {

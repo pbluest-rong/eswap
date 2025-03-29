@@ -12,9 +12,6 @@ import lombok.Setter;
 @Setter
 @Builder
 public class AuthenticationRequest {
-    @Email(message = "Email is not formatted")
-    @NotEmpty(message = "Email is mandatory")
-    @NotBlank(message = "Email is mandatory")
-    private String email;
+    private String usernameEmailPhoneNumber;
     private String password;
 }

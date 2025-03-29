@@ -89,6 +89,15 @@ public class GlobalExceptionHandler {
                         ex.getErrorCode().getCode(), message));
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTokenException(InvalidTokenException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageSource.getMessage(ex.getErrorCode().getMessageKey(), ex.getArgs(), locale);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(false, HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                        ex.getErrorCode().getCode(), message));
+    }
+
     @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
     public ResponseEntity<ErrorResponse> handleValidationException(Exception ex) {
         Locale locale = LocaleContextHolder.getLocale();

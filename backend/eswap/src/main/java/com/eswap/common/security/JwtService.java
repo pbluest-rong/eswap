@@ -1,5 +1,6 @@
 package com.eswap.common.security;
 
+import com.eswap.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -17,10 +18,16 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-    @Value("${spring.application.security.jwt.expiration}")
-    private long jwtExpiration;
     @Value("${spring.application.security.jwt.secret-key}")
     private String secretKey = "";
+    @Value("${spring.application.security.jwt.expiration}")
+    private long jwtExpiration;
+    @Value("${spring.application.security.jwt.refresh-token.expiration}")
+    private long refreshExpiration;
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    }
 
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -35,6 +42,10 @@ public class JwtService {
                 .stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
+        // Thêm user ID vào claims nếu UserDetails là instance của User
+        if (userDetails instanceof User) {
+            extraClaims.put("userId", ((User) userDetails).getId());
+        }
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
@@ -79,5 +90,20 @@ public class JwtService {
     private Key getSignInKey() {
         byte[] ketBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(ketBytes);
+    }
+
+    public String generateTemporaryToken(String emailOrUsernameOrPhoneNumber) {
+        Map<String, Object> claims = new HashMap<>();
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(emailOrUsernameOrPhoneNumber)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .signWith(getSignInKey())
+                .compact();
+    }
+
+    public boolean isTemporaryTokenValid(String token) {
+        return !isTokenExpired(token);
     }
 }

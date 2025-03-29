@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/components.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/utils/validation.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
+import 'package:eswap/widgets/password_tf.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/pages/forgotpw/vefify_email_page.dart';
@@ -25,12 +27,12 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
 
     final dio = Dio();
     const url = ServerInfo.requireForgotPw_url;
-    final email = emailController.text.trim();
+    final usernameEmailPhoneNumber = emailController.text.trim();
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
+        queryParameters: {"email": usernameEmailPhoneNumber},
         options: Options(headers: {
           "Content-Type": "application/json",
           "Accept-Language": context.locale.languageCode,
@@ -39,9 +41,12 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
 
       if (response.statusCode == 200 && response.data["success"] == true) {
         final minutes = response.data["data"]["minutes"];
-        Provider.of<ForgotPwProvider>(context, listen: false)
-            .updateOTPMinutes(minutes);
         if (mounted) {
+          Provider.of<ForgotPwProvider>(context, listen: false)
+              .updateOTPMinutes(minutes);
+          context
+              .read<ForgotPwProvider>()
+              .updateUsernameEmailPhoneNumber(usernameEmailPhoneNumber);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => VerifyEmailPage()),
@@ -58,7 +63,7 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
         showErrorDialog(context, "network_error".tr());
       }
     } finally {
-        LoadingOverlay.hide();
+      LoadingOverlay.hide();
     }
   }
 
@@ -117,10 +122,6 @@ class _ForgotpwEmailPageState extends State<ForgotpwEmailPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              String email = emailController.text.trim();
-                              Provider.of<ForgotPwProvider>(context,
-                                      listen: false)
-                                  .updateEmail(email);
                               requireForgotPw();
                             }
                           },

@@ -1,11 +1,13 @@
+import 'package:eswap/pages/chat/Chat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/pages/home/home_page.dart';
 import 'package:eswap/pages/search/search_page.dart';
 import 'package:eswap/pages/notification/notification_page.dart';
-import 'package:eswap/pages/account/account_page.dart';
+import 'package:eswap/pages/account/other_page.dart';
 
 class MainPage extends StatefulWidget {
+
   const MainPage({super.key});
 
   @override
@@ -14,14 +16,21 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _currentPageIndex = 0;
+  final int _notificationCount = 12;
+  final HomePageController _homePageController = HomePageController();
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    SearchPage(),
-    SizedBox(), // Đây là chỗ trống cho nút giữa (index 2)
-    NotificationPage(),
-    AccountPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(controller: _homePageController),
+      const SearchPage(),
+      const SizedBox(),
+      const ChatPage(),
+      const OtherPage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +66,8 @@ class _MainPageState extends State<MainPage> {
                 _buildNavItem(Icons.home, 0),
                 _buildNavItem(Icons.search, 1),
                 SizedBox(width: 40),
-                _buildNavItem(Icons.notifications, 3, hasBadge: true),
-                _buildNavItem(Icons.person, 4),
+                _buildNavItem(Icons.message_outlined, 3, hasBadge: true, notificationCount: _notificationCount),
+                _buildNavItem(Icons.menu_sharp, 4),
               ],
             ),
           ),
@@ -67,15 +76,19 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index, {bool hasBadge = false}) {
+  Widget _buildNavItem(IconData icon, int index, {bool hasBadge = false, int notificationCount = 0}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          setState(() {
-            _currentPageIndex = index;
-          });
+          if (index == _currentPageIndex && index == 0) {
+            _homePageController.scrollToTop();
+          } else {
+            setState(() {
+              _currentPageIndex = index;
+            });
+          }
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
@@ -92,16 +105,9 @@ class _MainPageState extends State<MainPage> {
                           : null),
                   if (hasBadge)
                     Positioned(
-                      right: -2,
-                      top: -2,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      right: -10,
+                      top: -10,
+                      child: _buildNotificationBadge(notificationCount > 9 ? "9+" : notificationCount.toString()),
                     ),
                 ],
               ),
@@ -118,6 +124,21 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+  Widget _buildNotificationBadge(String count) {
+    bool isSingleDigit = count.length < 2;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isSingleDigit ? 6.5 : 3),
+      decoration: BoxDecoration(
+        color: Colors.red.shade500,
+        borderRadius: BorderRadius.circular(isSingleDigit ? 100 : 10),
+        border: Border.all(width: 2, color: Colors.white),
+      ),
+      child: Text(
+        count,
+        style: TextStyle(fontSize: 12, color: Colors.white),
       ),
     );
   }

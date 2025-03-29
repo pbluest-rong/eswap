@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity()
-@Table(name = "otp", uniqueConstraints = {@UniqueConstraint(columnNames = "email")})
+@Table(name = "otp", uniqueConstraints = {@UniqueConstraint(columnNames = "usernameEmailPhoneNumber")})
 public class OTP {
     @Id
     @GeneratedValue
@@ -19,8 +19,6 @@ public class OTP {
     private String otp;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
-    private LocalDateTime validatedAt;
-    private String email;
-    private int increaseTimeCount = 0;
+    private String usernameEmailPhoneNumber;
     private int requestCount = 0;
 }

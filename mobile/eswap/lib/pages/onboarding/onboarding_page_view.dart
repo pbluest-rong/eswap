@@ -1,7 +1,7 @@
+import 'package:eswap/core/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/pages/onboarding/onboarding_child_page.dart';
 import 'package:eswap/pages/splash/splash_page.dart';
-import 'package:eswap/enums/onboarding_page_position.dart';
 import 'package:eswap/pages/welcome/welcome_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

@@ -58,7 +58,7 @@ class _AppPasswordTextFieldState extends State<AppPasswordTextField> {
     if (value.length < 8) {
       return "password_length".tr();
     }
-    if (!RegExp(r'^(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$')
+    if (!RegExp(r'^(?=.*[A-Z])(?=.*\d)(?=.*[\W_])(?!.*\s)[A-Za-z\d\W_]{8,}$')
         .hasMatch(value)) {
       return "password_requirements".tr();
     }

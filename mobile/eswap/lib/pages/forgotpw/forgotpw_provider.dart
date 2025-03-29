@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ForgotPwProvider extends ChangeNotifier {
-  String email = "";
+  String usernameEmailPhoneNumber = "";
   String newPassword = "";
-  String otp = "";
+  String token = "";
   int otpMinutes = 0;
 
-  void updateEmail(String email) {
-    this.email = email;
+  void updateUsernameEmailPhoneNumber(String usernameEmailPhoneNumber) {
+    this.usernameEmailPhoneNumber = usernameEmailPhoneNumber;
     notifyListeners();
   }
 
@@ -15,9 +15,8 @@ class ForgotPwProvider extends ChangeNotifier {
     this.newPassword = newPassword;
     notifyListeners();
   }
-
-  void updateOTP(String otp) {
-    this.otp = otp;
+  void updateToken(String token) {
+    this.token = token;
     notifyListeners();
   }
 
@@ -26,11 +25,10 @@ class ForgotPwProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJsonForChangePw() {
     return {
-      'email': email,
-      'newPassword': newPassword,
-      'otp': otp,
+      'token': token,
+      'newPassword': newPassword
     };
   }
 }

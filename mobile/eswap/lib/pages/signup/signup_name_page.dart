@@ -1,5 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/uitls.dart';
+import 'package:eswap/core/utils/validation.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

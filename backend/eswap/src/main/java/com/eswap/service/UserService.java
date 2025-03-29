@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -100,20 +102,19 @@ public class UserService {
      * 5. Thiết lập password mới
      */
     public void changePassword(Authentication connectedUser, ChangePasswordRequest request) {
-        User user = (User) connectedUser.getPrincipal();
-        if (user.isEnabled() && user.isAccountNonLocked()) {
-            Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
-            if (optionalToken.isPresent() &&
-                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) &&
-                    optionalToken.get().getValidatedAt() == null && request.getCodeToken().equals(optionalToken.get().getOtp())) {
-                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-                userRepository.save(user);
-            } else {
-                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
-            }
-        } else {
-            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
-        }
+//        User user = (User) connectedUser.getPrincipal();
+//        if (user.isEnabled() && user.isAccountNonLocked()) {
+//            Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
+//            if (optionalToken.isPresent() &&
+//                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getCodeToken().equals(optionalToken.get().getOtp())) {
+//                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+//                userRepository.save(user);
+//            } else {
+//                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
+//            }
+//        } else {
+//            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+//        }
     }
 
     /**
@@ -144,23 +145,22 @@ public class UserService {
      * 7. Thay đổi email
      */
     public User changeEmail(Authentication connectedUser, ChangeEmailRequest request) {
-        User user = (User) connectedUser.getPrincipal();
-        if (user.isEnabled() && user.isAccountNonLocked()) {
-            if (user.getEmail() == request.getNewEmail() || userRepository.existsByEmail(request.getNewEmail())) {
-                throw new AlreadyExistsException(AppErrorCode.USER_EXISTS, "email", request.getNewEmail());
-            }
-            Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
-            if (optionalToken.isPresent() &&
-                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) &&
-                    optionalToken.get().getValidatedAt() == null && request.getCodeToken().equals(optionalToken.get().getOtp())) {
-                user.setEmail(request.getNewEmail());
-                return userRepository.save(user);
-            } else {
-                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
-            }
-        } else {
+//        User user = (User) connectedUser.getPrincipal();
+//        if (user.isEnabled() && user.isAccountNonLocked()) {
+//            if (user.getEmail() == request.getNewEmail() || userRepository.existsByEmail(request.getNewEmail())) {
+//                throw new AlreadyExistsException(AppErrorCode.USER_EXISTS, "email", request.getNewEmail());
+//            }
+//            Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
+//            if (optionalToken.isPresent() &&
+//                    optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getCodeToken().equals(optionalToken.get().getOtp())) {
+//                user.setEmail(request.getNewEmail());
+//                return userRepository.save(user);
+//            } else {
+//                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
+//            }
+//        } else {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
-        }
+//        }
     }
 
     /**
@@ -234,13 +234,15 @@ public class UserService {
                 .follower(SimpleUserDTO.builder()
                         .id(user.getId())
                         .username(user.getUsername())
-                        .fullName(user.getFullName())
+                        .firstname(user.getFirstName())
+                        .lastname(user.getLastName())
                         .avatarUrl(user.getAvatarUrl())
                         .build())
                 .followee(SimpleUserDTO.builder()
                         .id(followeeUser.getId())
                         .username(followeeUser.getUsername())
-                        .fullName(followeeUser.getFullName())
+                        .firstname(followeeUser.getFirstName())
+                        .lastname(followeeUser.getLastName())
                         .avatarUrl(followeeUser.getAvatarUrl())
                         .build())
                 .build();
@@ -307,13 +309,15 @@ public class UserService {
                 .follower(SimpleUserDTO.builder()
                         .id(requestFollowUser.getId())
                         .username(requestFollowUser.getUsername())
-                        .fullName(requestFollowUser.getFullName())
+                        .firstname(requestFollowUser.getFirstName())
+                        .lastname(requestFollowUser.getFirstName())
                         .avatarUrl(requestFollowUser.getAvatarUrl())
                         .build())
                 .followee(SimpleUserDTO.builder()
                         .id(user.getId())
                         .username(user.getUsername())
-                        .fullName(user.getFullName())
+                        .firstname(user.getFirstName())
+                        .lastname(user.getLastName())
                         .avatarUrl(user.getAvatarUrl())
                         .build())
                 .build();
@@ -360,5 +364,10 @@ public class UserService {
         String avtUrl = uploadService.upload(file);
         user.setAvatarUrl(avtUrl);
         uploadService.deleteByUrl(oldAvt);
+    }
+
+    public List<User> getFollowers(long userId) {
+        List<User> followser = followRepository.findFollowersByUserId(userId);
+        return followser;
     }
 }

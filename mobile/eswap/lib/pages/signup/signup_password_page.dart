@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/components.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
+import 'package:eswap/widgets/password_tf.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/utils/validation.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
 import 'package:eswap/pages/signup/signup_verify_email_page.dart';
 import 'package:flutter/material.dart';
@@ -29,14 +31,14 @@ class _SignupPasswordPageState extends State<SignupPasswordPage> {
     LoadingOverlay.show(context);
 
     final dio = Dio();
-    const url = ServerInfo.requireActivateEmail_url;
+    const url = ServerInfo.requireActivate_url;
     final languageCode = context.locale.languageCode;
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
+        queryParameters: {"usernameEmailPhoneNumber": usernameEmailPhoneNumber},
         options: Options(
           headers: {
             "Content-Type": "application/json",

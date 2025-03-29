@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/utils/validation.dart';
 import 'package:eswap/pages/login/login_page.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,32 +20,26 @@ class SignupVerifyEmailPage extends StatefulWidget {
 }
 
 class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
-  bool isLoading = false;
-  int remainingSeconds = 0; // Tổng số giây còn lại
-  Timer? countdownTimer; // Bộ đếm thời gian
+  int remainingSeconds = 0;
+  Timer? countdownTimer;
   List<String> otpValues = List.filled(6, '');
 
   String getOtpCode() {
-    return otpValues.join(); // Nối tất cả giá trị lại
-  }
-
-  @override
-  void initState() {
-    super.initState();
+    return otpValues.join();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final minutes = Provider.of<SignupProvider>(context, listen: false).otpMinutes;
-    setState(() {
-      remainingSeconds = minutes * 60; // Chuyển phút thành giây
-    });
-    startCountdown();
+    if (remainingSeconds == 0) {
+      remainingSeconds = minutes * 60;
+      startCountdown();
+    }
   }
 
   void startCountdown() {
-    countdownTimer?.cancel(); // Hủy bộ đếm cũ nếu có
+    countdownTimer?.cancel();
     countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -56,13 +53,13 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
     });
   }
 
-  int resendCooldown = 60;
+  int resendCooldown = 120;
   Timer? resendTimer;
-  bool canResend = true; // Biến kiểm soát việc gửi lại OTP
+  bool canResend = true;
   void startResendCooldown() {
-    resendTimer?.cancel(); // Hủy bộ đếm cũ nếu có
-    resendCooldown = 60; // Reset lại thời gian chờ
-    setState(() {}); // Cập nhật UI để hiển thị thời gian đếm ngược
+    resendTimer?.cancel();
+    resendCooldown = 120;
+    setState(() {});
 
     resendTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -71,7 +68,7 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
             resendCooldown--;
           } else {
             timer.cancel();
-            canResend = true; // Cho phép gửi lại khi hết thời gian
+            canResend = true;
           }
         });
       }
@@ -96,16 +93,16 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Xác nhận"),
-          content: Text("Bạn có chắc chắn muốn gửi lại mã OTP?"),
+          title: Text(""),
+          content: Text("confirm_send_otp".tr()),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text("Hủy"),
+              child: Text("cancel".tr()),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text("Gửi lại"),
+              child: Text("resend".tr()),
             ),
           ],
         );
@@ -115,57 +112,47 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
     if (confirmResend != true) return;
 
     setState(() {
-      isLoading = true;
       canResend = false;
       startResendCooldown();
     });
 
     final dio = Dio();
-    const url = ServerInfo.requireActivateEmail_url;
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    const url = ServerInfo.requireActivate_url;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
         url,
-        queryParameters: {"email": email},
-        options: Options(headers: {"Content-Type": "application/json"}),
+        queryParameters: {"email": usernameEmailPhoneNumber},
+        options: Options(headers: {
+          "Content-Type": "application/json",
+          "Accept-Language": context.locale.languageCode,
+        }),
       );
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data["success"] == true) {
         final minutes = response.data["data"]["minutes"];
-        Provider.of<SignupProvider>(context, listen: true)
+        Provider.of<SignupProvider>(context, listen: false)
             .updateOTPMinutes(minutes);
-        remainingSeconds = minutes * 60;
-        startCountdown();
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    "Lỗi: ${response.data['message'] ?? 'Không xác định'}")),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi kết nối: $e")),
-        );
-      }
-    } finally {
-      if (mounted) {
         setState(() {
-          isLoading = false;
+          remainingSeconds = minutes * 60;
+          startCountdown();
         });
+      } else {
+        showErrorDialog(context, response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        showErrorDialog(
+            context, e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        showErrorDialog(context, "network_error".tr());
       }
     }
   }
 
   Future<void> signup() async {
-    if (!mounted) return; // Kiểm tra context trước khi tiếp tục
-
-    setState(() {
-      isLoading = true;
-    });
+    if (!mounted) return;
+    LoadingOverlay.show(context);
 
     final dio = Dio();
     const url = ServerInfo.register_url;
@@ -177,7 +164,7 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
         data: Provider.of<SignupProvider>(context, listen: false).toJson(),
         options: Options(headers: {"Content-Type": "application/json"}),
       );
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data["success"] == true) {
         if (mounted) {
           Navigator.push(
             context,
@@ -185,33 +172,23 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
           );
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    "Lỗi: ${response.data['message'] ?? 'Không xác định'}")),
-          );
-        }
+        showErrorDialog(context, response.data["message"]);
       }
-    } catch (e) {
-      if (mounted) {
-        print(e);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi kết nối: $e")),
-        );
+    } on DioException catch (e) {
+      if (e.response != null) {
+        showErrorDialog(
+            context, e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        showErrorDialog(context, "network_error".tr());
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      LoadingOverlay.hide();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final email = Provider.of<SignupProvider>(context, listen: false).email;
+    final usernameEmailPhoneNumber = Provider.of<SignupProvider>(context, listen: false).usernameEmailPhoneNumber;
 
     return Scaffold(
       appBar: AppBar(
@@ -245,7 +222,7 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
                             children: [
                               TextSpan(text: "signup_verify_desc_head".tr()),
                               TextSpan(
-                                text: " $email ",
+                                text: " $usernameEmailPhoneNumber ",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               TextSpan(text: "signup_verify_desc_tail".tr()),
@@ -355,12 +332,22 @@ class _VerifyEmailPageState extends State<SignupVerifyEmailPage> {
       child: TextFormField(
         onChanged: (value) {
           if (value.length == 1) {
-            otpValues[index] = value; // Lưu số vào danh sách
+            // Nếu người dùng nhập số
+            setState(() {
+              otpValues[index] = value; // Lưu số vào danh sách
+            });
             if (index < 5) {
               FocusScope.of(context).nextFocus(); // Chuyển sang ô tiếp theo
             } else {
-              FocusScope.of(context)
-                  .unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
+              FocusScope.of(context).unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
+            }
+          } else if (value.isEmpty) {
+            // Nếu người dùng xóa số
+            setState(() {
+              otpValues[index] = ''; // Xóa giá trị trong ô hiện tại
+            });
+            if (index > 0) {
+              FocusScope.of(context).previousFocus(); // Quay lại ô trước đó
             }
           }
         },

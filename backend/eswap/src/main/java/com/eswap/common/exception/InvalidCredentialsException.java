@@ -7,7 +7,7 @@ public class InvalidCredentialsException extends RuntimeException {
     private final Object[] args;
 
     public InvalidCredentialsException(AppErrorCode errorCode, Object... args) {
-        super(errorCode.getMessageKey()); // Key từ AppErrorCode
+        super(errorCode.getMessageKey());
         this.errorCode = errorCode;
         this.args = args;
     }
