@@ -3,6 +3,7 @@ package com.eswap.common.constants;
 public enum AppErrorCode {
     USER_NOT_FOUND("USER_NOT_FOUND", "error.user.not_found"),
     POST_NOT_FOUND("POST_NOT_FOUND", "error.post.not_found"),
+    EDUCATION_INSTITUTION_NOT_FOUND("POST_NOT_FOUND", "error.education_institution.not_found"),
     MEDIA_NOT_FOUND("MEDIA_NOT_FOUND", "error.media.not_found"),
     USER_EXISTS("USER_EXISTS", "error.user.exists"),
     USER_INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "error.auth.invalid_credentials"),
@@ -11,7 +12,10 @@ public enum AppErrorCode {
     AUTH_FORBIDDEN("AUTH_FORBIDDEN", "error.auth.forbidden"),
     VALIDATION_FAILED("VALIDATION_FAILED", "error.auth.validation_failed"),
     PROVINCE_NOT_FOUND("PROVINCE_NOT_FOUND", "error.province.not_found"),
-    OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded");
+    OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded"),
+    AUTH_TOKEN_MISSING("AUTH_TOKEN_MISSING", "error.auth.token_missing"),
+    AUTH_TOKEN_EXPRIED("AUTH_TOKEN_EXPRIED", "error.auth.token_expired");
+
     private final String code;
     private final String messageKey;
 

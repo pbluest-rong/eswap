@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/utils/validation.dart';
 import 'package:eswap/pages/signup/signup_password_page.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/pages/login/login_page.dart';
@@ -30,7 +32,7 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
       final response = await dio.post(
         url,
         queryParameters: {
-          "email": emailController.text,
+          "usernameEmailPhoneNumber": emailController.text,
         },
         options: Options(headers: {
           "Content-Type": "application/json",
@@ -42,7 +44,7 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
           showErrorDialog(context, "error_email_exist".tr());
         } else {
           Provider.of<SignupProvider>(context, listen: false)
-              .updateEmail(emailController.text.trim());
+              .updateUsernameEmailPhoneNumber(emailController.text.trim());
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => SignupPasswordPage()));
         }

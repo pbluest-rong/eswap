@@ -1,14 +1,16 @@
-import 'package:eswap/DemoNotification.dart';
 import 'package:eswap/main.dart';
+import 'package:eswap/pages/notification/notification_page.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseApi {
   final _firebaseMessaging = FirebaseMessaging.instance;
 
   Future<void> initNotifications() async {
     await _firebaseMessaging.requestPermission();
-    final fCMToken = await _firebaseMessaging.getToken();
-    print('Token: $fCMToken');
+    final fcmToken = await _firebaseMessaging.getToken();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("fcmToken", fcmToken!);
     initPushNotifications();
   }
 
@@ -33,7 +35,7 @@ class FirebaseApi {
   void handleMessage(RemoteMessage? message) {
     if (message == null) return;
     navigatorKey.currentState
-        ?.pushNamed(DemoNotification.route, arguments: message);
+        ?.pushNamed(NotificationPage.route, arguments: message);
   }
 
   /// Xử lý thông báo khi ứng dụng ở chế độ nền hoặc bị đóng (background mode)

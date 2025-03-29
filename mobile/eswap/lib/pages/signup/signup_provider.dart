@@ -6,7 +6,7 @@ class SignupProvider extends ChangeNotifier {
   String? dob;
   int? educationInstitutionId;
   bool? gender;
-  String? email;
+  String? usernameEmailPhoneNumber;
   String? password;
   String? otp;
   int otpMinutes = 0;
@@ -23,7 +23,7 @@ class SignupProvider extends ChangeNotifier {
       'educationInstitutionId': educationInstitutionId,
       'dob': dob,
       'gender': gender,
-      'email': email,
+      'usernameEmailPhoneNumber': usernameEmailPhoneNumber,
       'password': password,
       'otp': otp
     };
@@ -54,8 +54,8 @@ class SignupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateEmail(String email) {
-    this.email = email;
+  void updateUsernameEmailPhoneNumber(String usernameEmailPhoneNumber) {
+    this.usernameEmailPhoneNumber = usernameEmailPhoneNumber;
     notifyListeners();
   }
 

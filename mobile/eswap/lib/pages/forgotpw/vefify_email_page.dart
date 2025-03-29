@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/dialogs/dialog.dart';
+import 'package:eswap/core/utils/enums.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/pages/forgotpw/forgotpw_reset_page.dart';
+import 'package:eswap/widgets/loading_overlay.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,16 +24,18 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   List<String> otpValues = List.filled(6, '');
 
   String getOtpCode() {
-    return otpValues.join(); // Nối tất cả giá trị lại
+    return otpValues.join();
   }
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     final minutes =
-        Provider.of<ForgotPwProvider>(context, listen: true).otpMinutes;
-    remainingSeconds = minutes * 60;
-    startCountdown();
+        Provider.of<ForgotPwProvider>(context, listen: false).otpMinutes;
+    if (remainingSeconds == 0) {
+      remainingSeconds = minutes * 60;
+      startCountdown();
+    }
   }
 
   void startCountdown() {
@@ -116,7 +119,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
     final dio = Dio();
     const url = ServerInfo.requireForgotPw_url;
-    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+    final email = Provider.of<ForgotPwProvider>(context, listen: false)
+        .usernameEmailPhoneNumber;
 
     try {
       final response = await dio.post(
@@ -129,10 +133,12 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
       );
       if (response.statusCode == 200 && response.data["success"] == true) {
         final minutes = response.data["data"]["minutes"];
-        Provider.of<ForgotPwProvider>(context, listen: true)
+        Provider.of<ForgotPwProvider>(context, listen: false)
             .updateOTPMinutes(minutes);
-        remainingSeconds = minutes * 60;
-        startCountdown();
+        setState(() {
+          remainingSeconds = minutes * 60;
+          startCountdown();
+        });
       } else {
         showErrorDialog(context, response.data["message"]);
       }
@@ -160,7 +166,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     const url = ServerInfo.verifyForgotpw_url;
 
     try {
-      final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+      final email = Provider.of<ForgotPwProvider>(context, listen: false)
+          .usernameEmailPhoneNumber;
 
       final response = await dio.post(
         url,
@@ -172,7 +179,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
       );
       if (response.statusCode == 200 && response.data["success"] == true) {
         if (mounted) {
-          Provider.of<ForgotPwProvider>(context, listen: false).updateOTP(otp);
+          final token = response.data["data"]["accessToken"];
+          Provider.of<ForgotPwProvider>(context, listen: false)
+              .updateToken(token);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => ResetPasswordPage()),
@@ -189,13 +198,14 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
         showErrorDialog(context, "network_error".tr());
       }
     } finally {
-        LoadingOverlay.hide();
+      LoadingOverlay.hide();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final email = Provider.of<ForgotPwProvider>(context, listen: false).email;
+    final email = Provider.of<ForgotPwProvider>(context, listen: false)
+        .usernameEmailPhoneNumber;
 
     return Scaffold(
       appBar: AppBar(
@@ -336,12 +346,23 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
       child: TextFormField(
         onChanged: (value) {
           if (value.length == 1) {
-            otpValues[index] = value; // Lưu số vào danh sách
+            // Nếu người dùng nhập số
+            setState(() {
+              otpValues[index] = value; // Lưu số vào danh sách
+            });
             if (index < 5) {
               FocusScope.of(context).nextFocus(); // Chuyển sang ô tiếp theo
             } else {
               FocusScope.of(context)
                   .unfocus(); // Nếu nhập ô cuối cùng thì bỏ focus
+            }
+          } else if (value.isEmpty) {
+            // Nếu người dùng xóa số
+            setState(() {
+              otpValues[index] = ''; // Xóa giá trị trong ô hiện tại
+            });
+            if (index > 0) {
+              FocusScope.of(context).previousFocus(); // Quay lại ô trước đó
             }
           }
         },

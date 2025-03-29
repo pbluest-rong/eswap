@@ -69,4 +69,10 @@ public class UserController {
         userService.changeInformation(authentication, request);
         return ResponseEntity.ok(new ApiResponse(true, "Change information successfully", null));
     }
+
+    @PostMapping("/follow/{followeeUserId}")
+    public ResponseEntity<ApiResponse> follow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
+        userService.follow(authentication, followeeUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", null));
+    }
 }

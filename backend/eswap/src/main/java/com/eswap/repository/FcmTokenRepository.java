@@ -10,8 +10,12 @@ import java.util.List;
 
 @Repository
 public interface FcmTokenRepository extends JpaRepository<UserFcmToken, Long> {
-    UserFcmToken findByUserId(Long userId);
+    List<UserFcmToken> findByUserId(Long userId);
 
     @Query("SELECT u FROM UserFcmToken u WHERE u.userId IN :userIdList")
     List<UserFcmToken> findByUserIdList(@Param("userIdList") List<Long> userIdList);
+
+    void deleteByFcmToken(String fcmToken);
+
+    void deleteByUserId(Long userId);
 }

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/common/uitls.dart';
-import 'package:eswap/enums/server_info.dart';
+import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/utils/validation.dart';
 import 'package:eswap/pages/login/login_page.dart';
 import 'package:eswap/pages/signup/signup_dob_page.dart';
 import 'package:eswap/pages/signup/signup_provider.dart';
