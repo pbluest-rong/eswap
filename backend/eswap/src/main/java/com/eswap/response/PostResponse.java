@@ -1,6 +1,7 @@
 package com.eswap.response;
 
 import com.eswap.common.constants.AvailableTime;
+import com.eswap.common.constants.Condition;
 import com.eswap.common.constants.PostStatus;
 import com.eswap.common.constants.Privacy;
 import com.eswap.model.*;
@@ -23,45 +24,52 @@ public class PostResponse {
     private String firstname;
     private String lastname;
     private String avtUrl;
+    private Boolean isFollowing;
 
     //post
     private long id;
-    private EducationInstitution educationInstitution;
+    private long educationInstitutionId;
+    private String educationInstitutionName;
+
     private String name;
     private String description;
-    private Brand brand;
+    private String brand;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
     private int quantity;
     private int sold;
     private PostStatus status;
     private Privacy privacy;
-    private AvailableTime availableTime;
+    private Timestamp availableTime;
+    private Condition condition;
     private Timestamp createdAt;
     private List<PostMedia> media;
     private int likesNumber;
 
-    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber) {
+    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber, Boolean isFollowing) {
         return PostResponse.builder()
                 .userId(post.getUser().getId())
                 .firstname(firstname)
                 .lastname(lastname)
                 .avtUrl(avtUrl)
                 .id(post.getId())
-                .educationInstitution(post.getEducationInstitution())
+                .educationInstitutionId(post.getEducationInstitution().getId())
+                .educationInstitutionName(post.getEducationInstitution().getName())
                 .name(post.getName())
                 .description(post.getDescription())
-                .brand(post.getBrand())
+                .brand(post.getBrand()!=null?post.getBrand().getName():null)
                 .originalPrice(post.getOriginalPrice())
                 .salePrice(post.getSalePrice())
                 .quantity(post.getQuantity())
                 .sold(post.getSold())
                 .status(post.getStatus())
                 .privacy(post.getPrivacy())
-                .availableTime(post.getAvailableTime())
+                .availableTime(post.getAvailableTime().calculateExpirationTime(post.getCreatedAt()))
+                .condition(post.getCondition())
                 .createdAt(post.getCreatedAt())
                 .media(post.getMedia())
                 .likesNumber(likesNumber)
+                .isFollowing(isFollowing)
                 .build();
     }
 
@@ -72,7 +80,6 @@ public class PostResponse {
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", brand=" + brand +
-                ", educationInstitution=" + educationInstitution +
                 ", originalPrice=" + originalPrice +
                 ", salePrice=" + salePrice +
                 ", quantity=" + quantity +

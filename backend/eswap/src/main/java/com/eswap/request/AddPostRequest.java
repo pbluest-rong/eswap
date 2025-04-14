@@ -1,6 +1,7 @@
 package com.eswap.request;
 
 import com.eswap.common.constants.AvailableTime;
+import com.eswap.common.constants.Condition;
 import com.eswap.common.constants.PostStatus;
 import com.eswap.common.constants.Privacy;
 import lombok.Getter;
@@ -17,11 +18,11 @@ public class AddPostRequest {
     private String description;
     private Long categoryId;
     private Long brandId;
-    private Long educationInstitutionId;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
     private int quantity;
     private AvailableTime availableTime;
     private PostStatus status;
     private Privacy privacy;
+    private Condition condition;
 }

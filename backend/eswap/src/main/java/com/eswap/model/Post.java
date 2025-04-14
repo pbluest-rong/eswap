@@ -1,6 +1,7 @@
 package com.eswap.model;
 
 import com.eswap.common.constants.AvailableTime;
+import com.eswap.common.constants.Condition;
 import com.eswap.common.constants.PostStatus;
 import com.eswap.common.constants.Privacy;
 import jakarta.persistence.*;
@@ -60,6 +61,11 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(name = "available_time")
     private AvailableTime availableTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "item_condition ")
+    private Condition condition;
+
 
     @Column(name = "is_deleted")
     private boolean isDeleted;

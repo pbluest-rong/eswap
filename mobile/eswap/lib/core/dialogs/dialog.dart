@@ -20,3 +20,12 @@ void showErrorDialog(BuildContext context, String message) {
     },
   );
 }
+void showErrorSnackbar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 3),
+      backgroundColor: Colors.red,
+    ),
+  );
+}

@@ -1,16 +1,17 @@
 package com.eswap.service;
 
-import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.constants.PageResponse;
+import com.eswap.common.constants.*;
 import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.kafka.post.PostProducer;
 import com.eswap.model.*;
 import com.eswap.repository.*;
 import com.eswap.request.AddPostRequest;
+import com.eswap.request.SearchFilterSortRequest;
 import com.eswap.response.PostResponse;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.constraints.LuhnCheck;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +37,9 @@ public class PostService {
     private final PostProducer postProducer;
     private final LikeRepository likeRepository;
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
+    private final ProvinceRepository provinceRepository;
+    private final CategoryService categoryService;
 
     @Transactional
     public void addPost(
@@ -51,8 +56,8 @@ public class PostService {
                 .orElseThrow(() -> new IllegalArgumentException("Brand not found")) : null;
 
         EducationInstitution educationInstitution = null;
-        if (request.getEducationInstitutionId() != null) {
-            educationInstitution = educationInstitutionRepository.findById(request.getEducationInstitutionId())
+        if (user.getEducationInstitution() != null) {
+            educationInstitution = educationInstitutionRepository.findById(user.getEducationInstitution().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Education Institution not found"));
         }
         // Tạo mới Post
@@ -69,6 +74,7 @@ public class PostService {
         post.setAvailableTime(request.getAvailableTime());
         post.setStatus(request.getStatus());
         post.setPrivacy(request.getPrivacy());
+        post.setCondition(request.getCondition());
         post.setDeleted(false);
         // Lưu Post vào database
         post = postRepository.save(post);
@@ -87,43 +93,64 @@ public class PostService {
         post.setMedia(mediaList);
         postRepository.save(post);
         // 5. Gửi thông báo tới Kafka
-        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0));
+        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0, true));
     }
 
-    public PageResponse<PostResponse> getAllPosts(int page, int size) {
+    public PageResponse<PostResponse> getSuggestedPosts(Authentication connectedUser, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
+        User user = (User) connectedUser.getPrincipal();
+        if (searchFilterSortRequest != null) {
+            SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
+
+            Sort sort;
+            if (sortBy == null)
+                sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else
+                switch (sortBy) {
+                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                    case RELATED -> {
+                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    }
+                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                }
+
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
+
+            List<Long> expandedCategoryIds = null;
+            if (searchFilterSortRequest.getCategoryIdList() != null) {
+                expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
+            }
+            Page<Post> posts = postRepository.getSuggestedPosts(
+                    user,
+                    pageable,
+                    searchFilterSortRequest.getKeyword(),
+                    expandedCategoryIds,
+                    searchFilterSortRequest.getBrandIdList(),
+                    searchFilterSortRequest.getMinPrice(),
+                    searchFilterSortRequest.getMaxPrice(),
+                    condition,
+                    isOnlyShop
+            );
+            return convertPostResponseToPageResponse(user, posts);
+        }
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = postRepository.findAll(pageable);
-
-        List<PostResponse> postResponses = posts.stream()
-                .map(post -> {
-                    int likeNumber = likeRepository.countByPostId(post.getId());
-                    return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
-                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber
-                    );
-                })
-                .collect(Collectors.toList());
-
-        return new PageResponse<>(
-                postResponses,
-                posts.getNumber(),
-                posts.getSize(),
-                (int) posts.getTotalElements(),
-                posts.getTotalPages(),
-                posts.isFirst(),
-                posts.isLast()
-        );
+        Page<Post> posts = postRepository.getSuggestedPosts(user, pageable);
+        return convertPostResponseToPageResponse(user, posts);
     }
 
     public PageResponse<PostResponse> getOwnPosts(Authentication connectedUser, int page, int size) {
         User user = (User) connectedUser.getPrincipal();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = postRepository.findByUser(user, pageable);
+        Page<Post> posts = postRepository.getPost(user, pageable);
 
         List<PostResponse> postResponses = posts.stream()
                 .map(post -> {
                     int likeNumber = likeRepository.countByPostId(post.getId());
                     return PostResponse
-                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber);
+                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, null);
                 })
                 .collect(Collectors.toList());
 
@@ -138,18 +165,21 @@ public class PostService {
         );
     }
 
-    public PageResponse<PostResponse> getUserPosts(long userId, int page, int size) {
+    public PageResponse<PostResponse> getUserPosts(Authentication connectedUser, long userId, int page, int size) {
+        User userPrincipal = (User) connectedUser.getPrincipal();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
+        boolean isFollower = (followRepository.existsByFollowerAndFollowee(userPrincipal, user));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = postRepository.findByUser(user, pageable);
+        Page<Post> posts = isFollower ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
 
         List<PostResponse> postResponses = posts.stream()
                 .map(post -> {
                     int likeNumber = likeRepository.countByPostId(post.getId());
+                    boolean isFollowing = followRepository.existsByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
                     return PostResponse
-                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber);
+                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, isFollowing);
                 })
                 .collect(Collectors.toList());
 
@@ -164,17 +194,107 @@ public class PostService {
         );
     }
 
-    public PageResponse<PostResponse> getPostsByEducationInstitution(long educationInstitutionId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop,  SearchFilterSortRequest searchFilterSortRequest) {
+        User user = (User) connectedUser.getPrincipal();
         EducationInstitution educationInstitution = educationInstitutionRepository
                 .findById(educationInstitutionId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", educationInstitutionId));
 
-        Page<Post> posts = postRepository.findByEducationInstitution(educationInstitution, pageable);
+        if (searchFilterSortRequest != null) {
+            SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
+
+            Sort sort;
+            if (sortBy == null)
+                sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else
+                switch (sortBy) {
+                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                    case RELATED -> {
+                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    }
+                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                }
+
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
+            List<Long> expandedCategoryIds = null;
+            if (searchFilterSortRequest.getCategoryIdList() != null) {
+                expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
+            }
+            Page<Post> posts = postRepository.findByEducationInstitution(
+                    user,
+                    educationInstitution,
+                    pageable,
+                    searchFilterSortRequest.getKeyword(),
+                    expandedCategoryIds,
+                    searchFilterSortRequest.getBrandIdList(),
+                    searchFilterSortRequest.getMinPrice(),
+                    searchFilterSortRequest.getMaxPrice(),
+                    condition,
+                    isOnlyShop
+            );
+            return convertPostResponseToPageResponse(user, posts);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findByEducationInstitution(user, educationInstitution, pageable);
+        return convertPostResponseToPageResponse(user, posts);
+    }
+
+    public PageResponse<PostResponse> getPostsByProvince(Authentication connectedUser, String provinceId, int page, int size, boolean isOnlyShop,  SearchFilterSortRequest searchFilterSortRequest) {
+        User user = (User) connectedUser.getPrincipal();
+        Province province = provinceRepository
+                .findById(provinceId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.PROVINCE_NOT_FOUND, "id", provinceId));
+
+        if (searchFilterSortRequest != null) {
+            SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
+
+            Sort sort;
+            if (sortBy == null)
+                sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else
+                switch (sortBy) {
+                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                    case RELATED -> {
+                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                    }
+                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                }
+
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
+            List<Long> expandedCategoryIds = null;
+            if (searchFilterSortRequest.getCategoryIdList() != null) {
+                expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
+            }
+            Page<Post> posts = postRepository.findByProvince(
+                    user,
+                    province,
+                    pageable,
+                    searchFilterSortRequest.getKeyword(),
+                    expandedCategoryIds,
+                    searchFilterSortRequest.getBrandIdList(),
+                    searchFilterSortRequest.getMinPrice(),
+                    searchFilterSortRequest.getMaxPrice(),
+                    condition,
+                    isOnlyShop
+            );
+            return convertPostResponseToPageResponse(user, posts);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findByProvince(user, province, pageable);
+        return convertPostResponseToPageResponse(user, posts);
+    }
+
+    private PageResponse<PostResponse> convertPostResponseToPageResponse(User user, Page<Post> posts) {
         List<PostResponse> postResponses = posts.stream()
                 .map(post -> {
                     int likeNumber = likeRepository.countByPostId(post.getId());
+                    boolean isFollowing = followRepository.existsByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
                     return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
-                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber
+                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, isFollowing
                     );
                 })
                 .collect(Collectors.toList());
@@ -188,5 +308,13 @@ public class PostService {
                 posts.isFirst(),
                 posts.isLast()
         );
+    }
+
+    public PageResponse<PostResponse> getPostsOfFollowing(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Post> posts = postRepository.findPostsOfFollowing(user, pageable);
+        return convertPostResponseToPageResponse(user, posts);
     }
 }

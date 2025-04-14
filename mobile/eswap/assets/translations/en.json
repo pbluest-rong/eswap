@@ -1,69 +1,56 @@
 {
   "language": "English",
-
   "next": "Next",
   "skip": "Skip",
   "back": "Back",
   "get_start": "Get start",
-
   "onboarding_1_title": "Connect & Exchange Easily",
   "onboarding_1_content": "Connect with friends and students in your area to exchange books, study materials, and other items.",
-
   "onboarding_2_title": "Save Money & Protect the Environment",
   "onboarding_2_content": "Save costs and reduce waste by exchanging used items instead of buying new ones.",
-
   "onboarding_3_title": "Search & Post Quickly",
   "onboarding_3_content": "Post exchange listings and find the items you need in just a few simple steps.",
-
   "welcome_title": "Welcome to eswap!",
   "welcome_desc": "Please login to your account or create new account to continue",
-
   "login": "Login",
   "signup": "Sign up",
-
   "login_title": "Login here",
   "login_desc": "Welcome back you've been missed!",
   "email": "Email",
   "pw": "Password",
   "forgot_your_password": "Forgot your password?",
-
   "create_new_account": "Create new account",
-  "or_continue_with": "Or continue with",
-
+  "or_continue_with": "or continue with",
+  "or": "or",
   "signup_question_1": "What is your full name?",
   "signup_question_1_desc": "Enter your real name as you use it in daily life",
   "first_name": "First name",
   "last_name": "Last name",
   "signup_bottom": "I have an existing account",
-
   "signup_question_2": "What is your education institution?",
   "signup_question_2_desc": "Select the name of the school, college, or university you are currently attending or the nearest one to your location",
   "province": "Province",
   "education_institution": "Education Institution",
-
   "signup_question_3": "What is your date of birth?",
   "signup_question_3_desc": "Pick your birth date. You can change its visibility later.",
   "dob": "Birthday",
-
   "signup_question_4": "What is your gender?",
   "signup_question_4_desc": "Please select your gender from the options below",
   "gender": "Gender",
   "female": "Female",
   "male": "Male",
   "another": "Another",
-
-  "signup_question_5": "What is your email address?",
-  "signup_question_5_desc": "Please provide an email where we can contact you. This will remain private and won't be shown on your profile",
-
+  "signup_question_5_email": "What is your email address?",
+  "signup_question_5_email_desc": "Please provide an email where we can contact you. This will remain private and won't be shown on your profile",
+  "signup_question_5_phone": "What is your phone number?",
+  "signup_question_5_phone_desc": "Please provide an phone number where we can contact you. This will remain private and won't be shown on your profile",
   "signup_question_6": "Set password",
-
-  "signup_verify_title": "Verify your email address",
-  "signup_verify_desc_head": "We sent you a 4 digit code to verify your email address",
+  "signup_verify_title": "Verify your {}",
+  "signup_verify_desc_head": "We sent you a 4 digit code to verify your {}",
   "signup_verify_desc_tail": "Enter in the field below",
   "resend": "Resend",
   "resend_question": "Didn't get the code?",
   "expires_in": "Expires in",
-
   "forgot_pw_title": "Forgot your password?",
   "forgot_pw_desc": "Enter your email address and we will share a link to create a new password",
   "send": "Send",
@@ -72,11 +59,9 @@
   "confirm_new_pw": "Confirm new password",
   "confirm_pw": "Confirm password",
   "submit": "Submit",
-
   "error": "Error",
   "network_error": "Unable to connect, please check your network",
   "general_error": "An error has occurred",
-
   "high_school": "High School",
   "college": "College",
   "university": "University",
@@ -85,15 +70,34 @@
   "select_institution_type": "Select institution type",
   "search_institution": "Search institution",
   "registration_age_limit": "You must be {} years or older to register",
-  "error_email_exist": "Email already exists",
+  "error_exist": " {} already exists",
   "name_only_letters": "Name can only contain letters",
   "invalid_email": "Invalid email format",
+  "phone_number": "Phone number",
+  "invalid_phone_number": "Invalid phone number format",
   "password_length": "Password should be at least 8 characters long",
   "password_requirements": "Password must contain at least one uppercase letter, one number, and one special character",
   "password_mismatch": "Passwords do not match",
-
-
   "confirm": "Confirm",
   "cancel": "Cancel",
-  "confirm_send_otp": "Are you sure you want to resend the OTP?"
+  "confirm_send_otp": "Are you sure you want to resend the OTP?",
+  "following": "Following",
+  "search": "Search",
+  "scope" : "Scope",
+  "nationwide": "Nationwide",
+  "filter":"Filter",
+  "sort_related":"Related",
+  "sort_latest": "Latest",
+  "filter_shop": "Shop",
+  "sort_price": "Price",
+  "retry": "Retry",
+  "no_posts_available": "No posts available",
+  "new": "New",
+  "used": "Used",
+  "category_brand": "Category & Brand",
+  "condition": "Condition",
+  "price_range": "Price Range",
+  "clear": "Reset",
+  "apply": "Apply",
+  "error_max_price": "Maximum price must be greater than or equal to minimum price"
 }

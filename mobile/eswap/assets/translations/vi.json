@@ -1,69 +1,56 @@
 {
   "language": "Tiếng Việt",
-
   "next": "Tiếp tục",
   "skip": "Bỏ qua",
   "back": "Quay lại",
   "get_start": "Bắt đầu",
-
   "onboarding_1_title": "Kết nối & Trao đổi dễ dàng",
   "onboarding_1_content": "Kết nối với bạn bè và sinh viên trong khu vực để trao đổi sách, đồ dùng học tập và vật phẩm khác.",
-
   "onboarding_2_title": "Tiết kiệm & Bảo vệ môi trường",
   "onboarding_2_content": "Tiết kiệm chi phí và giảm lãng phí bằng cách trao đổi đồ cũ thay vì mua mới.",
-
   "onboarding_3_title": "Tìm kiếm & Đăng tin nhanh chóng",
   "onboarding_3_content": "Đăng tin trao đổi và tìm kiếm vật phẩm bạn cần chỉ trong vài bước đơn giản.",
-
   "welcome_title": "Chào mừng đến với eswap!",
   "welcome_desc": "Vui lòng đăng nhập hoặc tạo tài khoản để tiếp tục",
-
   "login": "Đăng nhập",
   "signup": "Đăng ký",
-
   "login_title": "Đăng nhập",
   "login_desc": "Chào mừng bạn trở lại!",
   "email": "Email",
   "pw": "Mật khẩu",
   "forgot_your_password": "Quên mật khẩu?",
-
   "create_new_account": "Tạo tài khoản mới",
   "or_continue_with": "Hoặc",
-
+  "or": "hoặc",
   "signup_question_1": "Tên của bạn là gì?",
   "signup_question_1_desc": "Nhập tên thật của bạn như bạn sử dụng trong cuộc sống hàng ngày",
   "first_name": "Tên đệm và tên",
   "last_name": "Họ",
   "signup_bottom": "Tôi đã có tài khoản",
-
   "signup_question_2": "Trường học của bạn là gì?",
   "signup_question_2_desc": "Chọn tên trường học, cao đẳng hoặc đại học mà bạn đang theo học hoặc gần vị trí của bạn nhất.",
   "province": "Tỉnh thành",
   "education_institution": "Trường học",
-
   "signup_question_3": "Ngày sinh của bạn là khi nào?",
   "signup_question_3_desc": "Chọn ngày sinh của bạn. Bạn có thể thay đổi quyền riêng tư sau này.",
   "dob": "Ngày sinh",
-
   "signup_question_4": "Giới tính của bạn là gì?",
   "signup_question_4_desc": "Vui lòng chọn giới tính của bạn từ các tùy chọn bên dưới.",
   "gender": "Giới tính",
   "female": "Nữ",
   "male": "Nam",
   "another": "Khác",
-
-  "signup_question_5": "Địa chỉ email của bạn là gì?",
-  "signup_question_5_desc": "Vui lòng nhập email mà chúng tôi có thể liên hệ với bạn. Email này sẽ được bảo mật và không hiển thị trên hồ sơ của bạn",
-
+  "signup_question_5_email": "Địa chỉ email của bạn là gì?",
+  "signup_question_5_email_desc": "Vui lòng nhập email mà chúng tôi có thể liên hệ với bạn. Email này sẽ được bảo mật và không hiển thị trên hồ sơ của bạn",
+  "signup_question_5_phone": "Số điện thoại của bạn là gì?",
+  "signup_question_5_phone_desc": "Vui lòng nhập số điện thoại mà chúng tôi có thể liên hệ với bạn. Số điện thoại này sẽ được bảo mật và không hiển thị trên hồ sơ của bạn",
   "signup_question_6": "Thiết lập mật khẩu đăng nhập",
-
-  "signup_verify_title": "Xác minh địa chỉ email của bạn",
-  "signup_verify_desc_head": "Chúng tôi đã gửi cho bạn một mã gồm 4 chữ số để xác minh địa chỉ email",
+  "signup_verify_title": "Xác minh {} của bạn",
+  "signup_verify_desc_head": "Chúng tôi đã gửi cho bạn một mã gồm 4 chữ số để xác minh {}",
   "signup_verify_desc_tail": "Nhập mã vào ô bên dưới",
   "resend": "Gửi lại",
   "resend_question": "Không nhận được mã?",
   "expires_in": "Hết hạn sau",
-
   "forgot_pw_title": "Quên mật khẩu?",
   "forgot_pw_desc": "Nhập địa chỉ email của bạn, chúng tôi sẽ gửi liên kết để tạo mật khẩu mới",
   "send": "Gửi",
@@ -72,11 +59,9 @@
   "confirm_new_pw": "Nhập lại mật khẩu mới",
   "confirm_pw": "Nhập lại mật khẩu",
   "submit": "Hoàn tất",
-
   "error": "Lỗi",
   "network_error": "Không thể kết nối, vui lòng kiểm tra mạng",
   "general_error": "Đã xảy ra lỗi",
-
   "high_school": "THPT",
   "college": "Cao đẳng",
   "university": "Đại học",
@@ -85,14 +70,34 @@
   "select_institution_type": "Chọn loại trường học",
   "search_institution": "Tìm kiếm trường học",
   "registration_age_limit": "Bạn phải từ {} tuổi trở lên để đăng ký",
-  "error_email_exist": "Email đã tồn tại",
+  "error_exist": "{} đã tồn tại",
   "name_only_letters": "Tên chỉ được chứa chữ cái",
   "invalid_email": "Email không đúng định dạng",
+  "phone_number": "Số điện thoại",
+  "invalid_phone_number": "Số điện thoại không đúng định dạng",
   "password_length": "Mật khẩu phải có ít nhất 8 ký tự",
   "password_requirements": "Mật khẩu phải chứa ít nhất một chữ cái viết hoa, một số và một ký tự đặc biệt",
   "password_mismatch": "Mật khẩu không khớp",
-
   "confirm": "Xác nhận",
   "cancel": "Hủy",
-  "confirm_send_otp": "Bạn có chắc chắn muốn gửi lại mã OTP?"
+  "confirm_send_otp": "Bạn có chắc chắn muốn gửi lại mã OTP?",
+  "following": "Đang theo dõi",
+  "search": "Tìm kiếm",
+  "scope": "Phạm vi",
+  "nationwide": "Toàn quốc",
+  "filter":"Lọc",
+  "sort_related":"Liên quan",
+  "sort_latest": "Mới nhất",
+  "filter_shop": "Shop",
+  "sort_price": "Giá",
+  "retry": "Thử lại",
+  "no_posts_available": "Không có bài viết nào có sẵn",
+  "new": "Mới",
+  "used": "Đã sử dụng",
+  "category_brand": "Danh mục và thương hiệu",
+  "condition": "Tình trạng",
+  "price_range": "Khoảng giá",
+  "clear": "Thiết lập lại",
+  "apply": "Áp dụng",
+  "error_max_price" : "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu"
 }
