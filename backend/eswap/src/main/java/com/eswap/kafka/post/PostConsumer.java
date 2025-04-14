@@ -27,7 +27,7 @@ public class PostConsumer {
 
     @KafkaListener(topics = "new-post", groupId = "post-group-notification", containerFactory = "postKafkaListenerContainerFactory")
     public void processNewPost(PostResponse post) {
-        System.out.println("📥 Received post from Kafka for notification " + post);
+        System.out.println("Kafka: new-post post-group-notification " + post);
         notificationService.createAndPushNotification(
                 post.getUserId(),
                 RecipientType.FOLLOWERS,
@@ -41,7 +41,7 @@ public class PostConsumer {
     @KafkaListener(topics = "new-post", groupId = "post-group-websocket")
     public void processNewPostWebSocket(PostResponse post) {
         try {
-            System.out.println("📥 Received post: " + post);
+            System.out.println("Kafka: new-post post-group-websocket " + post);
             List<User> followers = userService.getFollowers(post.getUserId());
             System.out.println("Sending to " + followers.size() + " followers");
 

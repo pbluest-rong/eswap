@@ -2,17 +2,19 @@ package com.eswap.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.Getter;
 import lombok.ToString;
 
 import java.util.Set;
 
 @Entity
 @Table(name = "categories")
+@Getter
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    private String title;
+    private String name;
     @ManyToOne
     @JoinColumn(name = "parent_id", referencedColumnName = "id")
     private Category parentCategory;

@@ -10,8 +10,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class VerifyForgotPassword {
-    @NotEmpty(message = "Username or email or phone number is mandatory")
-    private String usernameEmailPhoneNumber;
+    @NotEmpty(message = "Email or phone number is mandatory")
+    private String emailPhoneNumber;
     @NotEmpty(message = "Code is mandatory")
     @NotBlank(message = "Code is mandatory")
     @Size(min = 6, message = "Code must be at least 6 characters long")
