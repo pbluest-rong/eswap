@@ -19,6 +19,5 @@ public class Brand {
     private String name;
     @ManyToMany(mappedBy = "brands")
     @JsonIgnore
-    @ToString.Exclude
     private Set<Category> categories;
 }
