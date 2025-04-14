@@ -3,6 +3,7 @@ package com.eswap.controller.admin;
 import com.eswap.common.ApiResponse;
 import com.eswap.model.Brand;
 import com.eswap.model.Category;
+import com.eswap.response.CategoryResponse;
 import com.eswap.service.BrandService;
 import com.eswap.service.CategoryService;
 import com.eswap.service.UserService;
@@ -35,8 +36,8 @@ public class AdminController {
 
     @PostMapping("/categories/add")
     public ResponseEntity<ApiResponse> createCategory(@RequestBody Category category) {
-        Category savedCategory = categoryService.saveCategory(category);
-        return ResponseEntity.ok(new ApiResponse(true,"Created category successfully", savedCategory));
+         categoryService.saveCategory(category);
+        return ResponseEntity.ok(new ApiResponse(true,"Created category successfully", null));
     }
 
     @DeleteMapping("/categories/delete/{id}")

@@ -8,9 +8,13 @@ import com.eswap.repository.UserRepository;
 import com.eswap.request.*;
 import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.OTPResponse;
+import com.eswap.response.SimpleUserDTO;
+import com.eswap.response.UserTestResponse;
 import com.eswap.service.OTPService;
 import com.eswap.model.User;
 import com.eswap.service.AuthenticationService;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -21,7 +25,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("auth")
@@ -33,20 +39,40 @@ public class AuthenticationController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse> getUser() {
+        List<UserTestResponse> users = userRepository.findAll()
+                .stream()
+                .map(u -> UserTestResponse.builder()
+                        .username(u.getUsername())
+                        .email(u.getEmail())
+                        .build()
+                )
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ApiResponse(true, "Get users successfully.", users));
+    }
+
     @PostMapping("/require-activate")
     public ResponseEntity<ApiResponse> requireActivateEmail(
             @RequestParam
             @NotEmpty(message = "Email or phone number is mandatory") String emailPhoneNumber) {
-
         OTPResponse otpResponse = otpService.sendCodeToken(emailPhoneNumber, 10);
         return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", otpResponse));
     }
 
 
-    @PostMapping("/register")
+    @PostMapping("/register-email")
     public ResponseEntity<ApiResponse> register(@RequestBody @Valid ResgistrationRequest request) {
-        User user = authenticationService.register(request);
+        authenticationService.register(request);
         return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", null));
+    }
+
+    @PostMapping("/register-phone")
+    public ResponseEntity<ApiResponse> signup(@RequestHeader("Authorization") String token,
+                                              @RequestBody @Valid ResgistrationRequest request) {
+        authenticationService.registerUsePhoneNumber(token, request);
+        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", null));
+
     }
 
     @PostMapping("/login")
@@ -57,14 +83,24 @@ public class AuthenticationController {
     @PostMapping("/require-forgotpw")
     public ResponseEntity<ApiResponse> requireForgotPw(
             @RequestParam
-            @NotEmpty(message = "Username or email or phone number is mandatory") String usernameEmailPhoneNumber) {
-        OTPResponse codeTokenResponse = otpService.sendCodeToken(usernameEmailPhoneNumber, 10);
+            @NotEmpty(message = "Username or email or phone number is mandatory") String emailPhoneNumber) {
+        if (User.isValidEmail(emailPhoneNumber)) {
+            userRepository.findByEmail(emailPhoneNumber).orElseThrow(()
+                    -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", emailPhoneNumber));
+
+        } else if (User.isValidPhoneNumber(emailPhoneNumber)) {
+            userRepository.findByPhoneNumber(emailPhoneNumber).orElseThrow(()
+                    -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "phone number", emailPhoneNumber));
+        } else {
+            new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email or phone number", emailPhoneNumber);
+        }
+        OTPResponse codeTokenResponse = otpService.sendCodeToken(emailPhoneNumber, 10);
         return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", codeTokenResponse));
     }
 
     @PostMapping("/verify-forgotpw")
     public ResponseEntity<ApiResponse> verifyForgotPw(@RequestBody VerifyForgotPassword verifyForgotPassword) {
-        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(verifyForgotPassword.getUsernameEmailPhoneNumber(), verifyForgotPassword.getOtp());
+        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(verifyForgotPassword.getEmailPhoneNumber(), verifyForgotPassword.getOtp());
         return ResponseEntity.ok(new ApiResponse(true, "OTP verified successfully.", authenticationResponse));
     }
 
@@ -75,14 +111,14 @@ public class AuthenticationController {
         return ResponseEntity.ok(new ApiResponse(true, "User forgot password successfully", null));
     }
 
-    @PostMapping("/check-exist-email")
+    @PostMapping("/check-exist")
     public ResponseEntity<ApiResponse> checkExistEmail(
             @RequestParam
             @NotEmpty(message = "Username or email or phone number is mandatory") String usernameEmailPhoneNumber) {
         try {
             boolean exists = authenticationService.checkExistUsernameEmailPhoneNumber(usernameEmailPhoneNumber);
             Map<String, Boolean> result = new HashMap<>();
-            result.put("isExistEmail", exists);
+            result.put("isExist", exists);
 
             return ResponseEntity.ok(new ApiResponse(true, exists ? "Email already exists" : "Email is available", result));
         } catch (Exception e) {

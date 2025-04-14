@@ -1,7 +1,10 @@
 package com.eswap.common.security;
 
+import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.exception.InvalidTokenException;
 import com.eswap.model.User;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,7 +73,11 @@ public class JwtService {
     }
 
     public String extractUserName(String token) {
-        return extractClaim(token, Claims::getSubject);
+        try {
+            return extractClaim(token, Claims::getSubject);
+        }catch (ExpiredJwtException e){
+            throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_EXPRIED);
+        }
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimResolver) {

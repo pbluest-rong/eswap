@@ -1,5 +1,6 @@
 package com.eswap.service;
 
+import com.eswap.common.ApiResponse;
 import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.exception.*;
 import com.eswap.common.security.JwtService;
@@ -15,9 +16,13 @@ import com.eswap.model.OTP;
 import com.eswap.repository.OTPRepository;
 import com.eswap.model.User;
 import com.eswap.repository.UserRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -62,11 +67,11 @@ public class AuthenticationService {
                 .orElseThrow(() -> new IllegalArgumentException("ROLE USER was not initialized"));
         return Optional.of(request)
                 .filter(user -> (
-                                !existsUser(request.getUsernameEmailPhoneNumber())
+                                !existsUser(request.getEmailPhoneNumber())
                         )
                 )
                 .map(req -> {
-                    Optional<OTP> optionalToken = otpRepository.findByUsernameEmailPhoneNumber(request.getUsernameEmailPhoneNumber());
+                    Optional<OTP> optionalToken = otpRepository.findByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
 
                     if (optionalToken.isPresent() &&
                             optionalToken.get().getExpiresAt().isAfter(LocalDateTime.now()) && request.getOtp().equals(optionalToken.get().getOtp())) {
@@ -78,20 +83,58 @@ public class AuthenticationService {
                                 .educationInstitution(eduInstitution)
                                 .dob(request.getDob())
                                 .gender(request.getGender())
-                                .email(request.getUsernameEmailPhoneNumber())
+                                .email(request.getEmailPhoneNumber())
                                 .password(passwordEncoder.encode(request.getPassword()))
                                 .accountLocked(false)
                                 .enabled(true)
                                 .role(userRole)
                                 .build();
                         ;
-                        otpRepository.deleteByUsernameEmailPhoneNumber(request.getUsernameEmailPhoneNumber());
+                        otpRepository.deleteByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
                         return userRepository.save(user);
                     } else {
                         throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
                     }
                 })
-                .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "usernameEmailPhoneNumber", request.getUsernameEmailPhoneNumber()));
+                .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "email", request.getEmailPhoneNumber()));
+    }
+
+    public User registerUsePhoneNumber(String token, @Valid ResgistrationRequest request) {
+        try {
+            // Lấy ID Token từ header
+            String idToken = token.replace("Bearer ", "");
+            // Xác thực ID Token với Firebase
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+            var userRole = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new IllegalArgumentException("ROLE USER was not initialized"));
+            return Optional.of(request)
+                    .filter(user -> (
+                                    !existsUser(request.getEmailPhoneNumber())
+                            )
+                    )
+                    .map(req -> {
+                            EducationInstitution eduInstitution = educationInstitutionRepository.findById(request.getEducationInstitutionId()).orElseThrow(() -> new IllegalArgumentException("EDUCATION INSTITUTION ID was not initialized"));
+                            User user = User.builder()
+                                    .firstName(request.getFirstname())
+                                    .lastName(request.getLastname())
+                                    .educationInstitution(eduInstitution)
+                                    .dob(request.getDob())
+                                    .gender(request.getGender())
+                                    .phoneNumber(request.getEmailPhoneNumber())
+                                    .password(passwordEncoder.encode(request.getPassword()))
+                                    .accountLocked(false)
+                                    .enabled(true)
+                                    .role(userRole)
+                                    .build();
+                            ;
+                            otpRepository.deleteByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
+                            return userRepository.save(user);
+                    })
+                    .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "phone number", request.getEmailPhoneNumber()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InvalidCredentialsException(AppErrorCode.USER_INVALID_CREDENTIALS);
+        }
     }
 
     /**
@@ -139,20 +182,23 @@ public class AuthenticationService {
     /**
      * 4 verify forgot password
      */
-    public AuthenticationResponse verifyForgotPw(String emailOrUsernameOrPhoneNumber, String otp) {
+    public AuthenticationResponse verifyForgotPw(String emailPhoneNumber, String otp) {
         String username;
-        if (User.isValidEmail(emailOrUsernameOrPhoneNumber)) {
-            User user = userRepository.findByEmail(emailOrUsernameOrPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailOrUsernameOrPhoneNumber", emailOrUsernameOrPhoneNumber));
+        if (User.isValidEmail(emailPhoneNumber)) {
+            System.out.println("email: " + emailPhoneNumber);
+            User user = userRepository.findByEmail(emailPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailPhoneNumber", emailPhoneNumber));
             username = user.getUsername();
-        } else if (User.isValidPhoneNumber(emailOrUsernameOrPhoneNumber)) {
-            User user = userRepository.findByPhoneNumber(emailOrUsernameOrPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailOrUsernameOrPhoneNumber", emailOrUsernameOrPhoneNumber));
+        } else if (User.isValidPhoneNumber(emailPhoneNumber)) {
+            System.out.println("phone number: " + emailPhoneNumber);
+            User user = userRepository.findByPhoneNumber(emailPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailPhoneNumber", emailPhoneNumber));
             username = user.getUsername();
         } else
-            username = emailOrUsernameOrPhoneNumber;
+            username = emailPhoneNumber;
 
-        Optional<OTP> optionalOTP = otpRepository.findByUsernameEmailPhoneNumber(emailOrUsernameOrPhoneNumber);
+        Optional<OTP> optionalOTP = otpRepository.findByUsernameEmailPhoneNumber(emailPhoneNumber);
         if (optionalOTP.isPresent() &&
                 optionalOTP.get().getExpiresAt().isAfter(LocalDateTime.now()) && otp.equals(optionalOTP.get().getOtp())) {
+            otpRepository.deleteByUsernameEmailPhoneNumber(emailPhoneNumber);
             String token = jwtService.generateTemporaryToken(username);
             return AuthenticationResponse.builder().accessToken(token).build();
         } else {
@@ -198,4 +244,5 @@ public class AuthenticationService {
         }
         throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_EXPRIED);
     }
+
 }
