@@ -1,78 +1,34 @@
 package com.eswap.controller.user;
 
 import com.eswap.common.ApiResponse;
-import com.eswap.common.constants.RoleType;
+import com.eswap.common.constants.PageResponse;
+import com.eswap.response.SimpleUserResponse;
 import com.eswap.service.UserService;
-import com.eswap.request.ChangeEmailRequest;
-import com.eswap.request.ChangeInfoRequest;
-import com.eswap.request.ChangePasswordRequest;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("accounts")
+@RequestMapping("users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/enable-account")
-    public ResponseEntity<ApiResponse> enableUser(Authentication authentication) {
-        userService.enableAccount(authentication);
-        return ResponseEntity.ok(new ApiResponse(true, "Disable account successfully", null));
-    }
-
-    @PostMapping("/disable-account")
-    public ResponseEntity<ApiResponse> disableUser(Authentication authentication) {
-        userService.disableAccount(authentication);
-        return ResponseEntity.ok(new ApiResponse(true, "Disable account successfully", null));
-    }
-
-    @PostMapping("/block/{blockedId}")
-    public ResponseEntity<ApiResponse> blockOtherUser(Authentication authentication, @PathVariable("otherUserId") long blockedId) {
-        userService.blockUser(authentication, blockedId);
-        return ResponseEntity.ok(new ApiResponse(true, "Blocked user successfully", null));
-    }
-
-    @PostMapping("/unblock/{blockedId}")
-    public ResponseEntity<ApiResponse> unblockOtherUser(Authentication authentication, @PathVariable("otherUserId") long blockedId) {
-        userService.blockUser(authentication, blockedId);
-        return ResponseEntity.ok(new ApiResponse(true, "Unblocked user successfully", null));
-    }
-
-    @GetMapping("/is-blocked")
-    public ResponseEntity<Boolean> isBlocked(
-            @RequestParam long blockerId,
-            @RequestParam long blockedId) {
-        boolean result = userService.isBlocked(blockerId, blockedId);
-        return ResponseEntity.ok(result);
-    }
-
-    @PostMapping("/change-pw")
-    public ResponseEntity<ApiResponse> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(authentication, request);
-        return ResponseEntity.ok(new ApiResponse(true, "Change password successfully", null));
-    }
-
-    @PostMapping("/change-email")
-    public ResponseEntity<ApiResponse> changeEmail(Authentication authentication, @RequestBody ChangeEmailRequest request) {
-        userService.changeEmail(authentication, request);
-        return ResponseEntity.ok(new ApiResponse(true, "Change email successfully", null));
-    }
-
-    @PostMapping("/change-info")
-    public ResponseEntity<ApiResponse> changeInfo(Authentication authentication, @RequestBody ChangeInfoRequest request) {
-        userService.changeInformation(authentication, request);
-        return ResponseEntity.ok(new ApiResponse(true, "Change information successfully", null));
-    }
-
-    @PostMapping("/follow/{followeeUserId}")
-    public ResponseEntity<ApiResponse> follow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
-        userService.follow(authentication, followeeUserId);
-        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", null));
+    @GetMapping
+    public ResponseEntity<ApiResponse> findUser(Authentication auth,
+                                                @RequestParam(required = false, name = "keyword") String keyword,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
+        if (keyword == null || keyword.isEmpty()) {
+//            PageResponse<SimpleUserResponse> usersResponse = userService.findUser(auth, keyword, page, size);
+            return ResponseEntity.ok(new ApiResponse(true, "Find user successfully", null));
+        } else {
+            PageResponse<SimpleUserResponse> usersResponse = userService.findUser(auth, keyword, page, size);
+            return ResponseEntity.ok(new ApiResponse(true, "Find user successfully", usersResponse));
+        }
     }
 }

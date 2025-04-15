@@ -21,18 +21,18 @@ public class EducationInstitution {
 
     @ManyToOne
     @JoinColumn(name = "province_id")
-    @ToString.Exclude
+    @JsonIgnore
     private Province province;
 
     private String address;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "institution_type")
+    @JsonIgnore
     private InstitutionType institutionType;
 
     @OneToMany(mappedBy = "educationInstitution", fetch = FetchType.LAZY,
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH, CascadeType.REFRESH})
     @JsonIgnore
-    @ToString.Exclude
     private List<User> users;
 }
