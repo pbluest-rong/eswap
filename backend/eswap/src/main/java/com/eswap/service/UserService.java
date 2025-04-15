@@ -1,6 +1,7 @@
 package com.eswap.service;
 
 import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.constants.PageResponse;
 import com.eswap.common.constants.RoleType;
 import com.eswap.common.exception.*;
 import com.eswap.model.*;
@@ -8,21 +9,23 @@ import com.eswap.repository.BlockRepository;
 import com.eswap.repository.OTPRepository;
 import com.eswap.repository.FollowRepository;
 import com.eswap.response.FollowResponse;
-import com.eswap.response.SimpleUserDTO;
+import com.eswap.response.SimpleUserResponse;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
 import com.eswap.request.ChangePasswordRequest;
 import com.eswap.repository.UserRepository;
 import com.eswap.service.upload.UploadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -159,7 +162,7 @@ public class UserService {
 //                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
 //            }
 //        } else {
-            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
 //        }
     }
 
@@ -231,20 +234,8 @@ public class UserService {
 
         return FollowResponse.builder()
                 .id(follow.getId())
-                .follower(SimpleUserDTO.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .firstname(user.getFirstName())
-                        .lastname(user.getLastName())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build())
-                .followee(SimpleUserDTO.builder()
-                        .id(followeeUser.getId())
-                        .username(followeeUser.getUsername())
-                        .firstname(followeeUser.getFirstName())
-                        .lastname(followeeUser.getLastName())
-                        .avatarUrl(followeeUser.getAvatarUrl())
-                        .build())
+                .follower(SimpleUserResponse.mapperToSimpleUserResponse(user))
+                .followee(SimpleUserResponse.mapperToSimpleUserResponse(followeeUser))
                 .build();
     }
 
@@ -306,20 +297,8 @@ public class UserService {
 
         return FollowResponse.builder()
                 .id(follow.getId())
-                .follower(SimpleUserDTO.builder()
-                        .id(requestFollowUser.getId())
-                        .username(requestFollowUser.getUsername())
-                        .firstname(requestFollowUser.getFirstName())
-                        .lastname(requestFollowUser.getFirstName())
-                        .avatarUrl(requestFollowUser.getAvatarUrl())
-                        .build())
-                .followee(SimpleUserDTO.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .firstname(user.getFirstName())
-                        .lastname(user.getLastName())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build())
+                .follower(SimpleUserResponse.mapperToSimpleUserResponse(requestFollowUser))
+                .followee(SimpleUserResponse.mapperToSimpleUserResponse(user))
                 .build();
 
     }
@@ -346,28 +325,36 @@ public class UserService {
      * 17. update avt
      */
     public void updateAvatar(Authentication connectedUser, MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File không được để trống.");
-        }
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Chỉ chấp nhận file ảnh.");
-        }
-        User user = (User) connectedUser.getPrincipal();
-
-        if (!user.isEnabled() || user.isAccountLocked()) {
-            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
-        }
-
-        String oldAvt = user.getAvatarUrl();
-        String avtUrl = uploadService.upload(file);
-        user.setAvatarUrl(avtUrl);
-        uploadService.deleteByUrl(oldAvt);
     }
 
     public List<User> getFollowers(long userId) {
         List<User> followser = followRepository.findFollowersByUserId(userId);
         return followser;
+    }
+
+    public PageResponse<SimpleUserResponse> findUser(Authentication auth, String keyword, int page, int size) {
+        User user = (User) auth.getPrincipal();
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userRepository.searchUsersWithPriority(user, keyword, pageable);
+
+        List<SimpleUserResponse> usersResponse = users
+                .stream()
+                .map(u -> {
+                    boolean isFollowing = followRepository.existsByFollowerAndFollowee(user, u);
+                    return SimpleUserResponse.mapperToSimpleUserResponse(u, isFollowing);
+                })
+                .collect(Collectors.toList());
+        return new PageResponse<>(
+                usersResponse,
+                users.getNumber(),
+                users.getSize(),
+                (int) users.getTotalElements(),
+                users.getTotalPages(),
+                users.isFirst(),
+                users.isLast()
+        );
+
     }
 }
