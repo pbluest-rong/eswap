@@ -7,6 +7,6 @@ import lombok.Data;
 @Builder
 public class FollowResponse {
     private long id;
-    private SimpleUserDTO follower;
-    private SimpleUserDTO followee;
+    private SimpleUserResponse follower;
+    private SimpleUserResponse followee;
 }

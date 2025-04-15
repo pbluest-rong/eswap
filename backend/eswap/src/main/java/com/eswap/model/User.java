@@ -57,9 +57,8 @@ public class User implements UserDetails {
     private boolean accountLocked = false;
     private boolean enabled = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "education_institution_id")
-    @ToString.Exclude
     private EducationInstitution educationInstitution;
 
     @ManyToOne()
