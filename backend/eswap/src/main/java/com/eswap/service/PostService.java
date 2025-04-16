@@ -11,7 +11,6 @@ import com.eswap.response.PostResponse;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.validator.constraints.LuhnCheck;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -93,7 +91,7 @@ public class PostService {
         post.setMedia(mediaList);
         postRepository.save(post);
         // 5. Gửi thông báo tới Kafka
-        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0, true));
+        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0, FollowStatus.FOLLOWED));
     }
 
     public PageResponse<PostResponse> getSuggestedPosts(Authentication connectedUser, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
@@ -169,17 +167,19 @@ public class PostService {
         User userPrincipal = (User) connectedUser.getPrincipal();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
-        boolean isFollower = (followRepository.existsByFollowerAndFollowee(userPrincipal, user));
+        Follow follow = (followRepository.getByFollowerIdAndFolloweeId(userPrincipal.getId(), user.getId()));
+
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = isFollower ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
+        Page<Post> posts = (follow.isWaitConfirm() == true) ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
 
         List<PostResponse> postResponses = posts.stream()
                 .map(post -> {
                     int likeNumber = likeRepository.countByPostId(post.getId());
-                    boolean isFollowing = followRepository.existsByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
+                            : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
                     return PostResponse
-                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, isFollowing);
+                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, followStatus);
                 })
                 .collect(Collectors.toList());
 
@@ -194,7 +194,7 @@ public class PostService {
         );
     }
 
-    public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop,  SearchFilterSortRequest searchFilterSortRequest) {
+    public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();
         EducationInstitution educationInstitution = educationInstitutionRepository
                 .findById(educationInstitutionId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", educationInstitutionId));
@@ -241,7 +241,7 @@ public class PostService {
         return convertPostResponseToPageResponse(user, posts);
     }
 
-    public PageResponse<PostResponse> getPostsByProvince(Authentication connectedUser, String provinceId, int page, int size, boolean isOnlyShop,  SearchFilterSortRequest searchFilterSortRequest) {
+    public PageResponse<PostResponse> getPostsByProvince(Authentication connectedUser, String provinceId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();
         Province province = provinceRepository
                 .findById(provinceId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.PROVINCE_NOT_FOUND, "id", provinceId));
@@ -292,9 +292,12 @@ public class PostService {
         List<PostResponse> postResponses = posts.stream()
                 .map(post -> {
                     int likeNumber = likeRepository.countByPostId(post.getId());
-                    boolean isFollowing = followRepository.existsByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+
+                    Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
+                            : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
                     return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
-                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, isFollowing
+                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, followStatus
                     );
                 })
                 .collect(Collectors.toList());

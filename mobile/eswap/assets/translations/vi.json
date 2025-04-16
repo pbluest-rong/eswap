@@ -99,5 +99,7 @@
   "price_range": "Khoảng giá",
   "clear": "Thiết lập lại",
   "apply": "Áp dụng",
-  "error_max_price" : "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu"
+  "error_max_price" : "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu",
+  "no_result_found": "Không tìm thấy kết quả",
+  "show_more": "Xem thêm..."
 }

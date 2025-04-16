@@ -99,5 +99,7 @@
   "price_range": "Price Range",
   "clear": "Reset",
   "apply": "Apply",
-  "error_max_price": "Maximum price must be greater than or equal to minimum price"
+  "error_max_price": "Maximum price must be greater than or equal to minimum price",
+  "no_result_found": "No result found",
+  "show_more": "More..."
 }

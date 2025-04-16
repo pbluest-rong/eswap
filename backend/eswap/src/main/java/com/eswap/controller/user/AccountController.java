@@ -1,6 +1,7 @@
 package com.eswap.controller.user;
 
 import com.eswap.common.ApiResponse;
+import com.eswap.response.FollowResponse;
 import com.eswap.service.UserService;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
@@ -68,8 +69,12 @@ public class AccountController {
 
     @PostMapping("/follow/{followeeUserId}")
     public ResponseEntity<ApiResponse> follow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
-        userService.follow(authentication, followeeUserId);
-        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", null));
+        FollowResponse followResponse = userService.follow(authentication, followeeUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", followResponse));
     }
-
+    @PostMapping("/unfollow/{followeeUserId}")
+    public ResponseEntity<ApiResponse> unfollow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
+        userService.unfollow(authentication, followeeUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Unfollow user successfully", null));
+    }
 }

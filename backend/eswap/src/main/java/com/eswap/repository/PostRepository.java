@@ -42,7 +42,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                        WHERE f.follower = :user and f.waitConfirm=false
                                     )
                                 )
-                               AND (:keyword IS NULL OR p.name LIKE %:keyword%)
+                               AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.user.firstName LIKE %:keyword% OR p.user.lastName LIKE %:keyword%)
                                AND (:categoryIdList IS NULL OR p.category.id IN :categoryIdList)
                                AND (:brandIdList IS NULL OR p.brand.id IN :brandIdList)
                                AND (:minPrice IS NULL OR p.salePrice >= :minPrice)
@@ -84,7 +84,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                            SELECT f.followee FROM Follow f
                                            WHERE f.follower = :user and f.waitConfirm=false
                                         ))
-                           AND (:keyword IS NULL OR p.name LIKE %:keyword%)
+                           AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.user.firstName LIKE %:keyword% OR p.user.lastName LIKE %:keyword%)
                            AND (:categoryIdList IS NULL OR p.category.id IN :categoryIdList)
                            AND (:brandIdList IS NULL OR p.brand.id IN :brandIdList)
                            AND (:minPrice IS NULL OR p.salePrice >= :minPrice)
@@ -143,7 +143,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                            SELECT f.followee FROM Follow f
                                            WHERE f.follower = :user and f.waitConfirm=false
                                         ))
-                                    AND (:keyword IS NULL OR p.name LIKE %:keyword%)
+                                    AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.user.firstName LIKE %:keyword% OR p.user.lastName LIKE %:keyword%)
                                     AND (:categoryIdList IS NULL OR p.category.id IN :categoryIdList)
                                     AND (:brandIdList IS NULL OR p.brand.id IN :brandIdList)
                                     AND (:minPrice IS NULL OR p.salePrice >= :minPrice)

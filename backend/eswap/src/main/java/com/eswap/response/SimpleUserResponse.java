@@ -1,5 +1,6 @@
 package com.eswap.response;
 
+import com.eswap.common.constants.FollowStatus;
 import com.eswap.model.User;
 import lombok.*;
 
@@ -14,13 +15,9 @@ public class SimpleUserResponse {
     private String lastname;
     private String avatarUrl;
     private String educationInstitutionName;
-    private Boolean isFollowing;
+    private FollowStatus followStatus;
 
-    public static SimpleUserResponse mapperToSimpleUserResponse(User user, Boolean isFollowing) {
-        return new SimpleUserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getEducationInstitution().getName(), isFollowing);
-    }
-
-    public static SimpleUserResponse mapperToSimpleUserResponse(User user) {
-        return new SimpleUserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getEducationInstitution().getName(), null);
+    public static SimpleUserResponse mapperToSimpleUserResponse(User user, FollowStatus followtSatus) {
+        return new SimpleUserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getEducationInstitution().getName(), followtSatus);
     }
 }

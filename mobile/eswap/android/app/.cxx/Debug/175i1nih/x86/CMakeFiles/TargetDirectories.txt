@@ -1,0 +1,2 @@
+D:/eswap/mobile/eswap/android/app/.cxx/Debug/175i1nih/x86/CMakeFiles/edit_cache.dir
+D:/eswap/mobile/eswap/android/app/.cxx/Debug/175i1nih/x86/CMakeFiles/rebuild_cache.dir

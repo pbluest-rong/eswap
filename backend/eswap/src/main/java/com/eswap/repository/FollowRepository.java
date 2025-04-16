@@ -12,13 +12,13 @@ import java.util.Optional;
 
 @Repository
 public interface FollowRepository extends JpaRepository<Follow, Long> {
-    boolean existsByFollowerAndFollowee(User user, User followeeUser);
-
-    @Query("SELECT COUNT(f) > 0 FROM Follow f WHERE f.follower.id = :followerId AND f.followee.id = :followeeId")
-    boolean existsByFollowerIdAndFolloweeId(@Param("followerId") long followerId, @Param("followeeId") long followeeId);
+    @Query("SELECT f FROM Follow f WHERE f.follower.id = :followerId AND f.followee.id = :followeeId")
+    Follow getByFollowerIdAndFolloweeId(@Param("followerId") long followerId, @Param("followeeId") long followeeId);
 
     Optional<Follow> findByFollowerAndFollowee(User user, User followeeUser);
 
     @Query("SELECT f.follower FROM Follow f WHERE f.followee.id = :userId")
     List<User> findFollowersByUserId(@Param("userId") long userId);
+
+
 }

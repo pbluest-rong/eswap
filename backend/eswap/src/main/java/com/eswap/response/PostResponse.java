@@ -1,9 +1,6 @@
 package com.eswap.response;
 
-import com.eswap.common.constants.AvailableTime;
-import com.eswap.common.constants.Condition;
-import com.eswap.common.constants.PostStatus;
-import com.eswap.common.constants.Privacy;
+import com.eswap.common.constants.*;
 import com.eswap.model.*;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,7 +21,7 @@ public class PostResponse {
     private String firstname;
     private String lastname;
     private String avtUrl;
-    private Boolean isFollowing;
+    private FollowStatus followStatus;
 
     //post
     private long id;
@@ -46,7 +43,7 @@ public class PostResponse {
     private List<PostMedia> media;
     private int likesNumber;
 
-    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber, Boolean isFollowing) {
+    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber, FollowStatus followStatus) {
         return PostResponse.builder()
                 .userId(post.getUser().getId())
                 .firstname(firstname)
@@ -69,7 +66,7 @@ public class PostResponse {
                 .createdAt(post.getCreatedAt())
                 .media(post.getMedia())
                 .likesNumber(likesNumber)
-                .isFollowing(isFollowing)
+                .followStatus(followStatus)
                 .build();
     }
 

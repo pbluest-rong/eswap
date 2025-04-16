@@ -1,4 +1,5 @@
 import 'package:eswap/model/education_institution_model.dart';
+import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/post_media_model.dart';
 
 class Post {
@@ -6,7 +7,7 @@ class Post {
   final String firstname;
   final String lastname;
   final String? avtUrl;
-  final bool isFollowing;
+  String followStatus;
 
   final int id;
   final int educationInstitutionId;
@@ -31,7 +32,7 @@ class Post {
       required this.firstname,
       required this.lastname,
       required this.avtUrl,
-      required this.isFollowing,
+      required this.followStatus,
       required this.id,
       required this.educationInstitutionId,
       required this.educationInstitutionName,
@@ -52,36 +53,30 @@ class Post {
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-        userId: json['userId'],
-        firstname: json['firstname'],
-        lastname: json['lastname'],
-        avtUrl: json['avtUrl'],
-        isFollowing: json['isFollowing'],
-        id: json['id'],
-        educationInstitutionId: json['educationInstitutionId'],
-        educationInstitutionName: json['educationInstitutionName'],
-        name: json['name'],
-        description: json['description'],
-        brand: json['brand'],
-        originalPrice: json['originalPrice'],
-        salePrice: json['salePrice'],
-        quantity: json['quantity'],
-        sold: json['sold'],
-        status: json['status'],
-        privacy: json['privacy'],
-        availableTime: json['availableTime'],
-        condition: json['condition'],
-        createdAt: json['createdAt'],
-        media: (json['media'] as List<dynamic>)
-            .map((e) => PostMedia.fromJson(e))
-            .toList(),
-        likesNumber: json['likesNumber'],);
+      userId: json['userId'],
+      firstname: json['firstname'],
+      lastname: json['lastname'],
+      avtUrl: json['avtUrl'],
+      followStatus: json['followStatus'],
+      id: json['id'],
+      educationInstitutionId: json['educationInstitutionId'],
+      educationInstitutionName: json['educationInstitutionName'],
+      name: json['name'],
+      description: json['description'],
+      brand: json['brand'],
+      originalPrice: json['originalPrice'],
+      salePrice: json['salePrice'],
+      quantity: json['quantity'],
+      sold: json['sold'],
+      status: json['status'],
+      privacy: json['privacy'],
+      availableTime: json['availableTime'],
+      condition: json['condition'],
+      createdAt: json['createdAt'],
+      media: (json['media'] as List<dynamic>)
+          .map((e) => PostMedia.fromJson(e))
+          .toList(),
+      likesNumber: json['likesNumber'],
+    );
   }
 }
-
-enum Privacy {
-  PUBLIC,
-  FOLLOWERS,
-}
-
-enum Condition { NEW, USED }

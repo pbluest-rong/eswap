@@ -1,5 +1,5 @@
 import 'package:eswap/main.dart';
-import 'package:eswap/view/notification/notification_page.dart';
+import 'package:eswap/presentation/views/notification/notification_page.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

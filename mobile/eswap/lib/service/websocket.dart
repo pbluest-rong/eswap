@@ -1,4 +1,5 @@
-import 'package:eswap/core/utils/enums.dart';
+import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/core/onboarding/onboarding_page_position.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
@@ -26,7 +27,7 @@ class WebSocketService {
 
     stompClient = StompClient(
       config: StompConfig(
-        url: ServerInfo.ws_url,
+        url: ApiEndpoints.ws_url,
         beforeConnect: () async {
           print('🔌 Đang kết nối WebSocket với token...');
           await Future.delayed(Duration(milliseconds: 300));

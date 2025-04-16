@@ -1,6 +1,7 @@
 package com.eswap.service;
 
 import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.constants.FollowStatus;
 import com.eswap.common.constants.PageResponse;
 import com.eswap.common.constants.RoleType;
 import com.eswap.common.exception.*;
@@ -15,6 +16,7 @@ import com.eswap.request.ChangeInfoRequest;
 import com.eswap.request.ChangePasswordRequest;
 import com.eswap.repository.UserRepository;
 import com.eswap.service.upload.UploadService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +26,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -223,25 +224,32 @@ public class UserService {
 
         User followeeUser = userRepository.findById(followeeUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId));
+        Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), followeeUser.getId());
 
-        Follow follow = Follow.builder()
-                .follower(user)
-                .followee(followeeUser)
-                .waitConfirm(followeeUser.isRequireFollowApproval() ? true : false)
-                .build();
+        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
+                : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+        if (followStatus == FollowStatus.FOLLOWED || followStatus == FollowStatus.WAITING) {
+            throw new AlreadyExistsException(AppErrorCode.FOLLOW_USER_FOLLOWED);
+        } else {
+            Follow newFollow = Follow.builder()
+                    .follower(user)
+                    .followee(followeeUser)
+                    .waitConfirm(followeeUser.isRequireFollowApproval() ? true : false)
+                    .build();
 
-        followRepository.save(follow);
+            followRepository.save(newFollow);
 
-        return FollowResponse.builder()
-                .id(follow.getId())
-                .follower(SimpleUserResponse.mapperToSimpleUserResponse(user))
-                .followee(SimpleUserResponse.mapperToSimpleUserResponse(followeeUser))
-                .build();
+            return FollowResponse.builder()
+                    .id(newFollow.getId())
+                    .status(newFollow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED)
+                    .build();
+        }
     }
 
     /**
      * 12. Unfollow người khác
      */
+    @Transactional
     public void unfollow(Authentication connectedUser, long followeeUserId) {
         User user = (User) connectedUser.getPrincipal();
 
@@ -254,25 +262,6 @@ public class UserService {
 
         Follow follow = followRepository.findByFollowerAndFollowee(user, followeeUser)
                 .orElseThrow(() -> new IllegalStateException("Bạn chưa theo dõi người này!"));
-
-        followRepository.delete(follow);
-    }
-
-    /**
-     * 13. Remove follower
-     */
-    public void removeFollower(Authentication connectedUser, long followerUserId) {
-        User user = (User) connectedUser.getPrincipal();
-
-        if (!user.isEnabled() || user.isAccountLocked()) {
-            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
-        }
-
-        User followerUser = userRepository.findById(followerUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followerUserId));
-
-        Follow follow = followRepository.findByFollowerAndFollowee(followerUser, user)
-                .orElseThrow(() -> new IllegalStateException("Người này chưa theo dõi bạn mà :))"));
 
         followRepository.delete(follow);
     }
@@ -291,14 +280,14 @@ public class UserService {
 
         Follow follow = followRepository.findByFollowerAndFollowee(requestFollowUser, user)
                 .orElseThrow(() -> new IllegalStateException("Người này chưa theo dõi bạn mà :))"));
+
         follow.setWaitConfirm(false);
 
         followRepository.save(follow);
 
         return FollowResponse.builder()
                 .id(follow.getId())
-                .follower(SimpleUserResponse.mapperToSimpleUserResponse(requestFollowUser))
-                .followee(SimpleUserResponse.mapperToSimpleUserResponse(user))
+                .status(follow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED)
                 .build();
 
     }
@@ -342,8 +331,10 @@ public class UserService {
         List<SimpleUserResponse> usersResponse = users
                 .stream()
                 .map(u -> {
-                    boolean isFollowing = followRepository.existsByFollowerAndFollowee(user, u);
-                    return SimpleUserResponse.mapperToSimpleUserResponse(u, isFollowing);
+                    Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), u.getId());
+                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
+                            : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
+                    return SimpleUserResponse.mapperToSimpleUserResponse(u, followStatus);
                 })
                 .collect(Collectors.toList());
         return new PageResponse<>(

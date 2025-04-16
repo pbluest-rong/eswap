@@ -1,4 +1,4 @@
-import 'package:eswap/core/theme/theme_manager.dart';
+import 'package:eswap/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 final _themeManager = ThemeManager();

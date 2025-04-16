@@ -1,5 +1,6 @@
 package com.eswap.response;
 
+import com.eswap.common.constants.FollowStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -7,6 +8,5 @@ import lombok.Data;
 @Builder
 public class FollowResponse {
     private long id;
-    private SimpleUserResponse follower;
-    private SimpleUserResponse followee;
+    FollowStatus status;
 }

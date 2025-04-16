@@ -14,8 +14,8 @@ public enum AppErrorCode {
     PROVINCE_NOT_FOUND("PROVINCE_NOT_FOUND", "error.province.not_found"),
     OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded"),
     AUTH_TOKEN_MISSING("AUTH_TOKEN_MISSING", "error.auth.token_missing"),
-    AUTH_TOKEN_EXPRIED("AUTH_TOKEN_EXPRIED", "error.auth.token_expired");
-
+    AUTH_TOKEN_EXPRIED("AUTH_TOKEN_EXPRIED", "error.auth.token_expired"),
+    FOLLOW_USER_FOLLOWED("FOLLOW_USER_FOLLOWED", "error.follow.user_followed");
     private final String code;
     private final String messageKey;
 

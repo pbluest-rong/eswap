@@ -1,17 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/provider/search_filter_sort_provider.dart';
-import 'package:eswap/view/forgotpw/forgotpw_provider.dart';
-import 'package:eswap/view/home/explore.dart';
-import 'package:eswap/view/home/following.dart';
-import 'package:eswap/view/init_page.dart';
-import 'package:eswap/view/signup/signup_provider.dart';
-import 'package:eswap/provider/info_provider.dart';
-import 'package:eswap/core/theme/theme_constant.dart';
-import 'package:eswap/core/theme/theme_manager.dart';
+import 'package:eswap/core/theme/theme.dart';
+import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
+import 'package:eswap/presentation/views/forgotpw/forgotpw_provider.dart';
+import 'package:eswap/presentation/views/home/explore.dart';
+import 'package:eswap/presentation/views/home/following.dart';
+import 'package:eswap/presentation/views/init_page.dart';
+import 'package:eswap/presentation/views/signup/signup_provider.dart';
+import 'package:eswap/providers/info_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:eswap/view/notification/notification_page.dart';
+import 'package:eswap/presentation/views/notification/notification_page.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
