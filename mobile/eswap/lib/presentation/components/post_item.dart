@@ -1,7 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/model/enum_model.dart';
+import 'package:eswap/model/like_model.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
+import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
 import 'package:photo_view/photo_view.dart';
@@ -10,8 +14,13 @@ import 'package:video_player/video_player.dart';
 class PostItem extends StatefulWidget {
   final Post post;
   final bool isGridView;
+  final bool isStandalone;
 
-  PostItem({super.key, required this.post, this.isGridView = false});
+  PostItem(
+      {super.key,
+      required this.post,
+      this.isGridView = false,
+      this.isStandalone = false});
 
   @override
   State<PostItem> createState() => _PostItemState();
@@ -21,6 +30,7 @@ class _PostItemState extends State<PostItem> {
   late Post _post;
   final Map<String, VideoPlayerController> _videoControllers = {};
   final Map<String, ChewieController> _chewieControllers = {};
+  final PostService _postService = PostService();
 
   @override
   void initState() {
@@ -61,10 +71,12 @@ class _PostItemState extends State<PostItem> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with user info
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: UserItemForPost(post: post),
-          ),
+          widget.isStandalone
+              ? Container()
+              : Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: UserItemForPost(post: post),
+                ),
 
           // Post content
           Padding(
@@ -81,11 +93,32 @@ class _PostItemState extends State<PostItem> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  post.description ?? 'Không có mô tả',
+                  post.description ?? ' ',
                   style: TextStyle(
                     color: Colors.grey[700],
                     fontSize: 14,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      "${"condition".tr()}: ",
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      post.condition == Condition.NEW.name
+                          ? "new".tr()
+                          : "used".tr(),
+                      style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
               ],
@@ -235,17 +268,75 @@ class _PostItemState extends State<PostItem> {
                 _buildActionButton(
                   icon: Icons.favorite_border,
                   activeIcon: Icons.favorite,
-                  label: "${post.likesNumber}",
-                  onPressed: () {},
+                  isActive: post.liked,
+                  label: "${post.likesCount}",
+                  onPressed: () async {
+                    setState(() {
+                      //ui
+                      if (post.liked) {
+                        setState(() {
+                          post.liked = false;
+                          post.likesCount =
+                              post.likesCount == 0 ? 0 : post.likesCount -= 1;
+                        });
+                      } else {
+                        post.liked = true;
+                        post.likesCount += 1;
+                      }
+                    });
+                    if (post.liked) {
+                      try {
+                        //api
+                        Like like = await _postService.like(post.id, context);
+                        // if the data from the api is not as expected -> undo
+                        if (post.liked != like.liked) {
+                          setState(() {
+                            post.liked = like.liked;
+                            post.likesCount = like.likesCount;
+                          });
+                        } else {
+                          setState(() {
+                            post.likesCount = like.likesCount;
+                          });
+                        }
+                      } catch (e) {
+                        setState(() {
+                          post.liked = false;
+                          post.likesCount -= 1;
+                        });
+                      }
+                    } else {
+                      try {
+                        //api
+                        Like like = await _postService.unlike(post.id, context);
+                        // if the data from the api is not as expected -> undo
+                        if (post.liked != like.liked) {
+                          setState(() {
+                            post.liked = like.liked;
+                            post.likesCount = like.likesCount;
+                          });
+                        } else {
+                          setState(() {
+                            post.likesCount = like.likesCount;
+                          });
+                        }
+                      } catch (e) {
+                        post.liked = true;
+                        post.likesCount += 1;
+                      }
+                    }
+                  },
                 ),
                 _buildActionButton(
                   icon: Icons.chat_bubble_outline,
                   activeIcon: Icons.chat_bubble,
+                  isActive: false,
                   label: "Nhắn tin",
                   onPressed: () {},
                 ),
                 _buildActionButton(
                   icon: Icons.share,
+                  isActive: false,
                   label: "Chia sẻ",
                   onPressed: () {},
                 ),
@@ -379,20 +470,21 @@ class _PostItemState extends State<PostItem> {
   Widget _buildActionButton({
     required IconData icon,
     IconData? activeIcon,
+    required bool isActive,
     required String label,
     required VoidCallback onPressed,
   }) {
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(
-        icon,
-        color: Colors.grey[700],
+        isActive ? (activeIcon ?? icon) : icon,
+        color: isActive ? Colors.red : Colors.grey[700],
         size: 20,
       ),
       label: Text(
         label,
         style: TextStyle(
-          color: Colors.grey[700],
+          color: isActive ? Colors.red : Colors.grey[700],
           fontSize: 12,
         ),
       ),
@@ -402,9 +494,9 @@ class _PostItemState extends State<PostItem> {
       ),
     );
   }
+
   Widget _buildMediaItem(
-      dynamic mediaItem, String postId, BuildContext context)
-  {
+      dynamic mediaItem, String postId, BuildContext context) {
     final url = mediaItem.originalUrl;
     final contentType = mediaItem.originalUrl?.toString().toLowerCase() ?? '';
     final isVideo = contentType.contains('video') ||
@@ -485,6 +577,7 @@ class _PostItemState extends State<PostItem> {
           ));
     }
   }
+
   Widget _buildEmptyMediaItem(TextTheme textTheme, Post post) {
     return Card(
       margin: const EdgeInsets.all(8),

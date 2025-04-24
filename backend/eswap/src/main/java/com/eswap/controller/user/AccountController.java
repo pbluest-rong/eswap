@@ -1,6 +1,7 @@
 package com.eswap.controller.user;
 
 import com.eswap.common.ApiResponse;
+import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.FollowResponse;
 import com.eswap.service.UserService;
 import com.eswap.request.ChangeEmailRequest;
@@ -11,12 +12,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("accounts")
 @RequiredArgsConstructor
 public class AccountController {
     private final UserService userService;
 
+    @PostMapping("/auto-login")
+    public ResponseEntity<ApiResponse> getLoginInfo(Authentication auth) {
+        AuthenticationResponse authenticationResponse = userService.getLoginInfo(auth);
+        return ResponseEntity.ok(
+                new ApiResponse(true,
+                        "Login Success",
+                        authenticationResponse));
+    }
     @PostMapping("/enable-account")
     public ResponseEntity<ApiResponse> enableUser(Authentication authentication) {
         userService.enableAccount(authentication);

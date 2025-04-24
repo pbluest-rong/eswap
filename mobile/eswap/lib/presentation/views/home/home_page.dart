@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/presentation/components/post_item.dart';
+import 'package:eswap/presentation/views/login/login_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
@@ -9,10 +10,8 @@ import 'package:eswap/presentation/views/home/explore.dart';
 import 'package:eswap/presentation/views/home/following.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eswap/presentation/views/notification/notification_page.dart';
-import 'package:eswap/providers/info_provider.dart';
 import 'package:eswap/service/websocket.dart';
 
 final GlobalKey<HomePageState> homePageKey = GlobalKey();
@@ -39,6 +38,10 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
+  bool _isEducationLoading = false;
+  bool _isEducationLoaded = false;
+  int? _educationInstitutionId;
+  String? _educationInstitutionName;
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
@@ -70,7 +73,48 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadInitialPosts();
+    if (!_isEducationLoaded && !_isEducationLoading) {
+      _loadEducationInstitution();
+    }
+  }
+
+  Future<void> _loadEducationInstitution() async {
+    if (_isEducationLoading || _isEducationLoaded) return;
+    setState(() {
+      _isEducationLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final educationInstitutionId = prefs.getInt("educationInstitutionId");
+      final educationInstitutionName = prefs.getString("educationInstitutionName");
+
+      if (educationInstitutionId != null && educationInstitutionName != null) {
+        setState(() {
+          _educationInstitutionId = educationInstitutionId;
+          _educationInstitutionName = educationInstitutionName;
+        });
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => LoginPage()),
+          (Route<dynamic> route) => false,
+        );
+      }
+
+      setState(() {
+        _isEducationLoading = false;
+        _isEducationLoaded = true;
+      });
+
+      _loadInitialPosts();
+    } catch (e) {
+      setState(() {
+        _isEducationLoading = false;
+      });
+      showErrorSnackbar(
+          context, 'Error loading education institution: ${e.toString()}');
+    }
   }
 
   @override
@@ -91,10 +135,8 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
 
     try {
-      final institutionId = Provider.of<InfoProvider>(context, listen: false)
-          .educationInstitutionId;
       final postpage = await _postService.fetchPostByEducationInstitution(
-        institutionId,
+        _educationInstitutionId!,
         _currentPage,
         _pageSize,
         false,
@@ -122,10 +164,12 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
 
     try {
-      final institutionId = Provider.of<InfoProvider>(context, listen: false)
-          .educationInstitutionId;
       final postpage = await _postService.fetchPostByEducationInstitution(
-          institutionId, _currentPage + 1, _pageSize, false, context);
+          _educationInstitutionId!,
+          _currentPage + 1,
+          _pageSize,
+          false,
+          context);
 
       setState(() {
         _currentPage++;
@@ -151,23 +195,29 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   }
 
   void _setupWebSocket() {
-    WebSocketService().listenForNewPosts((newPost) {
-      setState(() {
-        Map<String, dynamic> postJson = json.decode(newPost);
-        Post post = Post.fromJson(postJson);
+    if (mounted) {
+      WebSocketService().listenForNewPosts((newPost) {
+        setState(() {
+          Map<String, dynamic> postJson = json.decode(newPost);
+          Post post = Post.fromJson(postJson);
 
-        _allPosts.add(post);
-        if (_allPosts.length > 100) {
-          _allPosts.removeAt(0);
-        }
+          _allPosts.add(post);
+          if (_allPosts.length > 100) {
+            _allPosts.removeAt(0);
+          }
+        });
       });
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
+    if (_isEducationLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -308,7 +358,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
         ),
         Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Image.asset(
             //   "assets/images/vietnam.png",
@@ -317,8 +367,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
             //   fit: BoxFit.fill,
             // ),
             Text(
-              Provider.of<InfoProvider>(context, listen: true)
-                  .educationInstitutionName,
+              _educationInstitutionName!,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,

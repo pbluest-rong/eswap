@@ -12,8 +12,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class UserService {
   final dio = Dio();
 
-  Future<PageResponse<SimpleUser>> fetchSearchUser(
-      String keyword, int page, int size, BuildContext context) async {
+  Future<PageResponse<UserInfomation>> fetchSearchUser(
+      String keyword, int page, int size, BuildContext context) async
+  {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -30,8 +31,8 @@ class UserService {
       if (response.statusCode == 200) {
         if (response.data['data'] != null) {
           final responseData = response.data['data'];
-          final pageResponse = PageResponse<SimpleUser>.fromJson(
-              responseData, (json) => SimpleUser.fromJson(json));
+          final pageResponse = PageResponse<UserInfomation>.fromJson(
+              responseData, (json) => UserInfomation.fromJson(json));
           return pageResponse;
         } else {
           throw Exception("no_result_found".tr());
@@ -55,7 +56,8 @@ class UserService {
     }
   }
 
-  Future<FollowStatus?> follow(int followeeUserId, BuildContext context) async {
+  Future<FollowStatus?> follow(int followeeUserId, BuildContext context) async
+  {
     try {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.get("accessToken");
@@ -83,7 +85,8 @@ class UserService {
     }
     return null;
   }
-  Future<void> unfollow(int followeeUserId, BuildContext context) async {
+  Future<void> unfollow(int followeeUserId, BuildContext context) async
+  {
     try {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.get("accessToken");
@@ -106,6 +109,32 @@ class UserService {
       } else {
         showErrorDialog(context, "network_error".tr());
       }
+    }
+  }
+
+  Future<UserInfomation> fetchUserById(int userId, BuildContext context) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('accessToken');
+      final response = await dio.get(
+          "${ApiEndpoints.detail_accounts_url}/$userId",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $accessToken",
+          }));
+      if (response.statusCode == 200) {
+        final responseData = response.data['data'];
+        if (responseData == null) {
+          throw Exception("Post data not found in response");
+        }
+        return UserInfomation.fromJson(responseData);
+      } else {
+        throw Exception(response.data["message"] ?? "Failed to load post");
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data["message"] ?? "Network error occurred");
+    } catch (e) {
+      throw Exception("Failed to load post: ${e.toString()}");
     }
   }
 }

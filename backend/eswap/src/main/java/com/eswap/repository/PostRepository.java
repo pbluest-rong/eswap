@@ -12,9 +12,31 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+    @Query("""
+            SELECT p FROM Post p
+                     WHERE p.id = :id AND p.isDeleted = false
+                           AND (
+                                p.user = :user
+                                OR(
+                                    p.status=com.eswap.common.constants.PostStatus.PUBLISHED
+                                    AND (
+                                            p.privacy=com.eswap.common.constants.Privacy.PUBLIC
+                                            OR (
+                                                   p.user in(
+                                                   SELECT f.followee FROM Follow f
+                                                   WHERE f.follower = :user and f.waitConfirm=false
+                                                )
+                                            )
+                                    )
+                                )
+                           )
+            """)
+    Optional<Post> findByIdAndConnectedUser(@Param("id") long id,@Param("user") User user);
     @Query("""
             SELECT p FROM Post p
                         WHERE p.user = :user AND p.isDeleted = false
@@ -36,11 +58,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                             WHERE p.isDeleted=false
                               AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
                                AND p.privacy=com.eswap.common.constants.Privacy.PUBLIC
-                               AND (p.status=com.eswap.common.constants.PostStatus.PUBLISHED
-                                    OR p.user in(
+                               AND (p.user in(
                                        SELECT f.followee FROM Follow f
                                        WHERE f.follower = :user and f.waitConfirm=false
                                     )
+                                    OR 
+                                        p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                 )
                                AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.user.firstName LIKE %:keyword% OR p.user.lastName LIKE %:keyword%)
                                AND (:categoryIdList IS NULL OR p.category.id IN :categoryIdList)
@@ -173,4 +196,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 order by p.createdAt desc
             """)
     Page<Post> findPostsOfFollowing(User user, Pageable pageable);
+    @Query("""
+            SELECT COUNT(p) FROM Post p
+            WHERE p.isDeleted = false AND p.user = :user
+            """)
+    Integer countPostsByUser(@Param("user") User user);
 }

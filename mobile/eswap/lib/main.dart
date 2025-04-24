@@ -6,7 +6,7 @@ import 'package:eswap/presentation/views/home/explore.dart';
 import 'package:eswap/presentation/views/home/following.dart';
 import 'package:eswap/presentation/views/init_page.dart';
 import 'package:eswap/presentation/views/signup/signup_provider.dart';
-import 'package:eswap/providers/info_provider.dart';
+import 'package:eswap/service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,12 +19,16 @@ void main() async {
   await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp();
 
+// Initialize notifications
+  await LocalNotifications.init();
+  final notificationService = NotificationService();
+  await notificationService.initNotifications();
+
   runApp(EasyLocalization(
     supportedLocales: [Locale("vi"), Locale("en")],
     path: "assets/translations",
     child: MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => InfoProvider()),
         ChangeNotifierProvider(create: (_) => ForgotPwProvider()),
         ChangeNotifierProvider(create: (_) => SignupProvider()),
         ChangeNotifierProvider(create: (_) => SearchFilterSortProvider())

@@ -15,7 +15,9 @@ public enum AppErrorCode {
     OTP_LIMIT_EXCEEDED("OTP_LIMIT_EXCEEDED", "error.otp.limit_exceeded"),
     AUTH_TOKEN_MISSING("AUTH_TOKEN_MISSING", "error.auth.token_missing"),
     AUTH_TOKEN_EXPRIED("AUTH_TOKEN_EXPRIED", "error.auth.token_expired"),
-    FOLLOW_USER_FOLLOWED("FOLLOW_USER_FOLLOWED", "error.follow.user_followed");
+    FOLLOW_USER_FOLLOWED("FOLLOW_USER_FOLLOWED", "error.follow.user_followed"),
+    LIKE_POST_EXISTS("LIKE_POST_EXISTS", "error.post.like_exists"),
+    LIKE_NOT_FOUND("LIKE_NOT_FOUND", "error.post.like_not_found"),;
     private final String code;
     private final String messageKey;
 

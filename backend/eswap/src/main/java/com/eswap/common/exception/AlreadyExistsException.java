@@ -4,7 +4,7 @@ import com.eswap.common.constants.AppErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(HttpStatus.CONFLICT)  // Thêm annotation này
+@ResponseStatus(HttpStatus.CONFLICT)
 public class AlreadyExistsException extends RuntimeException {
     private final AppErrorCode errorCode;
     private final Object[] args;

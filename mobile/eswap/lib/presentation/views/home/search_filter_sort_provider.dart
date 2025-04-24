@@ -87,7 +87,6 @@ class SearchFilterSortProvider extends ChangeNotifier {
           brandIdList == null &&
           minPrice == null &&
           maxPrice == null &&
-          condition == null &&
-          sortBy == null;
+          condition == null;
   }
 }

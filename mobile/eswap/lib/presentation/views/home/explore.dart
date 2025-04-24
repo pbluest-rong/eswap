@@ -52,7 +52,7 @@ class _ExplorePageState extends State<ExplorePage>
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  List<SimpleUser> _firstSearchUsers = [];
+  List<UserInfomation> _firstSearchUsers = [];
   TextEditingController searchController = TextEditingController();
 
   void _scrollToTop(isReLoad) {
@@ -99,7 +99,7 @@ class _ExplorePageState extends State<ExplorePage>
 
   Future<void> _reloadPost(
       Future<PageResponse<Post>> Function() fetchPostFunc) async {
-    if (_isLoading) return;
+    if (_isLoading || !mounted) return;
     setState(() {
       _isLoading = true;
       _allPosts = [];
@@ -114,10 +114,12 @@ class _ExplorePageState extends State<ExplorePage>
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      showErrorSnackbar(context, 'Error loading posts: ${e.toString()}');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        showErrorSnackbar(context, 'Error loading posts: ${e.toString()}');
+      }
     }
   }
 
@@ -518,19 +520,21 @@ class _ExplorePageState extends State<ExplorePage>
                 },
                 child: Stack(
                   children: [
-                    (Provider.of<SearchFilterSortProvider>(context, listen: false)
-                        .isNoFilter())?
-                    Image.asset(
-                      'assets/images/filter.png',
-                      width: 24,
-                      height: 24,
-                      color: AppColors.lightPrimary,
-                    ):Image.asset(
-                      'assets/images/filter_done.png',
-                      width: 24,
-                      height: 24,
-                      color: AppColors.lightPrimary,
-                    ),
+                    (Provider.of<SearchFilterSortProvider>(context,
+                                listen: false)
+                            .isNoFilter())
+                        ? Image.asset(
+                            'assets/images/filter.png',
+                            width: 24,
+                            height: 24,
+                            color: AppColors.lightPrimary,
+                          )
+                        : Image.asset(
+                            'assets/images/filter_done.png',
+                            width: 24,
+                            height: 24,
+                            color: AppColors.lightPrimary,
+                          ),
                     Positioned(
                         left: 16,
                         bottom: -4,
@@ -708,8 +712,7 @@ class _ExplorePageState extends State<ExplorePage>
             itemBuilder: (context, index) {
               return Padding(
                 padding: const EdgeInsets.all(12),
-                child:
-                UserItemForList(user: _firstSearchUsers[index]),
+                child: UserItemForList(user: _firstSearchUsers[index]),
               );
             },
           ),

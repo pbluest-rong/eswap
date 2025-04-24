@@ -22,7 +22,7 @@ class _SearchUserListState extends State<SearchUserList>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
   final UserService _userService = UserService();
-  List<SimpleUser> _allUsers = [];
+  List<UserInfomation> _allUsers = [];
   int _currentPage = 0;
   final int _pageSize = 10;
   bool _isLoading = false;

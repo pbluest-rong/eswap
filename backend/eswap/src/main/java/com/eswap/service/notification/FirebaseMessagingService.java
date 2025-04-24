@@ -20,10 +20,13 @@ public class FirebaseMessagingService {
 
     public void saveFcmToken(Authentication connectedUser, String fcmtoken) {
         User user = (User) connectedUser.getPrincipal();
-        UserFcmToken userFcmToken = new UserFcmToken();
-        userFcmToken.setUserId(user.getId());
-        userFcmToken.setFcmToken(fcmtoken);
-        fcmTokenRepository.save(userFcmToken);
+        UserFcmToken fcmToken = fcmTokenRepository.findByFcmToken(fcmtoken);
+        if (fcmToken == null) {
+            UserFcmToken userFcmToken = new UserFcmToken();
+            userFcmToken.setUserId(user.getId());
+            userFcmToken.setFcmToken(fcmtoken);
+            fcmTokenRepository.save(userFcmToken);
+        }
     }
 
     public void removeToken(String fcmToken) {
@@ -34,17 +37,17 @@ public class FirebaseMessagingService {
         fcmTokenRepository.deleteByUserId(userId);
     }
 
-    public String sendNotification(String fcmToken, String title, String body, NotificationType type, String data) {
-        Message message = buildMessage(fcmToken, null, title, body, type, data);
+    public String sendNotification(String fcmToken, String title, String body, String data) {
+        Message message = buildMessage(fcmToken, null, title, body, data);
         return sendMessage(message);
     }
 
-    public String sendNotificationToTopic(String topic, String title, String body, NotificationType type, String data) {
-        Message message = buildMessage(null, topic, title, body, type, data);
+    public String sendNotificationToTopic(String topic, String title, String body, String data) {
+        Message message = buildMessage(null, topic, title, body, data);
         return sendMessage(message);
     }
 
-    private Message buildMessage(String fcmToken, String topic, String title, String body, NotificationType type, String data) {
+    private Message buildMessage(String fcmToken, String topic, String title, String body, String data) {
         Message.Builder messageBuilder = Message.builder()
                 .setNotification(Notification.builder()
                         .setTitle(title)
@@ -53,7 +56,6 @@ public class FirebaseMessagingService {
 
         if (fcmToken != null && !fcmToken.isEmpty()) messageBuilder.setToken(fcmToken);
         if (topic != null && !topic.isEmpty()) messageBuilder.setTopic(topic);
-        if (type != null) messageBuilder.putData("type", type.name());
         if (data != null && !data.isEmpty()) messageBuilder.putData("data", data);
 
         return messageBuilder.build();

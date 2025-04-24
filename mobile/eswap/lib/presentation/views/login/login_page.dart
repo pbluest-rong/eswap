@@ -1,9 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
-import 'package:eswap/core/onboarding/onboarding_page_position.dart';
-import 'package:eswap/providers/info_provider.dart';
-import 'package:eswap/service/websocket.dart';
 import 'package:eswap/presentation/widgets/loading_overlay.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -12,10 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_email_page.dart';
 import 'package:eswap/presentation/views/main_page.dart';
 import 'package:eswap/presentation/views/signup/signup_name_page.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -51,20 +46,21 @@ class _LoginPageState extends State<LoginPage> {
           final accessToken = response.data["data"]["accessToken"];
           final refreshToken = response.data["data"]["refreshToken"];
           final educationInstitutionId =
-          response.data["data"]["educationInstitutionId"];
-          final educationInstitutionName = response.data["data"]["educationInstitutionName"];
+              response.data["data"]["educationInstitutionId"];
+          final educationInstitutionName =
+              response.data["data"]["educationInstitutionName"];
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString("accessToken", accessToken);
           await prefs.setString("refreshToken", refreshToken);
 
-          Provider.of<InfoProvider>(context, listen: false)
-              .updateEducationInstitution(educationInstitutionId, educationInstitutionName);
+          prefs.setInt("educationInstitutionId", educationInstitutionId);
+          prefs.setString("educationInstitutionName", educationInstitutionName);
+
           // Lấy FCM token mới
           final fcmToken = await FirebaseMessaging.instance.getToken();
           if (fcmToken != null) {
             await prefs.setString("fcmToken", fcmToken);
-
             // Gửi FCM token lên server
             url = ApiEndpoints.saveFcmToken_url;
             await dio
@@ -83,8 +79,6 @@ class _LoginPageState extends State<LoginPage> {
               print("Lỗi khi gửi FCM Token: $error");
             });
           }
-          final wsService = WebSocketService();
-          // Chuyển hướng đến MainPage
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => MainPage()),

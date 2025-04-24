@@ -1,7 +1,7 @@
 
 class ApiEndpoints {
   static  String PROTOCOL = "http";
-  static  String HOST = "192.168.1.30";
+  static  String HOST = "192.168.1.35";
   static  String PORT = "8080";
   static  String CONTEXT_PATH = "/api/v1/";
 
@@ -25,7 +25,9 @@ class ApiEndpoints {
   static  String getProvinces_url = _baseUrl + "institutions";
   static  String checkExist_url = _baseUrl + "auth/check-exist";
 
-  static  String saveFcmToken_url = _baseUrl + "fcm/save-token";
+  static  String saveFcmToken_url = _baseUrl + "notifications/save-fcm-token";
+  static  String getNotifications = _baseUrl + "notifications";
+  static  String markAsReadNotification = _baseUrl + "notifications";
   static  String getPostsByEducationInstitution_url = _baseUrl + "posts/education-institutions";
   static  String getPostsOfFollowing = _baseUrl + "posts/following";
   static  String getExplorePosts = _baseUrl + "posts";
@@ -33,6 +35,11 @@ class ApiEndpoints {
   static  String getCategories = _baseUrl + "categories";
   static  String getBrandsByCategory = _baseUrl + "categories/brands";
   static  String search_url = _baseUrl + "users";
+  static  String auto_login_url = _baseUrl + "accounts/auto-login";
   static  String follow_url = _baseUrl + "accounts/follow";
   static  String unfollow_url = _baseUrl + "accounts/unfollow";
+  static  String like_post_url = _baseUrl + "posts/like";
+  static  String unlike_post_url = _baseUrl + "posts/unlike";
+  static  String getPostById_url = _baseUrl + "posts";
+  static  String detail_accounts_url = _baseUrl + "users";
 }

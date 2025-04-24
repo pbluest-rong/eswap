@@ -41,9 +41,11 @@ public class PostResponse {
     private Condition condition;
     private Timestamp createdAt;
     private List<PostMedia> media;
-    private int likesNumber;
+    private int likesCount;
+    private boolean liked;
 
-    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl, int likesNumber, FollowStatus followStatus) {
+    public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl,
+                                                int likesCount, boolean liked, FollowStatus followStatus) {
         return PostResponse.builder()
                 .userId(post.getUser().getId())
                 .firstname(firstname)
@@ -54,7 +56,7 @@ public class PostResponse {
                 .educationInstitutionName(post.getEducationInstitution().getName())
                 .name(post.getName())
                 .description(post.getDescription())
-                .brand(post.getBrand()!=null?post.getBrand().getName():null)
+                .brand(post.getBrand() != null ? post.getBrand().getName() : null)
                 .originalPrice(post.getOriginalPrice())
                 .salePrice(post.getSalePrice())
                 .quantity(post.getQuantity())
@@ -65,7 +67,8 @@ public class PostResponse {
                 .condition(post.getCondition())
                 .createdAt(post.getCreatedAt())
                 .media(post.getMedia())
-                .likesNumber(likesNumber)
+                .likesCount(likesCount)
+                .liked(liked)
                 .followStatus(followStatus)
                 .build();
     }

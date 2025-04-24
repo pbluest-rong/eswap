@@ -11,8 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "notifications")
@@ -22,24 +21,19 @@ public class Notification implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private Long userId;
-
+    private long id;
+    private Long senderId;
+    private String senderRole;
     @Enumerated(EnumType.STRING)
-    private RecipientType recipientType; // Loại người nhận (Cá nhân, Nhóm, Tất cả)
-
-    private Long recipientId; // NULL nếu gửi cho toàn bộ người dùng
+    private RecipientType recipientType;
+    private Long recipientId;
     @Enumerated(EnumType.STRING)
     private NotificationCategory category;
-
     @Enumerated(EnumType.STRING)
     private NotificationType type;
-
     private String title;
-
     private String message;
-
+    private Long postId;
     private boolean isRead = false;
 
     @CreationTimestamp

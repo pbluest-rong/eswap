@@ -8,7 +8,6 @@ import com.eswap.repository.UserRepository;
 import com.eswap.request.*;
 import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.OTPResponse;
-import com.eswap.response.UserTestResponse;
 import com.eswap.service.OTPService;
 import com.eswap.model.User;
 import com.eswap.service.AuthenticationService;
@@ -18,6 +17,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -33,21 +33,6 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final OTPService otpService;
     private final UserRepository userRepository;
-    private final JwtService jwtService;
-
-    @GetMapping("/users")
-    public ResponseEntity<ApiResponse> getUser() {
-        List<UserTestResponse> users = userRepository.findAll()
-                .stream()
-                .map(u -> UserTestResponse.builder()
-                        .username(u.getUsername())
-                        .email(u.getEmail())
-                        .build()
-                )
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(new ApiResponse(true, "Get users successfully.", users));
-    }
-
     @PostMapping("/require-activate")
     public ResponseEntity<ApiResponse> requireActivateEmail(
             @RequestParam

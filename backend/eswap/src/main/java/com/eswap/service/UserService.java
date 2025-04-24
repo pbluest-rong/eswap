@@ -1,20 +1,16 @@
 package com.eswap.service;
 
-import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.constants.FollowStatus;
-import com.eswap.common.constants.PageResponse;
-import com.eswap.common.constants.RoleType;
+import com.eswap.common.constants.*;
 import com.eswap.common.exception.*;
 import com.eswap.model.*;
-import com.eswap.repository.BlockRepository;
-import com.eswap.repository.OTPRepository;
-import com.eswap.repository.FollowRepository;
+import com.eswap.repository.*;
+import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.FollowResponse;
-import com.eswap.response.SimpleUserResponse;
+import com.eswap.response.UserResponse;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
 import com.eswap.request.ChangePasswordRequest;
-import com.eswap.repository.UserRepository;
+import com.eswap.service.notification.NotificationService;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +29,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final OTPRepository tokenRepository;
-    private final PasswordEncoder passwordEncoder;
     private final BlockRepository blockRepository;
     private final FollowRepository followRepository;
-    private final UploadService uploadService;
-//    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    private final NotificationService notificationService;
+    private final PostRepository postRepository;
+
+
+    public AuthenticationResponse getLoginInfo(Authentication auth) {
+        User user = (User) auth.getPrincipal();
+        String educationInstitutionName = user.getEducationInstitution().getName();
+        return AuthenticationResponse.builder()
+                .role(user.getRole().getName())
+                .educationInstitutionId(user.getEducationInstitution().getId())
+                .educationInstitutionName(educationInstitutionName)
+                .build();
+    }
 
     /**
      * 1. khóa tài khoản
@@ -237,7 +242,24 @@ public class UserService {
                     .waitConfirm(followeeUser.isRequireFollowApproval() ? true : false)
                     .build();
 
-            followRepository.save(newFollow);
+            newFollow = followRepository.save(newFollow);
+
+            notificationService.createAndPushNotification(
+                    newFollow.getFollower().getId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_FOLLOW,
+                    NotificationType.INFORM,
+                    newFollow.isWaitConfirm() ?
+                            newFollow.getFollower().getFirstName() + " " +
+                                    newFollow.getFollower().getLastName()
+                                    + " gửi yêu cầu theo dõi bạn"
+                            :
+                            newFollow.getFollower().getFirstName() + " " +
+                                    newFollow.getFollower().getLastName()
+                                    + " đã theo dõi bạn",
+                    "", null,
+                    newFollow.getFollowee().getId()
+            );
 
             return FollowResponse.builder()
                     .id(newFollow.getId())
@@ -322,19 +344,19 @@ public class UserService {
         return followser;
     }
 
-    public PageResponse<SimpleUserResponse> findUser(Authentication auth, String keyword, int page, int size) {
+    public PageResponse<UserResponse> findUser(Authentication auth, String keyword, int page, int size) {
         User user = (User) auth.getPrincipal();
 
         Pageable pageable = PageRequest.of(page, size);
         Page<User> users = userRepository.searchUsersWithPriority(user, keyword, pageable);
 
-        List<SimpleUserResponse> usersResponse = users
+        List<UserResponse> usersResponse = users
                 .stream()
                 .map(u -> {
                     Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), u.getId());
                     FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
                             : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
-                    return SimpleUserResponse.mapperToSimpleUserResponse(u, followStatus);
+                    return UserResponse.mapperToUserResponse(u, followStatus, u.getId() == user.getId());
                 })
                 .collect(Collectors.toList());
         return new PageResponse<>(
@@ -347,5 +369,18 @@ public class UserService {
                 users.isLast()
         );
 
+    }
+
+    public UserResponse getUserById(long id, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        User findUser = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", id));
+        Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), findUser.getId());
+        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
+                : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
+        int postCount = postRepository.countPostsByUser(findUser);
+        int followerCount = followRepository.countByFollowee(user);
+        int followeeCount = followRepository.countByFollower(user);
+        UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(), findUser.getCreatedDate().toString(), findUser.getId() == user.getId());
+        return userResponse;
     }
 }

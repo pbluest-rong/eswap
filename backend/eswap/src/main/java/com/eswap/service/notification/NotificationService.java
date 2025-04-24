@@ -1,9 +1,6 @@
 package com.eswap.service.notification;
 
-import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.constants.NotificationCategory;
-import com.eswap.common.constants.NotificationType;
-import com.eswap.common.constants.RecipientType;
+import com.eswap.common.constants.*;
 import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.model.Follow;
 import com.eswap.model.Notification;
@@ -13,16 +10,25 @@ import com.eswap.repository.FcmTokenRepository;
 import com.eswap.repository.FollowRepository;
 import com.eswap.repository.NotificationRepository;
 import com.eswap.repository.UserRepository;
+import com.eswap.response.NotificationResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,63 +37,58 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final FollowRepository followRepository;
     private final FcmTokenRepository fcmTokenRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final FirebaseMessagingService firebaseMessagingService;
     private final UserRepository userRepository;
 
-    // TTL cho thông báo TEMPORARY (30 ngày)
-    private static final Duration TEMPORARY_TTL = Duration.ofDays(30);
-
-    // Tạo thông báo mới
+    @Async
     public Notification createAndPushNotification(
-            Long userId,
+            Long senderId,
             RecipientType recipientType,
             NotificationCategory category,
             NotificationType type,
             String title,
             String message,
+            Long postId,
             Long recipientIdForINDIVIDUAL
     ) {
+        User senderUser = userRepository.findById(senderId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", senderId));
+
         Notification notification = new Notification();
-        notification.setUserId(userId);
+        notification.setSenderId(senderId);
+        notification.setSenderRole(senderUser.getRole().getName());
         notification.setRecipientType(recipientType);
         notification.setCategory(category);
         notification.setType(type);
         notification.setTitle(title);
         notification.setMessage(message);
-
-        if (type == NotificationType.IMPORTANT) {
-            // Lưu vào cả Redis và Database
-            notificationRepository.save(notification);
-            redisTemplate.opsForValue().set(getRedisKey(userId, notification.getId()), notification);
-        } else {
-            // Lưu vào Redis với TTL 30 ngày
-            redisTemplate.opsForValue().set(getRedisKey(userId, notification.getId()), notification, TEMPORARY_TTL);
-        }
-        // Chuyển thành JSON
+        notification.setPostId(postId);
+        notification.setRecipientId(recipientIdForINDIVIDUAL);
+        notificationRepository.save(notification);
+        // send notification
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String notificationJson = objectMapper.writeValueAsString(notification);
-            // Gửi thông báo
             switch (notification.getRecipientType()) {
                 case INDIVIDUAL:
-                    if (recipientIdForINDIVIDUAL != null) notification.setRecipientId(recipientIdForINDIVIDUAL);
                     List<UserFcmToken> userFcmTokenList = fcmTokenRepository.findByUserId(notification.getRecipientId());
-                    for (UserFcmToken userFcmToken : userFcmTokenList)
-                        firebaseMessagingService.sendNotification(userFcmToken.getFcmToken(), notification.getTitle(), notificationJson, notification.getType(), "data");
+                    for (UserFcmToken userFcmToken : userFcmTokenList) {
+                        firebaseMessagingService.sendNotification(userFcmToken.getFcmToken(), notification.getTitle(), null, notificationJson);
+                    }
                     break;
                 case FOLLOWERS:
-                    User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
-//                    List<User> recipientList = followRepository.findFollowersByUserId(user.getId());
-//                    List<Long> recipientIdList = recipientList.stream()
-//                            .map(User::getId)
-//                            .collect(Collectors.toList());
-//                    List<UserFcmToken> userFcmTokens = fcmTokenRepository.findByUserIdList(recipientIdList);
-                    firebaseMessagingService.sendNotificationToTopic("follow_"+user.getId(), notification.getTitle(), notificationJson, notification.getType(), "data");
+                    User user = userRepository.findById(senderUser.getId())
+                            .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", senderUser.getId()));
+                    List<User> recipientList = followRepository.findFollowersByUserId(user.getId());
+                    List<Long> recipientIdList = recipientList.stream()
+                            .map(User::getId)
+                            .collect(Collectors.toList());
+                    List<UserFcmToken> userFcmTokens = fcmTokenRepository.findByUserIdList(recipientIdList);
+                    for (UserFcmToken userFcmToken : userFcmTokens) {
+                        firebaseMessagingService.sendNotification(userFcmToken.getFcmToken(), notification.getTitle(), null, notificationJson);
+                    }
                     break;
                 case ALL_USERS:
-                    firebaseMessagingService.sendNotificationToTopic("all_users", notification.getTitle(), notificationJson, notification.getType(), "data");
+                    firebaseMessagingService.sendNotificationToTopic("all_users", notification.getTitle(), null, notificationJson);
                     break;
             }
         } catch (JsonProcessingException e) {
@@ -96,36 +97,46 @@ public class NotificationService {
         return notification;
     }
 
-    // Lấy thông báo từ Redis, nếu không có thì lấy từ Database
-    public List<Notification> getUserNotifications(Long userId) {
-        String redisPattern = "notification:" + userId + ":*";
-        List<Object> notifications = redisTemplate.opsForValue().multiGet(redisTemplate.keys(redisPattern));
-
-        if (notifications != null && !notifications.isEmpty()) {
-            return (List<Notification>) (Object) notifications;
-        }
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
-    }
-
-    // Đánh dấu thông báo đã đọc
     public void markAsRead(Long notificationId) {
         Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
         notificationOpt.ifPresent(notification -> {
             notification.setRead(true);
             notificationRepository.save(notification);
-
-            // Cập nhật Redis
-            String redisKey = getRedisKey(notification.getUserId(), notificationId);
-            redisTemplate.opsForValue().set(redisKey, notification);
         });
     }
 
-    // Xóa thông báo tạm thời sau TTL
-    public void deleteExpiredNotifications() {
-        redisTemplate.keys("notification:*").forEach(redisTemplate::delete);
-    }
 
-    private String getRedisKey(Long userId, Long notificationId) {
-        return "notification:" + userId + ":" + notificationId;
+    public PageResponse<NotificationResponse> getNotifications(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Notification> notifications = notificationRepository.getNotifications(user.getId(), pageable);
+        List<NotificationResponse> notificationsList =
+                notifications
+                        .stream()
+                        .map(
+                                notification -> {
+                                    return NotificationResponse.builder()
+                                            .id(notification.getId())
+                                            .senderId(notification.getSenderId())
+                                            .senderFirstName(user.getFirstName())
+                                            .senderLastName(user.getLastName())
+                                            .senderRole(user.getRole().getName())
+                                            .category(notification.getCategory().name())
+                                            .type(notification.getType().name())
+                                            .read(notification.isRead())
+                                            .postId(notification.getPostId())
+                                            .createdAt(notification.getCreatedAt())
+                                            .avatarUrl(user.getAvatarUrl())
+                                            .build();
+                                }
+                        ).collect(Collectors.toList());
+        return new PageResponse<>(
+                notificationsList,
+                notifications.getNumber(),
+                notifications.getSize(),
+                (int) notifications.getTotalElements(),
+                notifications.getTotalPages(),
+                notifications.isFirst(),
+                notifications.isLast());
     }
 }

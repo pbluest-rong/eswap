@@ -169,6 +169,7 @@ public class AuthenticationService {
             return AuthenticationResponse.builder()
                     .accessToken(jwtToken)
                     .refreshToken(refreshToken)
+                    .role(info.getRole().getName())
                     .educationInstitutionId(info.getEducationInstitution().getId())
                     .educationInstitutionName(info.getEducationInstitution().getName())
                     .build();

@@ -25,7 +25,8 @@ class Post {
   final String condition;
   final String createdAt;
   final List<PostMedia> media;
-  final int likesNumber;
+  int likesCount;
+  bool liked;
 
   Post(
       {required this.userId,
@@ -49,7 +50,9 @@ class Post {
       required this.condition,
       required this.createdAt,
       required this.media,
-      required this.likesNumber});
+      required this.likesCount,
+      required this.liked
+      });
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
@@ -64,8 +67,10 @@ class Post {
       name: json['name'],
       description: json['description'],
       brand: json['brand'],
-      originalPrice: json['originalPrice'],
-      salePrice: json['salePrice'],
+      originalPrice: json['originalPrice'] != null
+          ? (json['originalPrice'] as num).toDouble()
+          : null,
+      salePrice: (json['salePrice'] as num).toDouble(),
       quantity: json['quantity'],
       sold: json['sold'],
       status: json['status'],
@@ -76,7 +81,8 @@ class Post {
       media: (json['media'] as List<dynamic>)
           .map((e) => PostMedia.fromJson(e))
           .toList(),
-      likesNumber: json['likesNumber'],
+      likesCount: json['likesCount'],
+      liked: json['liked'],
     );
   }
 }

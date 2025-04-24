@@ -4,6 +4,7 @@ import com.eswap.common.ApiResponse;
 import com.eswap.common.constants.PageResponse;
 import com.eswap.request.AddPostRequest;
 import com.eswap.request.SearchFilterSortRequest;
+import com.eswap.response.LikePostResponse;
 import com.eswap.response.PostResponse;
 import com.eswap.service.PostService;
 import jakarta.validation.Valid;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("posts")
 @RequiredArgsConstructor
 public class PostController {
     private final PostService postService;
@@ -31,6 +32,12 @@ public class PostController {
         return ResponseEntity.ok(new ApiResponse(true, "Đăng bài thành công!", null));
     }
 
+    @GetMapping("/{postId}")
+    public ResponseEntity<ApiResponse> getPostById(@PathVariable("postId") long postId, Authentication auth) {
+        PostResponse postResponse = postService.getPostById(auth, postId);
+        return ResponseEntity.ok(new ApiResponse(true, "Get post by id", postResponse));
+    }
+
     //tìm kiếm, filter(category, brand, price, condition), sort (related, latest, price asc, price desc)
     @GetMapping
     public ResponseEntity<ApiResponse> getSuggestedPosts(
@@ -38,7 +45,7 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false, defaultValue = "false") boolean isOnlyShop,
-            @RequestBody(required = false) SearchFilterSortRequest searchFilterSortRequest
+            @RequestBody(required = false) @Valid SearchFilterSortRequest searchFilterSortRequest
     ) {
         PageResponse<PostResponse> postResponses = postService.getSuggestedPosts(auth, page, size, isOnlyShop, searchFilterSortRequest);
 
@@ -52,7 +59,7 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false, defaultValue = "false") boolean isOnlyShop,
-            @RequestBody(required = false) SearchFilterSortRequest searchFilterSortRequest
+            @RequestBody(required = false) @Valid SearchFilterSortRequest searchFilterSortRequest
     ) {
         PageResponse<PostResponse> postResponses = postService.getPostsByEducationInstitution(authentication, educationInstitutionId, page, size, isOnlyShop, searchFilterSortRequest);
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
@@ -65,7 +72,7 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false, defaultValue = "false") boolean isOnlyShop,
-            @RequestBody(required = false) SearchFilterSortRequest searchFilterSortRequest
+            @RequestBody(required = false) @Valid SearchFilterSortRequest searchFilterSortRequest
     ) {
         PageResponse<PostResponse> postResponses = postService.getPostsByProvince(authentication, provinceId, page, size, isOnlyShop, searchFilterSortRequest);
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the province", postResponses));
@@ -101,5 +108,16 @@ public class PostController {
         PageResponse<PostResponse> postResponses = postService.getUserPosts(auth, userId, page, size);
 
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
+    }
+
+    @PostMapping("/like/{postId}")
+    public ResponseEntity<ApiResponse> likePost(@PathVariable long postId, Authentication auth) {
+        LikePostResponse response = postService.likePost(postId, auth);
+        return ResponseEntity.ok(new ApiResponse(true, "Post like successfully", response));
+    }
+    @PostMapping("/unlike/{postId}")
+    public ResponseEntity<ApiResponse> unlikePost(@PathVariable long postId, Authentication auth) {
+        LikePostResponse response = postService.unlikePost(postId, auth);
+        return ResponseEntity.ok(new ApiResponse(true, "Post unlike successfully", response));
     }
 }

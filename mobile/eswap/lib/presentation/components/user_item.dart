@@ -101,7 +101,7 @@ class _UserItemForPostState extends State<UserItemForPost> {
 }
 
 class UserItemForList extends StatefulWidget {
-  final SimpleUser user;
+  final UserInfomation user;
 
   const UserItemForList({super.key, required this.user});
 
@@ -110,7 +110,7 @@ class UserItemForList extends StatefulWidget {
 }
 
 class _UserItemForListState extends State<UserItemForList> {
-  late SimpleUser _user;
+  late UserInfomation _user;
 
   @override
   void initState() {

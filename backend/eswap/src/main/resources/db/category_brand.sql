@@ -1,5 +1,5 @@
 -- Insert main categories
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Đồ dùng học tập', NULL),
                                                     ('Thiết bị điện tử & phụ kiện', NULL),
                                                     ('Đồ dùng cá nhân & sinh hoạt', NULL),
@@ -8,7 +8,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Thể thao & giải trí', NULL);
 
 -- Insert sub-categories for 'Đồ dùng học tập'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Sách giáo khoa', 1),
                                                     ('Vở viết', 1),
                                                     ('Bút các loại', 1),
@@ -17,7 +17,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Khác', 1);  -- Other option
 
 -- Insert sub-categories for 'Thiết bị điện tử & phụ kiện'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Laptop', 2),
                                                     ('Điện thoại', 2),
                                                     ('Máy tính bảng', 2),
@@ -27,7 +27,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Khác', 2);  -- Other option
 
 -- Insert sub-categories for 'Đồ dùng cá nhân & sinh hoạt'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Dụng cụ nhà bếp', 3),
                                                     ('Chăn, ga, gối', 3),
                                                     ('Đồ dùng vệ sinh', 3),
@@ -36,7 +36,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Khác', 3);  -- Other option
 
 -- Insert sub-categories for 'Thời trang & phụ kiện'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Quần áo nam', 4),
                                                     ('Quần áo nữ', 4),
                                                     ('Giày dép', 4),
@@ -45,7 +45,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Khác', 4);  -- Other option
 
 -- Insert sub-categories for 'Thực phẩm & đồ uống'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Đồ ăn nhanh', 5),
                                                     ('Nước uống', 5),
                                                     ('Đồ hộp', 5),
@@ -54,7 +54,7 @@ INSERT INTO `categories` (`title`, `parent_id`) VALUES
                                                     ('Khác', 5);  -- Other option
 
 -- Insert sub-categories for 'Thể thao & giải trí'
-INSERT INTO `categories` (`title`, `parent_id`) VALUES
+INSERT INTO `categories` (`name`, `parent_id`) VALUES
                                                     ('Dụng cụ thể thao', 6),
                                                     ('Trò chơi điện tử', 6),
                                                     ('Nhạc cụ', 6),

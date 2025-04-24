@@ -1,5 +1,4 @@
 import 'package:eswap/core/constants/api_endpoints.dart';
-import 'package:eswap/core/onboarding/onboarding_page_position.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
@@ -7,6 +6,7 @@ class WebSocketService {
   StompClient? stompClient;
   String? accessToken;
   Function(String)? onNewPost;
+  bool _isSubscribed = false;
 
   WebSocketService() {
     _initialize();
@@ -63,19 +63,24 @@ class WebSocketService {
       destination: '/user/queue/new-posts',
       headers: {'Authorization': 'Bearer $accessToken'},
       callback: (frame) {
-        // print("📩 Received message!");
-        // print("Headers: ${frame.headers}");
-        // print("Body: ${frame.body}");
-        if (frame.body != null) {
+        if (frame.body != null && onNewPost != null) {
           final String newPost = frame.body!;
           print("📩 New post received: $newPost");
-          if (onNewPost != null) {
-            onNewPost!(newPost);
-          }
+          onNewPost!(newPost);
         }
       },
     );
+    _isSubscribed = true;
   }
+
+  void unsubscribe() {
+    if (stompClient != null && _isSubscribed) {
+      stompClient!.deactivate();
+      _isSubscribed = false;
+    }
+    onNewPost = null;
+  }
+
   void listenForNewPosts(Function(String) callback) {
     onNewPost = callback;
   }

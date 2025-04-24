@@ -1,13 +1,16 @@
 package com.eswap.service;
 
 import com.eswap.common.constants.*;
+import com.eswap.common.exception.AlreadyExistsException;
 import com.eswap.common.exception.ResourceNotFoundException;
-import com.eswap.kafka.post.PostProducer;
+import com.eswap.kafka.PostProducer;
 import com.eswap.model.*;
 import com.eswap.repository.*;
 import com.eswap.request.AddPostRequest;
 import com.eswap.request.SearchFilterSortRequest;
+import com.eswap.response.LikePostResponse;
 import com.eswap.response.PostResponse;
+import com.eswap.service.notification.NotificationService;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,25 +43,20 @@ public class PostService {
     private final FollowRepository followRepository;
     private final ProvinceRepository provinceRepository;
     private final CategoryService categoryService;
+    private final NotificationService notificationService;
 
     @Transactional
-    public void addPost(
-            Authentication connectedUser,
-            AddPostRequest request,
-            MultipartFile[] mediaFiles) {
+    public void addPost(Authentication connectedUser, AddPostRequest request, MultipartFile[] mediaFiles) {
         User user = (User) connectedUser.getPrincipal();
 
         // Lấy entity liên quan từ database
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
-        Brand brand = (request.getBrandId() != null) ? brandRepository.findById(request.getBrandId())
-                .orElseThrow(() -> new IllegalArgumentException("Brand not found")) : null;
+        Brand brand = (request.getBrandId() != null) ? brandRepository.findById(request.getBrandId()).orElseThrow(() -> new IllegalArgumentException("Brand not found")) : null;
 
         EducationInstitution educationInstitution = null;
         if (user.getEducationInstitution() != null) {
-            educationInstitution = educationInstitutionRepository.findById(user.getEducationInstitution().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Education Institution not found"));
+            educationInstitution = educationInstitutionRepository.findById(user.getEducationInstitution().getId()).orElseThrow(() -> new IllegalArgumentException("Education Institution not found"));
         }
         // Tạo mới Post
         Post post = new Post();
@@ -91,7 +91,9 @@ public class PostService {
         post.setMedia(mediaList);
         postRepository.save(post);
         // 5. Gửi thông báo tới Kafka
-        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), 0, FollowStatus.FOLLOWED));
+        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post,
+                user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
+                0, false, FollowStatus.FOLLOWED));
     }
 
     public PageResponse<PostResponse> getSuggestedPosts(Authentication connectedUser, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
@@ -100,18 +102,16 @@ public class PostService {
             SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
 
             Sort sort;
-            if (sortBy == null)
-                sort = Sort.by(Sort.Direction.DESC, "createdAt");
-            else
-                switch (sortBy) {
-                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
-                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
-                    case RELATED -> {
-                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    }
-                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            if (sortBy == null) sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else switch (sortBy) {
+                case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                case RELATED -> {
+                    sort = Sort.by(Sort.Direction.DESC, "createdAt");
                 }
+                default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            }
 
             Pageable pageable = PageRequest.of(page, size, sort);
             Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
@@ -120,17 +120,7 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
-            Page<Post> posts = postRepository.getSuggestedPosts(
-                    user,
-                    pageable,
-                    searchFilterSortRequest.getKeyword(),
-                    expandedCategoryIds,
-                    searchFilterSortRequest.getBrandIdList(),
-                    searchFilterSortRequest.getMinPrice(),
-                    searchFilterSortRequest.getMaxPrice(),
-                    condition,
-                    isOnlyShop
-            );
+            Page<Post> posts = postRepository.getSuggestedPosts(user, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
 
@@ -144,77 +134,52 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> posts = postRepository.getPost(user, pageable);
 
-        List<PostResponse> postResponses = posts.stream()
-                .map(post -> {
-                    int likeNumber = likeRepository.countByPostId(post.getId());
-                    return PostResponse
-                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, null);
-                })
-                .collect(Collectors.toList());
+        List<PostResponse> postResponses = posts.stream().map(post -> {
+            int likeNumber = likeRepository.countByPostId(post.getId());
+            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
+            return PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, liked, null);
+        }).collect(Collectors.toList());
 
-        return new PageResponse<>(
-                postResponses,
-                posts.getNumber(),
-                posts.getSize(),
-                (int) posts.getTotalElements(),
-                posts.getTotalPages(),
-                posts.isFirst(),
-                posts.isLast()
-        );
+        return new PageResponse<>(postResponses, posts.getNumber(), posts.getSize(), (int) posts.getTotalElements(), posts.getTotalPages(), posts.isFirst(), posts.isLast());
     }
 
     public PageResponse<PostResponse> getUserPosts(Authentication connectedUser, long userId, int page, int size) {
         User userPrincipal = (User) connectedUser.getPrincipal();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
         Follow follow = (followRepository.getByFollowerIdAndFolloweeId(userPrincipal.getId(), user.getId()));
 
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> posts = (follow.isWaitConfirm() == true) ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
 
-        List<PostResponse> postResponses = posts.stream()
-                .map(post -> {
-                    int likeNumber = likeRepository.countByPostId(post.getId());
-                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
-                            : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
-                    return PostResponse
-                            .mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, followStatus);
-                })
-                .collect(Collectors.toList());
+        List<PostResponse> postResponses = posts.stream().map(post -> {
+            int likeNumber = likeRepository.countByPostId(post.getId());
+            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
+            FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+            return PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, liked, followStatus);
+        }).collect(Collectors.toList());
 
-        return new PageResponse<>(
-                postResponses,
-                posts.getNumber(),
-                posts.getSize(),
-                (int) posts.getTotalElements(),
-                posts.getTotalPages(),
-                posts.isFirst(),
-                posts.isLast()
-        );
+        return new PageResponse<>(postResponses, posts.getNumber(), posts.getSize(), (int) posts.getTotalElements(), posts.getTotalPages(), posts.isFirst(), posts.isLast());
     }
 
     public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();
-        EducationInstitution educationInstitution = educationInstitutionRepository
-                .findById(educationInstitutionId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", educationInstitutionId));
+        EducationInstitution educationInstitution = educationInstitutionRepository.findById(educationInstitutionId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", educationInstitutionId));
 
         if (searchFilterSortRequest != null) {
             SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
 
             Sort sort;
-            if (sortBy == null)
-                sort = Sort.by(Sort.Direction.DESC, "createdAt");
-            else
-                switch (sortBy) {
-                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
-                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
-                    case RELATED -> {
-                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    }
-                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            if (sortBy == null) sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else switch (sortBy) {
+                case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                case RELATED -> {
+                    sort = Sort.by(Sort.Direction.DESC, "createdAt");
                 }
+                default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            }
 
             Pageable pageable = PageRequest.of(page, size, sort);
             Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
@@ -222,18 +187,7 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
-            Page<Post> posts = postRepository.findByEducationInstitution(
-                    user,
-                    educationInstitution,
-                    pageable,
-                    searchFilterSortRequest.getKeyword(),
-                    expandedCategoryIds,
-                    searchFilterSortRequest.getBrandIdList(),
-                    searchFilterSortRequest.getMinPrice(),
-                    searchFilterSortRequest.getMaxPrice(),
-                    condition,
-                    isOnlyShop
-            );
+            Page<Post> posts = postRepository.findByEducationInstitution(user, educationInstitution, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -243,25 +197,22 @@ public class PostService {
 
     public PageResponse<PostResponse> getPostsByProvince(Authentication connectedUser, String provinceId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();
-        Province province = provinceRepository
-                .findById(provinceId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.PROVINCE_NOT_FOUND, "id", provinceId));
+        Province province = provinceRepository.findById(provinceId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.PROVINCE_NOT_FOUND, "id", provinceId));
 
         if (searchFilterSortRequest != null) {
             SortPostType sortBy = (searchFilterSortRequest.getSortBy() != null) ? SortPostType.valueOf(searchFilterSortRequest.getSortBy()) : null;
 
             Sort sort;
-            if (sortBy == null)
-                sort = Sort.by(Sort.Direction.DESC, "createdAt");
-            else
-                switch (sortBy) {
-                    case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
-                    case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
-                    case RELATED -> {
-                        sort = Sort.by(Sort.Direction.DESC, "createdAt");
-                    }
-                    default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            if (sortBy == null) sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            else switch (sortBy) {
+                case LATEST -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                case PRICE_ASC -> sort = Sort.by(Sort.Direction.ASC, "salePrice");
+                case PRICE_DESC -> sort = Sort.by(Sort.Direction.DESC, "salePrice");
+                case RELATED -> {
+                    sort = Sort.by(Sort.Direction.DESC, "createdAt");
                 }
+                default -> sort = Sort.by(Sort.Direction.DESC, "createdAt");
+            }
 
             Pageable pageable = PageRequest.of(page, size, sort);
             Condition condition = (searchFilterSortRequest.getCondition() != null) ? Condition.valueOf(searchFilterSortRequest.getCondition()) : null;
@@ -269,18 +220,7 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
-            Page<Post> posts = postRepository.findByProvince(
-                    user,
-                    province,
-                    pageable,
-                    searchFilterSortRequest.getKeyword(),
-                    expandedCategoryIds,
-                    searchFilterSortRequest.getBrandIdList(),
-                    searchFilterSortRequest.getMinPrice(),
-                    searchFilterSortRequest.getMaxPrice(),
-                    condition,
-                    isOnlyShop
-            );
+            Page<Post> posts = postRepository.findByProvince(user, province, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -289,28 +229,22 @@ public class PostService {
     }
 
     private PageResponse<PostResponse> convertPostResponseToPageResponse(User user, Page<Post> posts) {
-        List<PostResponse> postResponses = posts.stream()
-                .map(post -> {
-                    int likeNumber = likeRepository.countByPostId(post.getId());
+        List<PostResponse> postResponses = posts.stream().map(post -> {
+            int likeNumber = likeRepository.countByPostId(post.getId());
+            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
 
-                    Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
-                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
-                            : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
-                    return PostResponse.mapperToResponse(post, post.getUser().getFirstName(),
-                            post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, followStatus
-                    );
-                })
-                .collect(Collectors.toList());
+            Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+            FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+            return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
+        }).collect(Collectors.toList());
 
         return new PageResponse<>(
                 postResponses,
                 posts.getNumber(),
                 posts.getSize(),
                 (int) posts.getTotalElements(),
-                posts.getTotalPages(),
-                posts.isFirst(),
-                posts.isLast()
-        );
+                posts.getTotalPages(), posts.isFirst(),
+                posts.isLast());
     }
 
     public PageResponse<PostResponse> getPostsOfFollowing(Authentication connectedUser, int page, int size) {
@@ -319,5 +253,53 @@ public class PostService {
 
         Page<Post> posts = postRepository.findPostsOfFollowing(user, pageable);
         return convertPostResponseToPageResponse(user, posts);
+    }
+
+    public LikePostResponse likePost(long postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.POST_NOT_FOUND, postId));
+        boolean isLike = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
+        if (isLike) throw new AlreadyExistsException(AppErrorCode.LIKE_POST_EXISTS);
+
+        Like like = new Like(post, user);
+        likeRepository.save(like);
+
+        notificationService.createAndPushNotification(
+                user.getId(),
+                RecipientType.INDIVIDUAL,
+                NotificationCategory.NEW_LIKE,
+                NotificationType.INFORM,
+                "Bài viết của bạn",
+                "Người dùng " + user.getFirstName() + " " + user.getLastName() + " đã like bài của bạn",
+                post.getId(),
+                post.getUser().getId()
+        );
+        int likesCount = likeRepository.countByPostId(postId);
+        return new LikePostResponse(like.getPost().getId(), true, likesCount);
+    }
+
+    public LikePostResponse unlikePost(long postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException(
+                AppErrorCode.POST_NOT_FOUND, postId));
+        Like like = likeRepository.findByPostAndUser(post, user).orElseThrow(
+                () -> new ResourceNotFoundException(AppErrorCode.LIKE_NOT_FOUND)
+        );
+
+        likeRepository.delete(like);
+
+        int likesCount = likeRepository.countByPostId(postId);
+        return new LikePostResponse(like.getPost().getId(), false, likesCount);
+    }
+
+    public PostResponse getPostById(Authentication connectedUser, long postId) {
+        User user = (User) connectedUser.getPrincipal();
+        Post post = postRepository.findByIdAndConnectedUser(postId, user).orElseThrow(() -> new ResourceNotFoundException(
+                AppErrorCode.POST_NOT_FOUND, postId));
+        int likeNumber = likeRepository.countByPostId(post.getId());
+        boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
+        Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+        return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
     }
 }

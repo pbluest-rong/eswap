@@ -19,6 +19,7 @@ class FollowingPage extends StatefulWidget {
 
 class _FollowingPageState extends State<FollowingPage>
     with AutomaticKeepAliveClientMixin {
+  final WebSocketService _webSocketService = WebSocketService();
   bool _isGridView = false;
   final ScrollController _scrollController = ScrollController();
   final PostService _postService = PostService();
@@ -64,6 +65,7 @@ class _FollowingPageState extends State<FollowingPage>
   @override
   void dispose() {
     super.dispose();
+    _webSocketService.unsubscribe();
     _scrollController.dispose();
     _postService.dispose();
   }
@@ -134,6 +136,7 @@ class _FollowingPageState extends State<FollowingPage>
 
   void _setupWebSocket() {
     WebSocketService().listenForNewPosts((newPost) {
+      if (!mounted) return;
       setState(() {
         Map<String, dynamic> postJson = json.decode(newPost);
         Post post = Post.fromJson(postJson);
@@ -229,7 +232,10 @@ class _FollowingPageState extends State<FollowingPage>
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       if (index < _allPosts.length) {
-                        return PostItem(post: _allPosts[index], isGridView: _isGridView,);
+                        return PostItem(
+                          post: _allPosts[index],
+                          isGridView: _isGridView,
+                        );
                       } else if (_hasMore) {
                         return const Center(child: CircularProgressIndicator());
                       } else {
