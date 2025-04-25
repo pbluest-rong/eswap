@@ -21,8 +21,25 @@ public class AddPostRequest {
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
     private int quantity;
-    private AvailableTime availableTime;
-    private PostStatus status;
     private Privacy privacy;
     private Condition condition;
+    private String address;
+    private String phoneNumber;
 }
+/**
+ * Danh mục
+ * privacy: follower, public
+ * images: 0 < img <=5
+ * video: <=1 (tùy chọn)
+ * condition
+ * name
+ * description
+ * brand (tùy chọn)
+ * origin (tùy chọn)
+ * originalPrice (tùy chọn)
+ * salePrice
+ * quantity
+ * address (tùy chọn)
+ * phoneNumber (tùy chọn)
+ * medias
+ */

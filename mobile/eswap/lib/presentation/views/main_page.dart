@@ -1,12 +1,19 @@
+import 'dart:convert';
+
+import 'package:eswap/main.dart';
+import 'package:eswap/presentation/components/bottom_sheet.dart';
 import 'package:eswap/presentation/views/chat/Chat.dart';
+import 'package:eswap/presentation/views/post/add_post.dart';
+import 'package:eswap/presentation/views/post/add_post_provider.dart';
+import 'package:eswap/presentation/views/post/select_category.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/search/search_page.dart';
 import 'package:eswap/presentation/views/account/other_page.dart';
+import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
-
   const MainPage({super.key});
 
   @override
@@ -31,6 +38,39 @@ class _MainPageState extends State<MainPage> {
     ];
   }
 
+  Future<void> showCategorySelectionSheet(BuildContext context) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.transparent,
+        builder: (context) => EnhancedDraggableSheet(
+                child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: CategorySelectionWidget(),
+            )));
+
+    if (result != null) {
+      if (result != null && result['childCategory'] != null) {
+        final parentCategory = result['parentCategory'] ?? '';
+        final childCategory = result['childCategory'];
+
+        int categoryId = childCategory['id'];
+        String categoryName =
+            "${childCategory['name']} - ${parentCategory['name']}";
+
+        Provider.of<AddPostProvider>(context, listen: false)
+            .updateCategory(categoryId, categoryName);
+
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => AddPostPage()),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +84,7 @@ class _MainPageState extends State<MainPage> {
         height: 60,
         child: FloatingActionButton(
           onPressed: () {
-
+            showCategorySelectionSheet(context);
           },
           backgroundColor: Color(0xFF1F41BB),
           shape: CircleBorder(),
@@ -66,7 +106,8 @@ class _MainPageState extends State<MainPage> {
                 _buildNavItem(Icons.home, 0),
                 _buildNavItem(Icons.search, 1),
                 SizedBox(width: 40),
-                _buildNavItem(Icons.message_outlined, 3, hasBadge: true, notificationCount: _notificationCount),
+                _buildNavItem(Icons.message_outlined, 3,
+                    hasBadge: true, notificationCount: _notificationCount),
                 _buildNavItem(Icons.menu_sharp, 4),
               ],
             ),
@@ -76,7 +117,8 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index, {bool hasBadge = false, int notificationCount = 0}) {
+  Widget _buildNavItem(IconData icon, int index,
+      {bool hasBadge = false, int notificationCount = 0}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -107,7 +149,9 @@ class _MainPageState extends State<MainPage> {
                     Positioned(
                       right: -10,
                       top: -10,
-                      child: _buildNotificationBadge(notificationCount > 9 ? "9+" : notificationCount.toString()),
+                      child: _buildNotificationBadge(notificationCount > 9
+                          ? "9+"
+                          : notificationCount.toString()),
                     ),
                 ],
               ),
@@ -127,6 +171,7 @@ class _MainPageState extends State<MainPage> {
       ),
     );
   }
+
   Widget _buildNotificationBadge(String count) {
     bool isSingleDigit = count.length < 2;
     return Container(

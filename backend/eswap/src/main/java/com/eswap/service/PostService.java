@@ -69,11 +69,13 @@ public class PostService {
         post.setOriginalPrice(request.getOriginalPrice());
         post.setSalePrice(request.getSalePrice());
         post.setQuantity(request.getQuantity());
-        post.setAvailableTime(request.getAvailableTime());
-        post.setStatus(request.getStatus());
+        post.setAvailableTime(AvailableTime.THREE_MONTHS);
+        post.setStatus(PostStatus.PUBLISHED);
         post.setPrivacy(request.getPrivacy());
         post.setCondition(request.getCondition());
         post.setDeleted(false);
+        post.setAddress(request.getAddress());
+        post.setPhoneNumber(request.getPhoneNumber());
         // Lưu Post vào database
         post = postRepository.save(post);
         // upload ảnh

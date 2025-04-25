@@ -2,9 +2,7 @@ import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
-import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/presentation/components/bottom_sheet.dart';
-import 'package:eswap/presentation/components/follow_button.dart';
 import 'package:eswap/presentation/components/post_item.dart';
 import 'package:eswap/presentation/components/user_item.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';

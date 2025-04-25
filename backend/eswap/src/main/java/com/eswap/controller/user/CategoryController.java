@@ -36,4 +36,10 @@ public class CategoryController {
         List<BrandResponse> brands = categoryService.getBrandsByCategoryList(request);
         return ResponseEntity.ok(new ApiResponse(true,"Fetched brands successfully", brands));
     }
+
+    @GetMapping("/{categoryId}/brands")
+    public ResponseEntity<ApiResponse> getBrandsByCategoryId(@PathVariable("categoryId") long categoryId) {
+        List<BrandResponse> brands = categoryService.getBrandsByCategoryId(categoryId);
+        return ResponseEntity.ok(new ApiResponse(true,"Fetched brands successfully", brands));
+    }
 }

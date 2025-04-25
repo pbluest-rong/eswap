@@ -102,5 +102,15 @@
   "error_max_price" : "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu",
   "no_result_found": "Không tìm thấy kết quả",
   "show_more": "Xem thêm...",
-  "notification" : "Thông báo"
+  "notification" : "Thông báo",
+  "add_post" : "Tạo bài viết",
+  "privacy_public": "Công khai",
+  "privacy_follower" : "Chỉ người theo dõi",
+  "item_name": "Tên sản phẩm",
+  "item_desc": "Mô tả",
+  "item_brand" : "Thương hiệu",
+  "item_original_price" : "Giá gốc (đ)",
+  "item_sale_price": "Giá bán (đ)",
+  "item_address": "Địa chỉ liên hệ",
+  "item_phone_number": "Số điện thoại liên hệ"
 }

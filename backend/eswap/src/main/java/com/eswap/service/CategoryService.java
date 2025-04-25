@@ -82,4 +82,12 @@ public class CategoryService {
                 .collect(Collectors.toList());
         return responses;
     }
+
+    public List<BrandResponse> getBrandsByCategoryId(long categoryId) {
+        List<Brand> brands = categoryRepository.findBrandsByCategoryId(categoryId);
+        List<BrandResponse> responses = brands.stream()
+                .map(brand -> new BrandResponse(brand.getId(), brand.getName()))
+                .collect(Collectors.toList());
+        return responses;
+    }
 }

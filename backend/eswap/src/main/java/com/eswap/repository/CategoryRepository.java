@@ -4,6 +4,7 @@ import com.eswap.model.Brand;
 import com.eswap.model.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +22,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
                 WHERE (:categoryIdList IS NULL OR c.id IN :categoryIdList)
             """)
     List<Brand> getBrandsByCategoryList(List<Long> categoryIdList);
+    @Query("""
+                SELECT DISTINCT b FROM Brand b
+                JOIN b.categories c
+                WHERE (c.id = :categoryId)
+            """)
+    List<Brand> findBrandsByCategoryId(@Param("categoryId") Long categoryId);
 }
