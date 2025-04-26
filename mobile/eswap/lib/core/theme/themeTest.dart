@@ -14,6 +14,12 @@ class ThemeTest extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text("Theme app"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         actions: [
           PopupMenuButton<ThemeMode>(
             icon: Icon(Icons.color_lens),

@@ -42,4 +42,5 @@ class ApiEndpoints {
   static  String unlike_post_url = _baseUrl + "posts/unlike";
   static  String getPostById_url = _baseUrl + "posts";
   static  String detail_accounts_url = _baseUrl + "users";
+  static  String addPost_url = _baseUrl + "posts";
 }

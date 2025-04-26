@@ -7,7 +7,7 @@ class Post {
   final String firstname;
   final String lastname;
   final String? avtUrl;
-  String followStatus;
+  String? followStatus;
 
   final int id;
   final int educationInstitutionId;
@@ -33,7 +33,7 @@ class Post {
       required this.firstname,
       required this.lastname,
       required this.avtUrl,
-      required this.followStatus,
+      this.followStatus,
       required this.id,
       required this.educationInstitutionId,
       required this.educationInstitutionName,

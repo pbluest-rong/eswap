@@ -81,10 +81,12 @@ class _UserItemForPostState extends State<UserItemForPost> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FollowButton(
-              followStatus: FollowStatus.fromString(_post.followStatus),
-              otherUserId: _post.userId,
-            ),
+            _post.followStatus != null
+                ? FollowButton(
+                    followStatus: FollowStatus.fromString(_post.followStatus!),
+                    otherUserId: _post.userId,
+                  )
+                : SizedBox.shrink(),
             Container(
               margin: EdgeInsets.only(left: 5),
               padding: EdgeInsets.symmetric(vertical: 2),
@@ -164,10 +166,12 @@ class _UserItemForListState extends State<UserItemForList> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FollowButton(
-              followStatus: FollowStatus.fromString(_user.followStatus),
-              otherUserId: _user.id,
-            ),
+            (_user.followStatus != null)
+                ? FollowButton(
+                    followStatus: FollowStatus.fromString(_user.followStatus!),
+                    otherUserId: _user.id,
+                  )
+                : SizedBox.shrink(),
           ],
         )
       ],

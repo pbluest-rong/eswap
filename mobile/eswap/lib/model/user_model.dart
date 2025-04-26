@@ -19,7 +19,7 @@ class UserInfomation {
   String lastname;
   String? avatarUrl;
   String educationInstitutionName;
-  String followStatus;
+  String? followStatus;
   int? postCount;
   int? followerCount;
   int? followingCount;
@@ -33,7 +33,7 @@ class UserInfomation {
       required this.lastname,
       this.avatarUrl,
       required this.educationInstitutionName,
-      required this.followStatus,
+      this.followStatus,
       this.postCount,
       this.followerCount,
       this.followingCount,

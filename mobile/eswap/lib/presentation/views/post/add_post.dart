@@ -10,6 +10,7 @@ import 'package:eswap/presentation/components/pick_media.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/category_brand_service.dart';
+import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:searchfield/searchfield.dart';
@@ -22,15 +23,8 @@ class AddPostPage extends StatefulWidget {
 }
 
 class _AddPostPageState extends State<AddPostPage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _brandController = TextEditingController();
-  final TextEditingController _originalPriceController =
-      TextEditingController();
-  final TextEditingController _salePricePriceController =
-      TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _phoneNumberController = TextEditingController();
   List<SearchFieldListItem<Brand>> _brandSuggestions = [];
   final _categoryBrandService = CategoryBrandService();
   Brand? _selectedBrand;
@@ -49,9 +43,28 @@ class _AddPostPageState extends State<AddPostPage> {
         }).toList();
       });
     } catch (e) {
-      print(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load institutions: $e')),
+        SnackBar(
+          content: Text('Đã xảy ra lỗi khi tải thương hiệu, vui lòng thử lại.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addPost() async {
+    try {
+      final addPostProvider =
+          Provider.of<AddPostProvider>(context, listen: false);
+      final postService = PostService();
+      postService.addPost(
+          addPostProvider.toJson(), addPostProvider.getMediaFiles()!);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã xảy ra lỗi khi tải thương hiệu, vui lòng thử lại.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -116,129 +129,143 @@ class _AddPostPageState extends State<AddPostPage> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(right: 8.0),
-            child:
-                Provider.of<AddPostProvider>(context, listen: true).isCanPost()
-                    ? RichText(
-                        text: TextSpan(
-                          style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.lightPrimary),
-                          text: "Đăng",
-                        ),
-                      )
-                    : RichText(
-                        text: TextSpan(
-                          style: textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          text: "Đăng",
-                        ),
-                      ),
-          )
+              padding: EdgeInsets.only(right: 8.0),
+              child: TextButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    final canPost =
+                        Provider.of<AddPostProvider>(context, listen: false)
+                            .isCanPost();
+                    if (canPost) {
+                      _addPost();
+                    }
+                  }
+                },
+                child: Text(
+                  'Đăng',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Provider.of<AddPostProvider>(context, listen: true)
+                            .isCanPost()
+                        ? AppColors.lightPrimary
+                        : Colors.grey,
+                  ),
+                ),
+              ))
         ],
       ),
       body: AppBody(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildCategoryWidget(context, textTheme),
-              _buildMediaSection(true), // Images section
-              _buildMediaSection(false), // Videos section
-              SizedBox(height: 14),
-              _buildChoiceCondition(textTheme),
-              SizedBox(height: 14),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "item_name".tr(),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCategoryWidget(context, textTheme),
+                _buildMediaSection(true), // Images section
+                _buildMediaSection(false), // Videos section
+                SizedBox(height: 14),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    IntrinsicWidth(
+                      child: _buildChooseCondition(textTheme),
+                    ),
+                    _buildChooseQuantity(textTheme)
+                  ],
                 ),
-                controller: _nameController,
-                validator: (value) =>
-                    ValidationUtils.validatePostEmpty(value, "item_name".tr()),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateName(_nameController.text);
-                },
-              ),
-              SizedBox(height: 14),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "item_desc".tr(),
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
+                SizedBox(height: 14),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: "item_name".tr(),
+                  ),
+                  validator: (value) => ValidationUtils.validatePostEmpty(
+                      value, "item_name".tr()),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updateName(value);
+                  },
                 ),
-                controller: _descController,
-                validator: (value) =>
-                    ValidationUtils.validatePostEmpty(value, "item_desc".tr()),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                minLines: 5,
-                maxLines: 5,
-                keyboardType: TextInputType.multiline,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateDesc(_descController.text);
-                },
-              ),
-              SizedBox(height: 14),
-              _buildSelectBrandWidget(),
-              SizedBox(height: 14),
-              TextFormField(
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "item_original_price".tr(),
+                SizedBox(height: 14),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: "item_desc".tr(),
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => ValidationUtils.validatePostEmpty(
+                      value, "item_desc".tr()),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  minLines: 5,
+                  maxLines: 5,
+                  keyboardType: TextInputType.multiline,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updateDesc(value);
+                  },
                 ),
-                controller: _originalPriceController,
-                validator: (value) => ValidationUtils.validatePostEmpty(
-                    value, "item_original_price".tr()),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateOriginalPrice(
-                          _originalPriceController.text as double);
-                },
-              ),
-              SizedBox(height: 14),
-              TextFormField(
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "item_sale_price".tr(),
+                SizedBox(height: 14),
+                _buildSelectBrandWidget(),
+                SizedBox(height: 14),
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "item_original_price".tr(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return null;
+                    }
+                    return ValidationUtils.validatePositiveNumber(
+                        value, "item_original_price".tr());
+                  },
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updateOriginalPrice(double.tryParse(value) ?? 0);
+                  },
                 ),
-                controller: _salePricePriceController,
-                validator: (value) => ValidationUtils.validatePostEmpty(
-                    value, "item_sale_price".tr()),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateSalePrice(
-                          _salePricePriceController.text as double);
-                },
-              ),
-              SizedBox(height: 14),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "item_address".tr(),
+                SizedBox(height: 14),
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "item_sale_price".tr(),
+                  ),
+                  validator: (value) => ValidationUtils.validatePositiveNumber(
+                      value, "item_sale_price".tr()),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updateSalePrice(double.tryParse(value) ?? 0);
+                  },
                 ),
-                controller: _addressController,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateAddress(_addressController.text);
-                },
-              ),
-              SizedBox(height: 14),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "item_phone_number".tr(),
+                SizedBox(height: 14),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: "item_address".tr(),
+                  ),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updateAddress(value);
+                  },
                 ),
-                controller: _phoneNumberController,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                onEditingComplete: () {
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateAddress(_phoneNumberController.text);
-                },
-              ),
-              SizedBox(height: 100),
-            ],
+                SizedBox(height: 14),
+                TextFormField(
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: "item_phone_number".tr(),
+                  ),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  onChanged: (value) {
+                    Provider.of<AddPostProvider>(context, listen: false)
+                        .updatePhoneNumber(value);
+                  },
+                ),
+                SizedBox(height: 100),
+              ],
+            ),
           ),
         ),
       ),
@@ -462,12 +489,13 @@ class _AddPostPageState extends State<AddPostPage> {
     );
   }
 
-  Widget _buildChoiceCondition(TextTheme textTheme) {
+  Widget _buildChooseCondition(TextTheme textTheme) {
     Condition? condition =
         Provider.of<AddPostProvider>(context, listen: true).condition;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           "condition".tr(),
@@ -508,44 +536,138 @@ class _AddPostPageState extends State<AddPostPage> {
     );
   }
 
+  Widget _buildChooseQuantity(TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          "item_quantity".tr(),
+          style: textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+        ),
+        QuantitySelector(
+          initialValue: 1,
+          onChanged: (value) {
+            Provider.of<AddPostProvider>(context, listen: false)
+                .updateQuantity(value);
+          },
+        )
+      ],
+    );
+  }
+
   _buildSelectBrandWidget() {
     return SearchField<Brand>(
-      controller: _brandController,
-      suggestions: _brandSuggestions,
-      hint: "item_brand".tr(),
-      searchInputDecoration: SearchInputDecoration(
-        labelText: "item_brand".tr(),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey, width: 2.0),
-          borderRadius: BorderRadius.circular(8.0),
+        controller: _brandController,
+        suggestions: _brandSuggestions,
+        hint: "item_brand".tr(),
+        searchInputDecoration: SearchInputDecoration(
+          labelText: "item_brand".tr(),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.grey, width: 2.0),
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue, width: 2.0),
+          ),
+          suffixIcon: _selectedBrand != null
+              ? IconButton(
+                  icon: Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      _selectedBrand = null;
+                      _brandController.clear();
+                      Provider.of<AddPostProvider>(context, listen: false)
+                          .updateBrandId(null);
+                    });
+                  },
+                )
+              : null,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue, width: 2.0),
+        onSuggestionTap: (value) {
+          if (value.item != null) {
+            setState(() {
+              _selectedBrand = value.item;
+              _brandController.text = value.item!.name;
+            });
+            Provider.of<AddPostProvider>(context, listen: false)
+                .updateBrandId(value.item!.id);
+          }
+        },
+        onSubmit: (text) {
+          if (_selectedBrand == null) {
+            _brandController.text = "";
+          }
+        });
+  }
+}
+
+class QuantitySelector extends StatefulWidget {
+  final int initialValue;
+  final ValueChanged<int>? onChanged;
+
+  const QuantitySelector({
+    super.key,
+    this.initialValue = 1,
+    this.onChanged,
+  });
+
+  @override
+  State<QuantitySelector> createState() => _QuantitySelectorState();
+}
+
+class _QuantitySelectorState extends State<QuantitySelector> {
+  late int _quantity;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantity = widget.initialValue;
+  }
+
+  void _increment() {
+    setState(() {
+      _quantity++;
+      widget.onChanged?.call(_quantity);
+    });
+  }
+
+  void _decrement() {
+    if (_quantity > 1) {
+      setState(() {
+        _quantity--;
+        widget.onChanged?.call(_quantity);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove),
+          onPressed: _decrement,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+          ),
         ),
-        suffixIcon: _selectedBrand != null
-            ? IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _selectedBrand = null;
-                    _brandController.clear();
-                    Provider.of<AddPostProvider>(context, listen: false)
-                        .updateBrandId(null);
-                  });
-                },
-              )
-            : null,
-      ),
-      onSuggestionTap: (value) {
-        if (value.item != null) {
-          setState(() {
-            _selectedBrand = value.item;
-            _brandController.text = value.item!.name;
-          });
-          Provider.of<AddPostProvider>(context, listen: false)
-              .updateBrandId(value.item!.id);
-        }
-      },
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            '$_quantity',
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: _increment,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+          ),
+        ),
+      ],
     );
   }
 }

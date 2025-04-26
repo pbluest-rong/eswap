@@ -38,11 +38,7 @@ public class UserService {
     public AuthenticationResponse getLoginInfo(Authentication auth) {
         User user = (User) auth.getPrincipal();
         String educationInstitutionName = user.getEducationInstitution().getName();
-        return AuthenticationResponse.builder()
-                .role(user.getRole().getName())
-                .educationInstitutionId(user.getEducationInstitution().getId())
-                .educationInstitutionName(educationInstitutionName)
-                .build();
+        return AuthenticationResponse.builder().role(user.getRole().getName()).educationInstitutionId(user.getEducationInstitution().getId()).educationInstitutionName(educationInstitutionName).build();
     }
 
     /**
@@ -58,8 +54,7 @@ public class UserService {
             throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
 
-        User targetUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
+        User targetUser = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
 
         targetUser.setAccountLocked(true);
         userRepository.save(targetUser);
@@ -78,8 +73,7 @@ public class UserService {
             throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
 
-        User targetUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
+        User targetUser = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
 
         targetUser.setAccountLocked(false);
         userRepository.save(targetUser);
@@ -132,14 +126,10 @@ public class UserService {
     public User changeInformation(Authentication connectedUser, ChangeInfoRequest request) {
         User user = (User) connectedUser.getPrincipal();
         if (user.isEnabled() && user.isAccountNonLocked()) {
-            if (user.getFirstName() != request.getFirstname())
-                user.setFirstName(request.getFirstname());
-            if (user.getLastName() != request.getLastname())
-                user.setLastName(request.getLastname());
-            if (user.getDob() != request.getDob())
-                user.setDob(request.getDob());
-            if (user.getGender() != request.getGender())
-                user.setGender(request.getGender());
+            if (user.getFirstName() != request.getFirstname()) user.setFirstName(request.getFirstname());
+            if (user.getLastName() != request.getLastname()) user.setLastName(request.getLastname());
+            if (user.getDob() != request.getDob()) user.setDob(request.getDob());
+            if (user.getGender() != request.getGender()) user.setGender(request.getGender());
             if (user.getAddress() == null || user.getAddress() != request.getAddress())
                 user.setAddress(request.getAddress());
             if (user.getPhoneNumber() == null || user.getPhoneNumber() != request.getPhoneNumber())
@@ -227,44 +217,24 @@ public class UserService {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
 
-        User followeeUser = userRepository.findById(followeeUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId));
+        if (user.getId() == followeeUserId) {
+            throw new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId);
+        }
+
+        User followeeUser = userRepository.findById(followeeUserId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId));
         Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), followeeUser.getId());
 
-        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
-                : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
         if (followStatus == FollowStatus.FOLLOWED || followStatus == FollowStatus.WAITING) {
             throw new AlreadyExistsException(AppErrorCode.FOLLOW_USER_FOLLOWED);
         } else {
-            Follow newFollow = Follow.builder()
-                    .follower(user)
-                    .followee(followeeUser)
-                    .waitConfirm(followeeUser.isRequireFollowApproval() ? true : false)
-                    .build();
+            Follow newFollow = Follow.builder().follower(user).followee(followeeUser).waitConfirm(followeeUser.isRequireFollowApproval() ? true : false).build();
 
             newFollow = followRepository.save(newFollow);
 
-            notificationService.createAndPushNotification(
-                    newFollow.getFollower().getId(),
-                    RecipientType.INDIVIDUAL,
-                    NotificationCategory.NEW_FOLLOW,
-                    NotificationType.INFORM,
-                    newFollow.isWaitConfirm() ?
-                            newFollow.getFollower().getFirstName() + " " +
-                                    newFollow.getFollower().getLastName()
-                                    + " gửi yêu cầu theo dõi bạn"
-                            :
-                            newFollow.getFollower().getFirstName() + " " +
-                                    newFollow.getFollower().getLastName()
-                                    + " đã theo dõi bạn",
-                    "", null,
-                    newFollow.getFollowee().getId()
-            );
+            notificationService.createAndPushNotification(newFollow.getFollower().getId(), RecipientType.INDIVIDUAL, NotificationCategory.NEW_FOLLOW, NotificationType.INFORM, newFollow.isWaitConfirm() ? newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " gửi yêu cầu theo dõi bạn" : newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " đã theo dõi bạn", "", null, newFollow.getFollowee().getId());
 
-            return FollowResponse.builder()
-                    .id(newFollow.getId())
-                    .status(newFollow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED)
-                    .build();
+            return FollowResponse.builder().id(newFollow.getId()).status(newFollow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED).build();
         }
     }
 
@@ -279,11 +249,9 @@ public class UserService {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
 
-        User followeeUser = userRepository.findById(followeeUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId));
+        User followeeUser = userRepository.findById(followeeUserId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followeeUserId));
 
-        Follow follow = followRepository.findByFollowerAndFollowee(user, followeeUser)
-                .orElseThrow(() -> new IllegalStateException("Bạn chưa theo dõi người này!"));
+        Follow follow = followRepository.findByFollowerAndFollowee(user, followeeUser).orElseThrow(() -> new IllegalStateException("Bạn chưa theo dõi người này!"));
 
         followRepository.delete(follow);
     }
@@ -297,20 +265,15 @@ public class UserService {
         if (!user.isEnabled() || !user.isAccountNonLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
-        User requestFollowUser = userRepository.findById(requestFollowUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", requestFollowUserId));
+        User requestFollowUser = userRepository.findById(requestFollowUserId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", requestFollowUserId));
 
-        Follow follow = followRepository.findByFollowerAndFollowee(requestFollowUser, user)
-                .orElseThrow(() -> new IllegalStateException("Người này chưa theo dõi bạn mà :))"));
+        Follow follow = followRepository.findByFollowerAndFollowee(requestFollowUser, user).orElseThrow(() -> new IllegalStateException("Người này chưa theo dõi bạn mà :))"));
 
         follow.setWaitConfirm(false);
 
         followRepository.save(follow);
 
-        return FollowResponse.builder()
-                .id(follow.getId())
-                .status(follow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED)
-                .build();
+        return FollowResponse.builder().id(follow.getId()).status(follow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED).build();
 
     }
 
@@ -350,33 +313,32 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size);
         Page<User> users = userRepository.searchUsersWithPriority(user, keyword, pageable);
 
-        List<UserResponse> usersResponse = users
-                .stream()
-                .map(u -> {
-                    Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), u.getId());
-                    FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
-                            : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
-                    return UserResponse.mapperToUserResponse(u, followStatus, u.getId() == user.getId());
-                })
-                .collect(Collectors.toList());
-        return new PageResponse<>(
-                usersResponse,
-                users.getNumber(),
-                users.getSize(),
-                (int) users.getTotalElements(),
-                users.getTotalPages(),
-                users.isFirst(),
-                users.isLast()
-        );
+        List<UserResponse> usersResponse = users.stream().map(u -> {
+            FollowStatus followStatus;
+            if (u.getId() == user.getId()) {
+                followStatus = null;
+            } else {
+                Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), u.getId());
+                followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
+            }
+
+            return UserResponse.mapperToUserResponse(u, followStatus, u.getId() == user.getId());
+        }).collect(Collectors.toList());
+        return new PageResponse<>(usersResponse, users.getNumber(), users.getSize(), (int) users.getTotalElements(), users.getTotalPages(), users.isFirst(), users.isLast());
 
     }
 
     public UserResponse getUserById(long id, Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
         User findUser = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", id));
-        Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), findUser.getId());
-        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED
-                : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
+        FollowStatus followStatus;
+        if (id == user.getId()) {
+            followStatus = null;
+        } else {
+            Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), findUser.getId());
+            followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
+        }
+
         int postCount = postRepository.countPostsByUser(findUser);
         int followerCount = followRepository.countByFollowee(user);
         int followeeCount = followRepository.countByFollower(user);

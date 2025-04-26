@@ -48,4 +48,21 @@ class ValidationUtils {
     }
     return null;
   }
+
+  static String? validatePositiveNumber(String? value, String errorTextValue) {
+    if (value == null || value.trim().isEmpty) {
+      return "alert_null_value".tr(args: [errorTextValue]);
+    }
+
+    final number = double.tryParse(value);
+    if (number == null) {
+      return "Vui lòng nhập số hợp lệ";
+    }
+
+    if (number < 0) {
+      return "Giá trị không được nhỏ hơn 0";
+    }
+
+    return null;
+  }
 }

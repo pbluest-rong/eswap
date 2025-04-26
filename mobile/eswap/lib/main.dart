@@ -7,6 +7,7 @@ import 'package:eswap/presentation/views/home/following.dart';
 import 'package:eswap/presentation/views/init_page.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/views/signup/signup_provider.dart';
+import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';

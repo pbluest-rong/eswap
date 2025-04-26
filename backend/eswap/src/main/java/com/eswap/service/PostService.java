@@ -149,19 +149,9 @@ public class PostService {
         User userPrincipal = (User) connectedUser.getPrincipal();
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
         Follow follow = (followRepository.getByFollowerIdAndFolloweeId(userPrincipal.getId(), user.getId()));
-
-
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> posts = (follow.isWaitConfirm() == true) ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
-
-        List<PostResponse> postResponses = posts.stream().map(post -> {
-            int likeNumber = likeRepository.countByPostId(post.getId());
-            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
-            FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
-            return PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, liked, followStatus);
-        }).collect(Collectors.toList());
-
-        return new PageResponse<>(postResponses, posts.getNumber(), posts.getSize(), (int) posts.getTotalElements(), posts.getTotalPages(), posts.isFirst(), posts.isLast());
+        return convertPostResponseToPageResponse(user, posts);
     }
 
     public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
@@ -234,9 +224,13 @@ public class PostService {
         List<PostResponse> postResponses = posts.stream().map(post -> {
             int likeNumber = likeRepository.countByPostId(post.getId());
             boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
-
-            Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
-            FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+            FollowStatus followStatus;
+            if (post.getUser().getId() == user.getId()) {
+                followStatus = null;
+            } else {
+                Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+                followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+            }
             return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
         }).collect(Collectors.toList());
 
@@ -300,8 +294,15 @@ public class PostService {
                 AppErrorCode.POST_NOT_FOUND, postId));
         int likeNumber = likeRepository.countByPostId(post.getId());
         boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
-        Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
-        FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+
+        FollowStatus followStatus;
+        if (post.getUser().getId() == user.getId()) {
+            followStatus = null;
+        } else {
+            Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+            followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+        }
+
         return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
     }
 }

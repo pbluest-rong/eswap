@@ -112,5 +112,6 @@
   "item_original_price" : "Original price",
   "item_sale_price": "Sale price",
   "item_address": "Address",
-  "item_phone_number": "Phone number"
+  "item_phone_number": "Phone number",
+  "item_quantity"  : "Quantity"
 }

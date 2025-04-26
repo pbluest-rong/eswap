@@ -23,6 +23,8 @@ class MediaLibraryScreen extends StatefulWidget {
 }
 
 class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
+  static const int maxImageSize = 10 * 1024 * 1024; // 10MB cho ảnh
+  static const int maxVideoSize = 20 * 1024 * 1024; // 20MB cho video
   final List<AssetEntity> _mediaList = [];
   final List<AssetEntity> _selectedMedia = [];
   final Map<String, Uint8List> _thumbnailCache = {};
@@ -174,6 +176,16 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       );
       if (photo == null) return;
 
+      // Kiểm tra dung lượng ảnh chụp
+      final file = File(photo.path);
+      final size = await file.length();
+      if (size > maxImageSize) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ảnh không được vượt quá ${maxImageSize ~/ (1024*1024)}MB')),
+        );
+        return;
+      }
+
       final bytes = await File(photo.path).readAsBytes();
       final filename = 'IMG_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
@@ -214,7 +226,11 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
     }
   }
 
-  void _toggleSelection(AssetEntity asset) {
+  void _toggleSelection(AssetEntity asset) async {
+    // Kiểm tra dung lượng trước khi chọn
+    final isSizeValid = await _checkAssetSize(asset);
+    if (!isSizeValid) return;
+
     setState(() {
       if (_selectedMedia.contains(asset)) {
         _selectedMedia.remove(asset);
@@ -229,6 +245,36 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
         );
       }
     });
+  }
+  Future<bool> _checkAssetSize(AssetEntity asset) async {
+    try {
+      final file = await asset.file;
+      if (file == null) return false;
+
+      final size = await file.length();
+
+      if (asset.type == AssetType.image && size > maxImageSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ảnh không được vượt quá ${maxImageSize ~/ (1024*1024)}MB')),
+          );
+        }
+        return false;
+      }
+
+      if (asset.type == AssetType.video && size > maxVideoSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Video không được vượt quá ${maxVideoSize ~/ (1024*1024)}MB')),
+          );
+        }
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
@@ -346,11 +392,47 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
           _buildThumbnail(asset),
           if (!isImage) _buildVideoDuration(asset),
           if (isSelected) _buildSelectionIndicator(selectedIndex!),
+          // Thêm hiển thị dung lượng
+          _buildFileSize(asset),
         ],
       ),
     );
   }
+  Widget _buildFileSize(AssetEntity asset) {
+    return FutureBuilder<File?>(
+      future: asset.file,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == null) return const SizedBox();
 
+        return FutureBuilder<int>(
+          future: snapshot.data!.length(),
+          builder: (context, sizeSnapshot) {
+            if (!sizeSnapshot.hasData) return const SizedBox();
+
+            final sizeInMB = sizeSnapshot.data! / (1024 * 1024);
+            return Positioned(
+              bottom: 4,
+              left: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${sizeInMB.toStringAsFixed(1)}MB',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   Widget _buildThumbnail(AssetEntity asset) {
     if (_thumbnailCache.containsKey(asset.id)) {
       return Image.memory(

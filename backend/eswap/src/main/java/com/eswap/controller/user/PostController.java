@@ -16,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+
 @RestController
 @RequestMapping("posts")
 @RequiredArgsConstructor
@@ -28,6 +30,8 @@ public class PostController {
             @RequestPart(value = "mediaFiles", required = false) MultipartFile[] mediaFiles,
             Authentication auth) {
 
+        System.out.println("post: " + request);
+        System.out.println("mediaFiles: " + mediaFiles[0].getOriginalFilename());
         postService.addPost(auth, request, mediaFiles);
         return ResponseEntity.ok(new ApiResponse(true, "Đăng bài thành công!", null));
     }
@@ -115,6 +119,7 @@ public class PostController {
         LikePostResponse response = postService.likePost(postId, auth);
         return ResponseEntity.ok(new ApiResponse(true, "Post like successfully", response));
     }
+
     @PostMapping("/unlike/{postId}")
     public ResponseEntity<ApiResponse> unlikePost(@PathVariable long postId, Authentication auth) {
         LikePostResponse response = postService.unlikePost(postId, auth);

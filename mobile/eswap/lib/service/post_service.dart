@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
@@ -12,7 +16,9 @@ import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,8 +42,7 @@ class PostService {
   }
 
   Future<PageResponse<Post>> fetchPostByEducationInstitution(int institutionId,
-      int page, int size, bool isOnlyShop, BuildContext context) async
-  {
+      int page, int size, bool isOnlyShop, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -65,6 +70,7 @@ class PostService {
           (json) =>
               Post.fromJson(json), // Pass a function that converts JSON to Post
         );
+        pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
         print("error 1");
@@ -93,8 +99,7 @@ class PostService {
   }
 
   Future<PageResponse<Post>> fetchPostsOfFollowing(
-      int page, int size, BuildContext context) async
-  {
+      int page, int size, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -112,6 +117,7 @@ class PostService {
           responseData,
           (json) => Post.fromJson(json),
         );
+        pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
         print("error 1");
@@ -138,8 +144,7 @@ class PostService {
   }
 
   Future<PageResponse<Post>> fetchExplorePosts(
-      int page, int size, bool isOnlyShop, BuildContext context) async
-  {
+      int page, int size, bool isOnlyShop, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -163,6 +168,7 @@ class PostService {
           responseData,
           (json) => Post.fromJson(json),
         );
+        pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
         print("error 1");
@@ -189,8 +195,7 @@ class PostService {
   }
 
   Future<PageResponse<Post>> fetchPostsByProvince(String provinceId, int page,
-      int size, bool isOnlyShop, BuildContext context) async
-  {
+      int size, bool isOnlyShop, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -215,6 +220,7 @@ class PostService {
           responseData,
           (json) => Post.fromJson(json),
         );
+        pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
         print("error 1");
@@ -240,8 +246,7 @@ class PostService {
     }
   }
 
-  Future<Like> like(int postId, BuildContext context) async
-  {
+  Future<Like> like(int postId, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -272,8 +277,8 @@ class PostService {
       throw Exception("general_error".tr());
     }
   }
-  Future<Like> unlike(int postId, BuildContext context) async
-  {
+
+  Future<Like> unlike(int postId, BuildContext context) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final prefs = await SharedPreferences.getInstance();
@@ -308,8 +313,7 @@ class PostService {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('accessToken');
       print("CHECK ${ApiEndpoints.getPostById_url}/$id");
-      final response = await dio.get(
-          "${ApiEndpoints.getPostById_url}/$id",
+      final response = await dio.get("${ApiEndpoints.getPostById_url}/$id",
           options: Options(headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer $accessToken",
@@ -324,6 +328,72 @@ class PostService {
       } else {
         throw Exception(response.data["message"] ?? "Failed to load post");
       }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data["message"] ?? "Network error occurred");
+    } catch (e) {
+      throw Exception("Failed to load post: ${e.toString()}");
+    }
+  }
+
+  Future<void> addPost(Map<String, dynamic> postData, List<String> mediaFiles) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('accessToken');
+
+      List<MultipartFile> mediaFileList = [];
+      List<String> compressedFilePaths = [];  // Để lưu lại đường dẫn file nén
+
+      for (String filePath in mediaFiles) {
+        final tempDir = await getTemporaryDirectory();
+        final targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
+
+        final compressedFile = await FlutterImageCompress.compressAndGetFile(
+          filePath,
+          targetPath,
+          quality: 70,
+        );
+        if (compressedFile != null) {
+          mediaFileList.add(
+            await MultipartFile.fromFile(
+              compressedFile.path,
+              filename: compressedFile.path.split('/').last,
+            ),
+          );
+          compressedFilePaths.add(compressedFile.path);
+        }
+      }
+
+      FormData formData = FormData.fromMap({
+        "post": MultipartFile.fromString(
+          jsonEncode(postData),
+          filename: 'post.json',
+          contentType: DioMediaType('application', 'json'),
+        ),
+        "mediaFiles": mediaFileList,
+      });
+
+      final response = await dio.post(
+        ApiEndpoints.addPost_url,
+        data: formData,
+        options: Options(headers: {
+          "Authorization": "Bearer $accessToken",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("Add Post Successful");
+      } else {
+        throw Exception(response.data["message"] ?? "Failed to load post");
+      }
+
+      // Xoá hết các file nén
+      for (var path in compressedFilePaths) {
+        final compressedFile = File(path);
+        if (await compressedFile.exists()) {
+          await compressedFile.delete();
+        }
+      }
+
     } on DioException catch (e) {
       throw Exception(e.response?.data["message"] ?? "Network error occurred");
     } catch (e) {

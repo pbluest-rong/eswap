@@ -9,9 +9,9 @@ class AddPostProvider extends ChangeNotifier {
   int? brandId;
   double? originalPrice;
   double? salePrice;
-  int? quantity;
+  int? quantity = 1;
   String privacy = "PUBLIC";
-  Condition? condition;
+  Condition? condition = Condition.NEW;
   String? address;
   String? phoneNumber;
   List<String>? images = [];
@@ -114,20 +114,14 @@ class AddPostProvider extends ChangeNotifier {
   }
 
   bool isCanPost() {
-    print(
-        "Can Post: ${categoryId != null && categoryName != null && name != null && description != null && brandId != null && salePrice != null && quantity != null && privacy != null && condition != null && address != null && phoneNumber != null && (_getMediaFiles()?.isNotEmpty ?? false)}");
     return categoryId != null &&
         categoryName != null &&
         name != null &&
         description != null &&
-        brandId != null &&
         salePrice != null &&
         quantity != null &&
-        privacy != null &&
         condition != null &&
-        address != null &&
-        phoneNumber != null &&
-        (_getMediaFiles()?.isNotEmpty ?? false);
+        (getMediaFiles()?.isNotEmpty ?? false);
   }
 
   void reset() {
@@ -138,9 +132,9 @@ class AddPostProvider extends ChangeNotifier {
     brandId = null;
     originalPrice = null;
     salePrice = null;
-    quantity = null;
+    quantity = 1;
     privacy = "PUBLIC";
-    condition = null;
+    condition = Condition.NEW;
     address = null;
     phoneNumber = null;
     images?.clear();
@@ -163,7 +157,7 @@ class AddPostProvider extends ChangeNotifier {
     };
   }
 
-  List<String>? _getMediaFiles() {
+  List<String>? getMediaFiles() {
     if (images == null && videos == null) return null;
 
     List<String> mediaFiles = [];
