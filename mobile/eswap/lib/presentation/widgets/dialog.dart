@@ -3,7 +3,7 @@ import 'package:eswap/core/theme/themeTest.dart';
 import 'package:flutter/material.dart';
 
 void showErrorDialog(BuildContext context, String message) {
-  FacebookStyleAlert.show(
+  AppAlert.show(
     context: context,
     title: message,
     buttonLayout: _AlertButtonLayout.single,
@@ -48,7 +48,7 @@ class _AlertAction {
   });
 }
 
-class FacebookStyleAlert {
+class AppAlert {
   static void show({
     required BuildContext context,
     required String title,
@@ -390,7 +390,7 @@ class TestAlert extends StatelessWidget {
 
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Title Here',
                   buttonLayout: _AlertButtonLayout.single,
@@ -400,7 +400,7 @@ class TestAlert extends StatelessWidget {
               child: const Text("Simple alert with title and single button")),
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Title Here',
                   description: 'Alert description with auto layout!',
@@ -411,7 +411,7 @@ class TestAlert extends StatelessWidget {
               child: const Text("Alert with description and single button")),
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Title Here',
                   buttonLayout: _AlertButtonLayout.dual,
@@ -424,7 +424,7 @@ class TestAlert extends StatelessWidget {
               child: const Text("Alert with two buttons")),
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Title Here',
                   description: 'Alert description with auto layout!',
@@ -438,7 +438,7 @@ class TestAlert extends StatelessWidget {
               child: const Text("Alert with description and two buttons")),
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Delete item?',
                   description: 'This action cannot be undone',
@@ -452,7 +452,7 @@ class TestAlert extends StatelessWidget {
               child: const Text("Destructive action alert")),
           TextButton(
               onPressed: () {
-                FacebookStyleAlert.show(
+                AppAlert.show(
                   context: context,
                   title: 'Title Here',
                   buttonLayout: _AlertButtonLayout.stacked,

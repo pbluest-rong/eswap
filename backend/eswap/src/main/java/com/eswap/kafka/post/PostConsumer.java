@@ -1,4 +1,4 @@
-package com.eswap.kafka;
+package com.eswap.kafka.post;
 
 import com.eswap.common.constants.NotificationCategory;
 import com.eswap.common.constants.NotificationType;
@@ -12,9 +12,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,8 +21,7 @@ public class PostConsumer {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserService userService;
 
-    @KafkaListener(topics = KafkaConfig.NEW_TOPIC, groupId = "post-group-notification",
-            containerFactory = "newPostKafkaListenerContainerFactory")
+    @KafkaListener(topics = PostKafkaConfig.NEW_TOPIC, groupId = "post-group-notification")
     public void processNewPostFcm(PostResponse post) {
         System.out.println("Kafka: new-post post-group-notification " + post);
         notificationService.createAndPushNotification(
@@ -39,7 +36,7 @@ public class PostConsumer {
         );
     }
 
-    @KafkaListener(topics = KafkaConfig.NEW_TOPIC, groupId = "post-group-websocket", containerFactory = "newPostKafkaListenerContainerFactory")
+    @KafkaListener(topics = PostKafkaConfig.NEW_TOPIC, groupId = "post-group-websocket")
     public void processNewPostWebSocket(PostResponse post) {
         try {
             System.out.println("Kafka: new-post post-group-websocket " + post);

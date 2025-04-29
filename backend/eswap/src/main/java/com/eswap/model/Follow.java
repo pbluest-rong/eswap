@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,6 +33,6 @@ public class Follow {
     private boolean waitConfirm;
 
     @CreationTimestamp
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private Timestamp createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 }

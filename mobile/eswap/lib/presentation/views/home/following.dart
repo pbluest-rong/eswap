@@ -19,7 +19,6 @@ class FollowingPage extends StatefulWidget {
 
 class _FollowingPageState extends State<FollowingPage>
     with AutomaticKeepAliveClientMixin {
-  final WebSocketService _webSocketService = WebSocketService();
   bool _isGridView = false;
   final ScrollController _scrollController = ScrollController();
   final PostService _postService = PostService();
@@ -65,7 +64,6 @@ class _FollowingPageState extends State<FollowingPage>
   @override
   void dispose() {
     super.dispose();
-    _webSocketService.unsubscribe();
     _scrollController.dispose();
     _postService.dispose();
   }
@@ -134,8 +132,10 @@ class _FollowingPageState extends State<FollowingPage>
     });
   }
 
-  void _setupWebSocket() {
-    WebSocketService().listenForNewPosts((newPost) {
+  void _setupWebSocket() async {
+    final WebSocketService _webSocketService =
+        await WebSocketService.getInstance();
+    _webSocketService.listenForNewPosts((newPost) {
       if (!mounted) return;
       setState(() {
         Map<String, dynamic> postJson = json.decode(newPost);

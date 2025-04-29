@@ -38,7 +38,11 @@ public class UserService {
     public AuthenticationResponse getLoginInfo(Authentication auth) {
         User user = (User) auth.getPrincipal();
         String educationInstitutionName = user.getEducationInstitution().getName();
-        return AuthenticationResponse.builder().role(user.getRole().getName()).educationInstitutionId(user.getEducationInstitution().getId()).educationInstitutionName(educationInstitutionName).build();
+        return AuthenticationResponse.builder()
+                .userId(user.getId())
+                .role(user.getRole().getName())
+                .educationInstitutionId(user.getEducationInstitution().getId()).educationInstitutionName(educationInstitutionName)
+                .build();
     }
 
     /**
@@ -342,7 +346,7 @@ public class UserService {
         int postCount = postRepository.countPostsByUser(findUser);
         int followerCount = followRepository.countByFollowee(user);
         int followeeCount = followRepository.countByFollower(user);
-        UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(), findUser.getCreatedDate().toString(), findUser.getId() == user.getId());
+        UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(), findUser.getCreatedAt().toString(), findUser.getId() == user.getId());
         return userResponse;
     }
 }

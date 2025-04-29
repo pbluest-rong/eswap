@@ -88,7 +88,7 @@
   "filter": "Filter",
   "sort_related": "Related",
   "sort_latest": "Latest",
-  "filter_shop": "Shop",
+  "filter_store": "Store",
   "sort_price": "Price",
   "retry": "Retry",
   "no_posts_available": "No posts available",
@@ -113,5 +113,7 @@
   "item_sale_price": "Sale price",
   "item_address": "Address",
   "item_phone_number": "Phone number",
-  "item_quantity"  : "Quantity"
+  "item_quantity"  : "Quantity",
+  "no_messages_yet" : "No messages yet",
+  "free": "Free"
 }

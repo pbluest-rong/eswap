@@ -66,8 +66,8 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   void initState() {
     super.initState();
     _setupScrollListener();
-    _setupWebSocket();
     widget.controller?.scrollToTop = _scrollToTop;
+    _setupWebSocket();
   }
 
   @override
@@ -87,7 +87,8 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     try {
       final prefs = await SharedPreferences.getInstance();
       final educationInstitutionId = prefs.getInt("educationInstitutionId");
-      final educationInstitutionName = prefs.getString("educationInstitutionName");
+      final educationInstitutionName =
+          prefs.getString("educationInstitutionName");
 
       if (educationInstitutionId != null && educationInstitutionName != null) {
         setState(() {
@@ -194,9 +195,11 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
   }
 
-  void _setupWebSocket() {
+  void _setupWebSocket() async {
     if (mounted) {
-      WebSocketService().listenForNewPosts((newPost) {
+      final WebSocketService _webSocketService =
+          await WebSocketService.getInstance();
+      _webSocketService.listenForNewPosts((newPost) {
         setState(() {
           Map<String, dynamic> postJson = json.decode(newPost);
           Post post = Post.fromJson(postJson);

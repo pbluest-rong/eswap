@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/model/user_model.dart';
@@ -67,7 +68,8 @@ class _UserItemForPostState extends State<UserItemForPost> {
                   ),
                   SizedBox(width: 5),
                   Text(
-                    _post.createdAt,
+                    DateFormat('dd/MM/yyyy  HH:mm')
+                        .format(DateTime.parse(_post.createdAt).toLocal()),
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey[600],
@@ -146,13 +148,15 @@ class _UserItemForListState extends State<UserItemForList> {
                   fontSize: 16,
                 ),
               ),
-              Text(
-                _user.username,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
+              _user.username != null
+                  ? Text(
+                      _user.username!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    )
+                  : SizedBox.shrink(),
               Text(
                 _user.educationInstitutionName,
                 style: TextStyle(

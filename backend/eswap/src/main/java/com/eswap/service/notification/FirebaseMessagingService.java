@@ -65,7 +65,7 @@ public class FirebaseMessagingService {
         try {
             return FirebaseMessaging.getInstance().send(message);
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             return "Error sending notification";
         }
     }

@@ -14,7 +14,7 @@ import 'package:eswap/model/enum_model.dart';
  */
 class UserInfomation {
   final int id;
-  String username;
+  String? username;
   String firstname;
   String lastname;
   String? avatarUrl;
@@ -28,7 +28,7 @@ class UserInfomation {
 
   UserInfomation(
       {required this.id,
-      required this.username,
+      this.username,
       required this.firstname,
       required this.lastname,
       this.avatarUrl,

@@ -1,5 +1,6 @@
+import 'dart:math';
+
 import 'package:eswap/model/enum_model.dart';
-import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/views/home/explore.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +12,19 @@ class SearchFilterSortProvider extends ChangeNotifier {
   double? maxPrice;
   Condition? condition;
   SortPostType? sortBy;
+  bool free = false;
+
+  void updateFree() {
+    free = !free;
+    if (free) {
+      minPrice = 0.0;
+      maxPrice = 0.0;
+    } else {
+      minPrice = null;
+      maxPrice = null;
+    }
+    notifyListeners();
+  }
 
   void updateKeyword(String? keyword) {
     this.keyword = keyword;
@@ -48,16 +62,6 @@ class SearchFilterSortProvider extends ChangeNotifier {
   }
 
   Map<String, dynamic> toJsonForSearchFilterSortPosts() {
-    Map<String, dynamic> show = {
-      "keyword": keyword,
-      "categoryIdList": categoryIdList,
-      "brandIdList": brandIdList,
-      "minPrice": minPrice,
-      "maxPrice": maxPrice,
-      "condition": condition?.name,
-      "sortBy": sortBy?.name,
-    };
-    print(show);
     return {
       "keyword": keyword,
       "categoryIdList": categoryIdList,
@@ -82,11 +86,10 @@ class SearchFilterSortProvider extends ChangeNotifier {
 
   bool isNoFilter() {
     return
-      keyword == null &&
-          categoryIdList == null &&
-          brandIdList == null &&
-          minPrice == null &&
-          maxPrice == null &&
-          condition == null;
+        categoryIdList == null &&
+        brandIdList == null &&
+        minPrice == null &&
+        maxPrice == null &&
+        condition == null;
   }
 }

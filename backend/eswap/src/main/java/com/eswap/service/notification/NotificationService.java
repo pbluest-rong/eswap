@@ -13,6 +13,7 @@ import com.eswap.repository.UserRepository;
 import com.eswap.response.NotificationResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,7 +42,7 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     @Async
-    public Notification createAndPushNotification(
+    public void createAndPushNotification(
             Long senderId,
             RecipientType recipientType,
             NotificationCategory category,
@@ -67,6 +68,7 @@ public class NotificationService {
         // send notification
         try {
             ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
             String notificationJson = objectMapper.writeValueAsString(notification);
             switch (notification.getRecipientType()) {
                 case INDIVIDUAL:
@@ -94,7 +96,6 @@ public class NotificationService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        return notification;
     }
 
     public void markAsRead(Long notificationId) {

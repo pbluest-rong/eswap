@@ -88,7 +88,7 @@
   "filter":"Lọc",
   "sort_related":"Liên quan",
   "sort_latest": "Mới nhất",
-  "filter_shop": "Shop",
+  "filter_store": "Store",
   "sort_price": "Giá",
   "retry": "Thử lại",
   "no_posts_available": "Không có bài viết nào có sẵn",
@@ -113,5 +113,7 @@
   "item_sale_price": "Giá bán (đ)",
   "item_address": "Địa chỉ liên hệ",
   "item_phone_number": "Số điện thoại liên hệ",
-  "item_quantity"  : "Số lượng"
+  "item_quantity"  : "Số lượng",
+  "no_messages_yet": "Chưa có tin nhắn nào",
+  "free": "Miễn phí"
 }

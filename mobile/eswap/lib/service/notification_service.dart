@@ -8,6 +8,7 @@ import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/notification_model.dart';
 import 'package:eswap/model/page_response.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
+import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/notification/notification_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
@@ -112,6 +113,11 @@ class NotificationService {
             MaterialPageRoute(builder: (_) => NotificationPage()),
           );
           break;
+        case NotificationCategory.NEW_MESSAGE:
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => ChatList()),
+          );
+          break;
         default:
           navigatorKey.currentState?.push(
             MaterialPageRoute(builder: (_) => HomePage()),
@@ -133,8 +139,7 @@ class NotificationService {
   }
 
   Future<PageResponse<NotificationModel>> fetchNotifications(
-      int page, int size, BuildContext context) async
-  {
+      int page, int size, BuildContext context) async {
     try {
       final dio = Dio();
       final prefs = await SharedPreferences.getInstance();

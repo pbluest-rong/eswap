@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class AppSearch extends StatefulWidget {
   final Function(String) onSearch;
   final TextEditingController? controller;
+  final String? hintText;
 
   const AppSearch({
     super.key,
     required this.onSearch,
+    this.hintText,
     this.controller,
   });
 
@@ -72,21 +74,21 @@ class _AppSearchState extends State<AppSearch> {
                 focusNode: _focusNode,
                 onSubmitted: (value) {
                   final trimmed = value.trim();
-                  if (trimmed.length >= 3) {
+                  if (trimmed.length >= 2) {
                     widget.onSearch(value);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                            'Vui lòng nhập ít nhất 3 ký tự khác khoảng trắng'),
+                            'Vui lòng nhập ít nhất 2 ký tự khác khoảng trắng'),
                       ),
                     );
                   }
                   _focusNode.unfocus();
                   setState(() {});
                 },
-                decoration: const InputDecoration(
-                  hintText: 'Nhập từ khóa tìm kiếm',
+                decoration: InputDecoration(
+                  hintText: widget.hintText ?? "Nhập từ khóa tìm kiếm",
                 ),
               ),
             ),

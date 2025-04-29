@@ -1,10 +1,10 @@
 package com.eswap.model;
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+
 
 @Entity
 @Table(name = "block")
@@ -27,7 +27,7 @@ public class Block {
     @JoinColumn(name = "blocked_id", nullable = false)
     private User blocked;
 
-    @Column(name = "block_date", nullable = false)
     @CreationTimestamp
-    private LocalDateTime blockDate = LocalDateTime.now();
+    @Column(name = "block_date", nullable = false, updatable = false)
+    private OffsetDateTime blockDate;
 }

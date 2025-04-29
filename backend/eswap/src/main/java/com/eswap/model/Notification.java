@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 @Entity
@@ -37,6 +38,6 @@ public class Notification implements Serializable {
     private boolean isRead = false;
 
     @CreationTimestamp
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private Timestamp createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 }

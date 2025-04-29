@@ -76,7 +76,7 @@ class _MyAppState extends State<MyApp> {
         routes: {
           NotificationPage.route: (context) => const NotificationPage(),
           FollowingPage.route: (context) => const FollowingPage(),
-          ExplorePage.route: (context) => const ExplorePage()
+          ExplorePage.route: (context) => const ExplorePage(),
         },
         debugShowCheckedModeBanner: false,
         title: "Eswap",

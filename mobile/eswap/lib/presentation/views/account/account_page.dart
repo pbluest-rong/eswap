@@ -58,7 +58,7 @@ class _DetailUserPageState extends State<DetailUserPage> {
         title: _isLoading
             ? Text('...')
             : _user != null
-                ? Text(_user!.username)
+                ? Text(_user!.username!)
                 : Text('no_result_found'.tr()),
       ),
       body: SafeArea(

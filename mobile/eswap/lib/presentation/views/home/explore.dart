@@ -37,7 +37,7 @@ class _ExplorePageState extends State<ExplorePage>
   FetchPostType _fetchType = FetchPostType.EXPLORE;
   int? _educationInstitutionId;
   String? _provinceId;
-  bool _isOnlyShop = false;
+  bool _isOnlyStore = false;
 
   String scope = "nationwide".tr();
   bool _isGridView = false;
@@ -143,7 +143,7 @@ class _ExplorePageState extends State<ExplorePage>
         _reloadPost(() => _postService.fetchExplorePosts(
               _currentPage,
               _pageSize,
-              _isOnlyShop,
+              _isOnlyStore,
               context,
             ));
         break;
@@ -159,7 +159,7 @@ class _ExplorePageState extends State<ExplorePage>
               _provinceId!,
               _currentPage,
               _pageSize,
-              _isOnlyShop,
+              _isOnlyStore,
               context,
             ));
         break;
@@ -168,7 +168,7 @@ class _ExplorePageState extends State<ExplorePage>
               _educationInstitutionId!,
               _currentPage,
               _pageSize,
-              _isOnlyShop,
+              _isOnlyStore,
               context,
             ));
         break;
@@ -188,7 +188,7 @@ class _ExplorePageState extends State<ExplorePage>
           postPage = await _postService.fetchExplorePosts(
             _currentPage + 1,
             _pageSize,
-            _isOnlyShop,
+            _isOnlyStore,
             context,
           );
           break;
@@ -204,7 +204,7 @@ class _ExplorePageState extends State<ExplorePage>
             _provinceId!,
             _currentPage + 1,
             _pageSize,
-            _isOnlyShop,
+            _isOnlyStore,
             context,
           );
           break;
@@ -213,7 +213,7 @@ class _ExplorePageState extends State<ExplorePage>
             _educationInstitutionId!,
             _currentPage + 1,
             _pageSize,
-            _isOnlyShop,
+            _isOnlyStore,
             context,
           );
           break;
@@ -663,28 +663,17 @@ class _ExplorePageState extends State<ExplorePage>
               InkWell(
                 onTap: () {
                   setState(() {
-                    _isOnlyShop = !_isOnlyShop;
+                    _isOnlyStore = !_isOnlyStore;
                     _loadInitialPosts();
                   });
                 },
                 child: Row(
                   children: [
-                    Checkbox(
-                      value: _isOnlyShop,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _isOnlyShop = value ?? false;
-                          _loadInitialPosts();
-                        });
-                      },
-                      visualDensity:
-                          VisualDensity(horizontal: -4.0, vertical: -4.0),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
                     Text(
-                      "filter_shop".tr(),
+                      "filter_store".tr(),
                       style: textTheme.titleSmall!.copyWith(
-                        color: _isOnlyShop ? AppColors.lightPrimary : null,
+                        color: _isOnlyStore ? AppColors.lightSecondary : null,
+                        fontWeight: FontWeight.bold
                       ),
                     ),
                   ],

@@ -3,7 +3,7 @@ package com.eswap.service;
 import com.eswap.common.constants.*;
 import com.eswap.common.exception.AlreadyExistsException;
 import com.eswap.common.exception.ResourceNotFoundException;
-import com.eswap.kafka.PostProducer;
+import com.eswap.kafka.post.PostProducer;
 import com.eswap.model.*;
 import com.eswap.repository.*;
 import com.eswap.request.AddPostRequest;
@@ -23,9 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +33,6 @@ public class PostService {
     private final EducationInstitutionRepository educationInstitutionRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
-    private final PostMediaRepository postMediaRepository;
     private final UploadService uploadService;
     private final PostProducer postProducer;
     private final LikeRepository likeRepository;
@@ -260,16 +257,17 @@ public class PostService {
         Like like = new Like(post, user);
         likeRepository.save(like);
 
-        notificationService.createAndPushNotification(
-                user.getId(),
-                RecipientType.INDIVIDUAL,
-                NotificationCategory.NEW_LIKE,
-                NotificationType.INFORM,
-                "Bài viết của bạn",
-                "Người dùng " + user.getFirstName() + " " + user.getLastName() + " đã like bài của bạn",
-                post.getId(),
-                post.getUser().getId()
-        );
+        if (user.getId() != post.getUser().getId())
+            notificationService.createAndPushNotification(
+                    user.getId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_LIKE,
+                    NotificationType.INFORM,
+                    "Bài viết của bạn",
+                    "Người dùng " + user.getFirstName() + " " + user.getLastName() + " đã like bài của bạn",
+                    post.getId(),
+                    post.getUser().getId()
+            );
         int likesCount = likeRepository.countByPostId(postId);
         return new LikePostResponse(like.getPost().getId(), true, likesCount);
     }

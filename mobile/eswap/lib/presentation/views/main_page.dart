@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:eswap/main.dart';
 import 'package:eswap/presentation/components/bottom_sheet.dart';
-import 'package:eswap/presentation/views/chat/Chat.dart';
+import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/post/add_post.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/views/post/select_category.dart';
@@ -33,7 +33,7 @@ class _MainPageState extends State<MainPage> {
       HomePage(controller: _homePageController),
       const SearchPage(),
       const SizedBox(),
-      const ChatPage(),
+      ChatList(),
       const OtherPage(),
     ];
   }

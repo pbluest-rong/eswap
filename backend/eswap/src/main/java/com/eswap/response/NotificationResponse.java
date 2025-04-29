@@ -4,6 +4,7 @@ import com.eswap.model.Notification;
 import lombok.*;
 
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 @Getter
@@ -21,6 +22,6 @@ public class NotificationResponse {
     private String type;
     private boolean read;
     private Long postId;
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
     private String avatarUrl;
 }

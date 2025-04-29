@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/main.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/like_model.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
+import 'package:eswap/presentation/views/chat/chat_page.dart';
+import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
@@ -55,7 +58,14 @@ class _PostItemState extends State<PostItem> {
   @override
   Widget build(BuildContext context) {
     if (widget.isGridView) {
-      return _buildPostItemHorizontal(_post, context);
+      return GestureDetector(
+          onTap: () {
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(
+                  builder: (_) => StandalonePost(postId: _post.id)),
+            );
+          },
+          child: _buildPostItemHorizontal(_post, context));
     } else {
       return _buildPostItemVertical(_post, context);
     }
@@ -332,7 +342,24 @@ class _PostItemState extends State<PostItem> {
                   activeIcon: Icons.chat_bubble,
                   isActive: false,
                   label: "Nhắn tin",
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ChatPage(
+                                chatPartnerId: post.userId,
+                                chatPartnerAvatarUrl: post.avtUrl,
+                                chatPartnerFirstName: post.firstname,
+                                chatPartnerLastName: post.lastname,
+                                chatPartnerEducationInstitutionId:
+                                    post.educationInstitutionId,
+                                chatPartnerEducationInstitutionName:
+                                    post.educationInstitutionName,
+                                postId: post.id,
+                                postName: post.name,
+                                salePrice: post.salePrice,
+                                firstMediaUrl: post.media.first.originalUrl)));
+                  },
                 ),
                 _buildActionButton(
                   icon: Icons.share,
@@ -408,7 +435,27 @@ class _PostItemState extends State<PostItem> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    Icon(Icons.chat_bubble_outline)
+                    GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ChatPage(
+                                      chatPartnerId: post.userId,
+                                      chatPartnerAvatarUrl: post.avtUrl,
+                                      chatPartnerFirstName: post.firstname,
+                                      chatPartnerLastName: post.lastname,
+                                      chatPartnerEducationInstitutionId:
+                                          post.educationInstitutionId,
+                                      chatPartnerEducationInstitutionName:
+                                          post.educationInstitutionName,
+                                      postId: post.id,
+                                      postName: post.name,
+                                      salePrice: post.salePrice,
+                                      firstMediaUrl:
+                                          post.media.first.originalUrl)));
+                        },
+                        child: Icon(Icons.chat_bubble_outline))
                   ],
                 )
               ],
@@ -496,7 +543,8 @@ class _PostItemState extends State<PostItem> {
   }
 
   Widget _buildMediaItem(
-      dynamic mediaItem, String postId, BuildContext context) {
+      dynamic mediaItem, String postId, BuildContext context)
+  {
     final url = mediaItem.originalUrl;
     final contentType = mediaItem.originalUrl?.toString().toLowerCase() ?? '';
     final isVideo = contentType.contains('video') ||

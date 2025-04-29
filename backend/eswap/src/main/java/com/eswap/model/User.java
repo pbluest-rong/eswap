@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,7 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @NoArgsConstructor
@@ -75,11 +76,14 @@ public class User implements UserDetails {
     private List<Follow> followers = new ArrayList<>();
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdDate;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
     @LastModifiedDate
-    @Column(insertable = false)
-    private LocalDateTime lastModifiedDate;
+    @CreationTimestamp
+    @Column(name = "last_modified")
+    private OffsetDateTime lastModified;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

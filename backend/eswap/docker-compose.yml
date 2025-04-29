@@ -6,13 +6,17 @@ services:
     container_name: mysql_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD:  pblues_eswap
+      MYSQL_ROOT_PASSWORD: pblues_eswap
       MYSQL_DATABASE: eswap
+      TZ: UTC
+    command:
+      --default-time-zone='+00:00'
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper

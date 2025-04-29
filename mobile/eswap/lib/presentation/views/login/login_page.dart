@@ -11,6 +11,7 @@ import 'package:eswap/presentation/views/main_page.dart';
 import 'package:eswap/presentation/views/signup/signup_name_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -45,6 +46,7 @@ class _LoginPageState extends State<LoginPage> {
         if (response.statusCode == 200 && response.data["success"] == true) {
           final accessToken = response.data["data"]["accessToken"];
           final refreshToken = response.data["data"]["refreshToken"];
+          final userId = response.data["data"]["userId"];
           final educationInstitutionId =
               response.data["data"]["educationInstitutionId"];
           final educationInstitutionName =
@@ -53,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString("accessToken", accessToken);
           await prefs.setString("refreshToken", refreshToken);
-
+          await prefs.setInt("userId", userId);
           prefs.setInt("educationInstitutionId", educationInstitutionId);
           prefs.setString("educationInstitutionName", educationInstitutionName);
 
@@ -172,7 +174,6 @@ class _LoginPageState extends State<LoginPage> {
                     margin: EdgeInsets.symmetric(vertical: 30),
                     width: double.infinity,
                     child: ElevatedButton(
-
                       onPressed: () {
                         login();
                       },

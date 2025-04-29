@@ -3,13 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 class WebSocketService {
+  static final WebSocketService _instance = WebSocketService._internal();
   StompClient? stompClient;
   String? accessToken;
   Function(String)? onNewPost;
+  Function(String)? onNewMessage;
   bool _isSubscribed = false;
 
-  WebSocketService() {
-    _initialize();
+  WebSocketService._internal();
+
+  static Future<WebSocketService> getInstance() async {
+    if (!_instance._isSubscribed) {
+      await _instance._initialize();
+    }
+    return _instance;
   }
 
   Future<void> _initialize() async {
@@ -39,10 +46,8 @@ class WebSocketService {
         onWebSocketError: (dynamic error) {
           print("❌ WebSocket Error: $error");
         },
-        // Quan trọng: Cấu hình cả 2 loại headers
         stompConnectHeaders: headers,
         webSocketConnectHeaders: headers,
-        // Bổ sung các cấu hình quan trọng khác
         connectionTimeout: Duration(seconds: 5),
         heartbeatIncoming: Duration(seconds: 0),
         heartbeatOutgoing: Duration(seconds: 0),
@@ -65,8 +70,19 @@ class WebSocketService {
       callback: (frame) {
         if (frame.body != null && onNewPost != null) {
           final String newPost = frame.body!;
-          print("📩 New post received: $newPost");
+          print("📩 New post received");
           onNewPost!(newPost);
+        }
+      },
+    );
+    stompClient?.subscribe(
+      destination: '/user/queue/new-message',
+      headers: {'Authorization': 'Bearer $accessToken'},
+      callback: (frame) {
+        if (frame.body != null && onNewMessage != null) {
+          final String newMessage = frame.body!;
+          print("📩 New message received");
+          onNewMessage!(newMessage);
         }
       },
     );
@@ -83,5 +99,9 @@ class WebSocketService {
 
   void listenForNewPosts(Function(String) callback) {
     onNewPost = callback;
+  }
+
+  void listenForNewMessage(Function(String) callback) {
+    onNewMessage = callback;
   }
 }

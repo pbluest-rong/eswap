@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,8 +72,8 @@ public class Post {
     private boolean isDeleted;
 
     @CreationTimestamp
-    @Column(name = "created_at")
-    private Timestamp createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostMedia> media = new ArrayList<>();

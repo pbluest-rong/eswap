@@ -4,6 +4,6 @@ public enum ContentType {
     TEXT,
     LINK,
     LOCATION,
-    IMAGE,
-    VIDEO,
+    MEDIA,
+    POST
 }

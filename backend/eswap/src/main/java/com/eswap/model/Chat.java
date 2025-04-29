@@ -1,11 +1,16 @@
 package com.eswap.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "chats")
+@Getter
+@Setter
 public class Chat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,4 +30,8 @@ public class Chat {
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
     private List<Message> messages;
+
+    @Column(name = "last_message_at")
+    private OffsetDateTime lastMessageAt;
+
 }

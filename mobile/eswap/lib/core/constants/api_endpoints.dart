@@ -1,7 +1,7 @@
 
 class ApiEndpoints {
   static  String PROTOCOL = "http";
-  static  String HOST = "192.168.1.40";
+  static  String HOST = "192.168.1.4";
   static  String PORT = "8080";
   static  String CONTEXT_PATH = "/api/v1/";
 
@@ -43,4 +43,5 @@ class ApiEndpoints {
   static  String getPostById_url = _baseUrl + "posts";
   static  String detail_accounts_url = _baseUrl + "users";
   static  String addPost_url = _baseUrl + "posts";
+  static  String chats_url = _baseUrl + "chats";
 }

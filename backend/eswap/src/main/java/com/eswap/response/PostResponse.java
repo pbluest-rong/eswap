@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
@@ -37,9 +38,9 @@ public class PostResponse {
     private int sold;
     private PostStatus status;
     private Privacy privacy;
-    private Timestamp availableTime;
+    private OffsetDateTime availableTime;
     private Condition condition;
-    private Timestamp createdAt;
+    private OffsetDateTime createdAt;
     private List<PostMedia> media;
     private int likesCount;
     private boolean liked;

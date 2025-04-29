@@ -61,6 +61,7 @@ class _SearchUserListState extends State<SearchUserList>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadInitialUsers();
+    _setupScrollListener();
   }
 
   @override

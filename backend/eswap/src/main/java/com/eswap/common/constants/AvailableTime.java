@@ -1,8 +1,6 @@
 package com.eswap.common.constants;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 
 public enum AvailableTime {
@@ -19,11 +17,7 @@ public enum AvailableTime {
         this.amount = amount;
     }
 
-    public Timestamp calculateExpirationTime(Timestamp createdAt) {
-        LocalDateTime createdAtLocalDateTime = createdAt.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
-        LocalDateTime expirationTime = createdAtLocalDateTime.plus(amount, unit);
-        return Timestamp.valueOf(expirationTime);
+    public OffsetDateTime calculateExpirationTime(OffsetDateTime createdAt) {
+        return createdAt.plus(amount, unit);
     }
 }

@@ -50,6 +50,7 @@ class _FilterDialogState extends State<FilterDialog> {
                   child: Scrollbar(
                     controller: _scrollController,
                     child: ListView(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       controller: _scrollController,
                       children: [
                         Column(
@@ -62,16 +63,15 @@ class _FilterDialogState extends State<FilterDialog> {
                                 children: [
                                   Text(
                                     "category_brand".tr(),
-                                    style: textTheme.titleMedium!.copyWith(
-                                        fontWeight: FontWeight.bold),
+                                    style: textTheme.titleMedium!
+                                        .copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   SizedBox(
                                     height: dialogHeight / 1.8,
                                     child: Scrollbar(
                                       controller: _scrollCategoriesController,
                                       child: ListView(
-                                        controller:
-                                            _scrollCategoriesController,
+                                        controller: _scrollCategoriesController,
                                         children: [
                                           CategoryPage(),
                                         ],
@@ -87,8 +87,8 @@ class _FilterDialogState extends State<FilterDialog> {
                                 children: [
                                   Text(
                                     "condition".tr(),
-                                    style: textTheme.titleMedium!.copyWith(
-                                        fontWeight: FontWeight.bold),
+                                    style: textTheme.titleMedium!
+                                        .copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   _buildChoiceCondition(textTheme),
                                 ],
@@ -101,10 +101,56 @@ class _FilterDialogState extends State<FilterDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    "price_range".tr(),
-                                    style: textTheme.titleMedium!.copyWith(
-                                        fontWeight: FontWeight.bold),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "price_range".tr(),
+                                        style: textTheme.titleMedium!.copyWith(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      InkWell(
+                                        onTap: () {
+                                          _handleUpdateFree(
+                                              context);
+                                        },
+                                        child: Row(
+                                          children: [
+                                            Checkbox(
+                                              value: Provider.of<
+                                                          SearchFilterSortProvider>(
+                                                      context,
+                                                      listen: true)
+                                                  .free,
+                                              onChanged: (bool? value) {
+                                                _handleUpdateFree(
+                                                    context);
+                                              },
+                                              visualDensity: VisualDensity(
+                                                  horizontal: -4.0,
+                                                  vertical: -4.0),
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            Text(
+                                              "free".tr(),
+                                              style: textTheme.titleSmall!
+                                                  .copyWith(
+                                                color:
+                                                    Provider.of<SearchFilterSortProvider>(
+                                                                context,
+                                                                listen: true)
+                                                            .free
+                                                        ? AppColors.lightPrimary
+                                                        : null,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
                                   ),
                                   buildPriceFilter(
                                       minPriceController: minPriceController,
@@ -128,6 +174,10 @@ class _FilterDialogState extends State<FilterDialog> {
             ),
           );
         }));
+  }
+
+  void _handleUpdateFree(BuildContext context) {
+    Provider.of<SearchFilterSortProvider>(context, listen: false).updateFree();
   }
 
   Widget _buildChoiceCondition(TextTheme textTheme) {
@@ -173,6 +223,7 @@ class _FilterDialogState extends State<FilterDialog> {
             onPressed: () {
               Provider.of<SearchFilterSortProvider>(context, listen: false)
                   .reset();
+              widget.onClose?.call();
             },
             child: Text("clear".tr()),
           ),
