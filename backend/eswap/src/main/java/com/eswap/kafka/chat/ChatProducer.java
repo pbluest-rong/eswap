@@ -1,5 +1,6 @@
 package com.eswap.kafka.chat;
 
+import com.eswap.response.ChatResponse;
 import com.eswap.response.MessageResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,13 +15,13 @@ public class ChatProducer {
     }
 
     @Transactional
-    public void sendPostCreatedEvent(MessageResponse message) {
+    public void sendPostCreatedEvent(ChatResponse chat) {
         kafkaTemplate.executeInTransaction(operations -> {
             operations.send(ChatKafkaConfig.NEW_MESSAGE_TOPIC,
-                    String.valueOf(message.getId()),
-                    message
+                    String.valueOf(chat.getId()),
+                    chat
             );
-            System.out.println("Sent message to Kafka: " + message);
+            System.out.println("Sent message to Kafka: " + chat);
             return null;
         });
     }

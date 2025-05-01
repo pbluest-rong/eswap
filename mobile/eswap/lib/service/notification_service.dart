@@ -9,6 +9,7 @@ import 'package:eswap/model/notification_model.dart';
 import 'package:eswap/model/page_response.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
+import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/notification/notification_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
@@ -73,13 +74,18 @@ class NotificationService {
     }
   }
 
-  void handleMessage(RemoteMessage message) {
+  void handleMessage(RemoteMessage message) async {
     if (message.notification != null) {
-      LocalNotifications.showSimpleNotification(
-        title: message.notification!.title ?? "New Notification",
-        body: message.notification!.body ?? "",
-        payload: message.data.toString(),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      bool? isChatNotify = prefs.getBool("isChatNotify");
+
+      if (isChatNotify == null || !isChatNotify!) {
+        LocalNotifications.showSimpleNotification(
+          title: message.notification!.title ?? "New Notification",
+          body: message.notification!.body ?? "",
+          payload: message.data.toString(),
+        );
+      }
     }
   }
 
@@ -89,6 +95,7 @@ class NotificationService {
 
     if (category != null) {
       final NotificationService _notificationService = NotificationService();
+
       switch (category) {
         case NotificationCategory.NEW_FOLLOW:
           navigatorKey.currentState?.push(
@@ -157,6 +164,7 @@ class NotificationService {
 
       if (response.statusCode == 200) {
         final responseData = response.data['data'];
+        print("CHECK $responseData");
         return PageResponse<NotificationModel>.fromJson(
           responseData,
           (json) => NotificationModel.fromJson(json),

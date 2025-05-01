@@ -1,5 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/theme/theme.dart';
+import 'package:eswap/presentation/views/chat/ChatProvider.dart';
+import 'package:eswap/presentation/views/chat/chat_list_page.dart';
+import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/presentation/views/home/explore.dart';
@@ -34,7 +37,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ForgotPwProvider()),
         ChangeNotifierProvider(create: (_) => SignupProvider()),
         ChangeNotifierProvider(create: (_) => SearchFilterSortProvider()),
-        ChangeNotifierProvider(create: (_) => AddPostProvider())
+        ChangeNotifierProvider(create: (_) => AddPostProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: MyApp(),
     ),
@@ -77,6 +81,7 @@ class _MyAppState extends State<MyApp> {
           NotificationPage.route: (context) => const NotificationPage(),
           FollowingPage.route: (context) => const FollowingPage(),
           ExplorePage.route: (context) => const ExplorePage(),
+          ChatList.route: (context) => const ChatList(),
         },
         debugShowCheckedModeBanner: false,
         title: "Eswap",

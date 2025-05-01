@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -54,7 +55,44 @@ public class ChatService {
             message = sendTextMessage(user, chatPartner, chat, request);
         }
         // B3: Publish message
-        chatProducer.sendPostCreatedEvent(MessageResponse.mapperToResponse(message));
+        // gửi cho chính mình
+        ChatResponse chatResponse = ChatResponse.builder()
+                .id(chat.getId())
+                .chatPartnerId(chatPartner.getId())
+                .chatPartnerAvatarUrl(chatPartner.getAvatarUrl())
+                .chatPartnerFirstName(chatPartner.getFirstName())
+                .chatPartnerLastName(chatPartner.getLastName())
+                .educationInstitutionId(chatPartner.getEducationInstitution().getId())
+                .educationInstitutionName(chatPartner.getEducationInstitution().getName())
+                .currentPostId(chat.getCurrentPost().getId())
+                .currentPostName(chat.getCurrentPost().getName())
+                .currentPostSalePrice(chat.getCurrentPost().getSalePrice())
+                .currentPostFirstMediaUrl((chat.getCurrentPost() != null && !chat.getCurrentPost().getMedia().isEmpty()) ? chat.getCurrentPost().getMedia().get(0).getOriginalUrl() : null)
+                .mostRecentMessage(MessageResponse.mapperToResponse(message))
+                .unReadMessageNumber(0)
+                .forMe(true)
+                .build();
+        chatProducer.sendPostCreatedEvent(chatResponse);
+
+        // gửi message cho chatpartner
+        int unReadMessageNumber = messageRepository.countUnreadMessagesFromSender(chatPartner.getId(), user.getId());
+        chatResponse = ChatResponse.builder()
+                .id(chat.getId())
+                .chatPartnerId(user.getId())
+                .chatPartnerAvatarUrl(user.getAvatarUrl())
+                .chatPartnerFirstName(user.getFirstName())
+                .chatPartnerLastName(user.getLastName())
+                .educationInstitutionId(user.getEducationInstitution().getId())
+                .educationInstitutionName(user.getEducationInstitution().getName())
+                .currentPostId(chat.getCurrentPost().getId())
+                .currentPostName(chat.getCurrentPost().getName())
+                .currentPostSalePrice(chat.getCurrentPost().getSalePrice())
+                .currentPostFirstMediaUrl((chat.getCurrentPost() != null && !chat.getCurrentPost().getMedia().isEmpty()) ? chat.getCurrentPost().getMedia().get(0).getOriginalUrl() : null)
+                .mostRecentMessage(MessageResponse.mapperToResponse(message))
+                .unReadMessageNumber(unReadMessageNumber)
+                .forMe(false)
+                .build();
+        chatProducer.sendPostCreatedEvent(chatResponse);
     }
 
     private Chat ensureChat(User user, User chatPartner, Long postId) {
@@ -125,9 +163,47 @@ public class ChatService {
             postMessage.setChat(chat);
             postMessage.setContentType(ContentType.POST);
             postMessage.setContent(convertPostMessage(post));
-            messageRepository.save(postMessage);
+            postMessage = messageRepository.save(postMessage);
 
-            chatProducer.sendPostCreatedEvent(MessageResponse.mapperToResponse(postMessage));
+            // gửi cho chính mình
+            ChatResponse chatResponseForSender = ChatResponse.builder()
+                    .id(chat.getId())
+                    .chatPartnerId(chatPartner.getId())
+                    .chatPartnerAvatarUrl(chatPartner.getAvatarUrl())
+                    .chatPartnerFirstName(chatPartner.getFirstName())
+                    .chatPartnerLastName(chatPartner.getLastName())
+                    .educationInstitutionId(chatPartner.getEducationInstitution().getId())
+                    .educationInstitutionName(chatPartner.getEducationInstitution().getName())
+                    .currentPostId(chat.getCurrentPost().getId())
+                    .currentPostName(chat.getCurrentPost().getName())
+                    .currentPostSalePrice(chat.getCurrentPost().getSalePrice())
+                    .currentPostFirstMediaUrl((chat.getCurrentPost() != null && !chat.getCurrentPost().getMedia().isEmpty()) ? chat.getCurrentPost().getMedia().get(0).getOriginalUrl() : null)
+                    .mostRecentMessage(MessageResponse.mapperToResponse(postMessage))
+                    .unReadMessageNumber(0)
+                    .forMe(true)
+                    .build();
+            chatProducer.sendPostCreatedEvent(chatResponseForSender);
+
+            // gửi message cho chatpartner
+            int unReadMessageNumber = messageRepository.countUnreadMessagesFromSender(chatPartner.getId(), user.getId());
+            System.out.println("1 =====================>>>> "+ unReadMessageNumber);
+            ChatResponse chatResponseForChatPartner = ChatResponse.builder()
+                    .id(chat.getId())
+                    .chatPartnerId(user.getId())
+                    .chatPartnerAvatarUrl(user.getAvatarUrl())
+                    .chatPartnerFirstName(user.getFirstName())
+                    .chatPartnerLastName(user.getLastName())
+                    .educationInstitutionId(user.getEducationInstitution().getId())
+                    .educationInstitutionName(user.getEducationInstitution().getName())
+                    .currentPostId(chat.getCurrentPost().getId())
+                    .currentPostName(chat.getCurrentPost().getName())
+                    .currentPostSalePrice(chat.getCurrentPost().getSalePrice())
+                    .currentPostFirstMediaUrl((chat.getCurrentPost() != null && !chat.getCurrentPost().getMedia().isEmpty()) ? chat.getCurrentPost().getMedia().get(0).getOriginalUrl() : null)
+                    .mostRecentMessage(MessageResponse.mapperToResponse(postMessage))
+                    .unReadMessageNumber(unReadMessageNumber)
+                    .forMe(false)
+                    .build();
+            chatProducer.sendPostCreatedEvent(chatResponseForChatPartner);
         }
     }
 
@@ -180,7 +256,7 @@ public class ChatService {
         if (chat == null)
             throw new ResourceNotFoundException(AppErrorCode.CHAT_NOT_FOUND, "chat partnerId", chatPartnerId);
 
-        int unReadMessageNumber = messageRepository.countUnreadMessagesFromSender(user.getId(), chatPartner.getId());
+        int unReadMessageNumber = messageRepository.countUnreadMessagesFromSender(user.getId(),chatPartner.getId());
         return ChatResponse.builder()
                 .id(chat.getId())
                 .chatPartnerId(chatPartner.getId())
@@ -234,5 +310,11 @@ public class ChatService {
                 chats.isFirst(),
                 chats.isLast()
         );
+    }
+
+    @Transactional
+    public void markAsRead(Authentication connectedUser, Long chatPartnerId) {
+        User user = (User) connectedUser.getPrincipal();
+        chatRepository.markAsRead(user.getId(), chatPartnerId);
     }
 }

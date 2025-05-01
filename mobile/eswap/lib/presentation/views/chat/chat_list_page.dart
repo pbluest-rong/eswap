@@ -1,12 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
+import 'package:eswap/presentation/views/chat/ChatProvider.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/search.dart';
 import 'package:eswap/service/chat_service.dart';
+import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatList extends StatefulWidget {
@@ -19,9 +25,9 @@ class ChatList extends StatefulWidget {
 }
 
 class _ChatListState extends State<ChatList> {
+  late final StreamSubscription<String> messagesSubscription;
   final ScrollController _scrollController = ScrollController();
   final _chatService = ChatService();
-  List<Chat> _allChats = [];
   int _currentPage = 0;
   final int _pageSize = 10;
   bool _isLoading = false;
@@ -35,11 +41,14 @@ class _ChatListState extends State<ChatList> {
   bool get wantKeepAlive => true;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadInitial();
+  void initState() {
+    super.initState();
     _setupScrollListener();
     _loadUserId();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitial();
+      _setupWebSocket();
+    });
   }
 
   Future<void> _loadUserId() async {
@@ -51,6 +60,7 @@ class _ChatListState extends State<ChatList> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    messagesSubscription.cancel();
     super.dispose();
   }
 
@@ -63,12 +73,21 @@ class _ChatListState extends State<ChatList> {
     });
   }
 
+  void _setupWebSocket() async {
+    WebSocketService.getInstance().then((ws) {
+      messagesSubscription = ws.messageStream.listen((data) {
+        if (!mounted) return;
+        final chat = Chat.fromJson(json.decode(data));
+        Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+      });
+    });
+  }
+
   Future<void> _loadInitial() async {
     if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
-      _allChats = [];
       _currentPage = 0;
       _hasMore = true;
     });
@@ -79,9 +98,9 @@ class _ChatListState extends State<ChatList> {
         _pageSize,
         context,
       );
-
+      Provider.of<ChatProvider>(context, listen: false)
+          .updateChats(chatsPage.content);
       setState(() {
-        _allChats = chatsPage.content;
         _hasMore = !chatsPage.last;
         _isLoading = false;
       });
@@ -104,9 +123,10 @@ class _ChatListState extends State<ChatList> {
       final chatsPage =
           await _chatService.fetchChats(_currentPage + 1, _pageSize, context);
 
+      Provider.of<ChatProvider>(context, listen: false)
+          .addChats(chatsPage.content);
       setState(() {
         _currentPage++;
-        _allChats.addAll(chatsPage.content);
         _hasMore = !chatsPage.last;
         _isLoadingMore = false;
       });
@@ -120,6 +140,7 @@ class _ChatListState extends State<ChatList> {
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: true);
     return Scaffold(
       appBar: AppBar(
         title: SizedBox(
@@ -143,11 +164,11 @@ class _ChatListState extends State<ChatList> {
             physics: const AlwaysScrollableScrollPhysics(),
             cacheExtent: 1000,
             slivers: [
-              if (_isLoading && _allChats.isEmpty)
+              if (_isLoading && chatProvider.chats.isEmpty)
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
                 ),
-              if (!_isLoading && _allChats.isEmpty)
+              if (!_isLoading && chatProvider.chats.isEmpty)
                 SliverFillRemaining(
                   child: Center(
                     child: Column(
@@ -170,53 +191,62 @@ class _ChatListState extends State<ChatList> {
                     ),
                   ),
                 ),
-              SliverList(delegate: SliverChildBuilderDelegate((context, index) {
-                if (index < _allChats.length) {
+              SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                if (index < chatProvider.chats.length) {
                   return Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
-                      key: PageStorageKey('chat_${_allChats[index].id}'),
+                      key: PageStorageKey(
+                          'chat_${chatProvider.chats[index].id}'),
                       children: [
                         GestureDetector(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => ChatPage(
-                                          chatPartnerId:
-                                              _allChats[index].chatPartnerId,
-                                          chatPartnerAvatarUrl: _allChats[index]
+                                          chatPartnerId: chatProvider
+                                              .chats[index].chatPartnerId,
+                                          chatPartnerAvatarUrl: chatProvider
+                                              .chats[index]
                                               .chatPartnerAvatarUrl,
-                                          chatPartnerFirstName: _allChats[index]
+                                          chatPartnerFirstName: chatProvider
+                                              .chats[index]
                                               .chatPartnerFirstName,
-                                          chatPartnerLastName: _allChats[index]
-                                              .chatPartnerLastName,
+                                          chatPartnerLastName: chatProvider
+                                              .chats[index].chatPartnerLastName,
                                           chatPartnerEducationInstitutionId:
-                                              _allChats[index]
+                                              chatProvider.chats[index]
                                                   .educationInstitutionId,
                                           chatPartnerEducationInstitutionName:
-                                              _allChats[index]
+                                              chatProvider.chats[index]
                                                   .educationInstitutionName,
-                                          postId:
-                                              _allChats[index].currentPostId,
-                                          postName:
-                                              _allChats[index].currentPostName,
-                                          salePrice: _allChats[index]
+                                          postId: chatProvider
+                                              .chats[index].currentPostId,
+                                          postName: chatProvider
+                                              .chats[index].currentPostName,
+                                          salePrice: chatProvider.chats[index]
                                               .currentPostSalePrice,
-                                          firstMediaUrl: _allChats[index]
+                                          firstMediaUrl: chatProvider
+                                              .chats[index]
                                               .currentPostFirstMediaUrl)));
+                              chatProvider.markAsReadUI(index);
+                              _chatService.markAsRead(
+                                  chatProvider.chats[index].chatPartnerId);
+                              chatProvider.markAsReadUI(index);
                             },
-                            child: _buildMessageItem(_allChats[index])),
+                            child:
+                                _buildMessageItem(chatProvider.chats[index])),
                       ],
                     ),
                   );
                 } else if (_hasMore) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+                  return const Center(child: CircularProgressIndicator());
+                } else {
+                  return const SizedBox.shrink();
                 }
-              }))
+              }, childCount: chatProvider.chats.length + (_hasMore ? 1 : 0)))
             ]),
       )),
     );

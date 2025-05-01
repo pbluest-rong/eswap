@@ -64,7 +64,8 @@ public class NotificationService {
         notification.setMessage(message);
         notification.setPostId(postId);
         notification.setRecipientId(recipientIdForINDIVIDUAL);
-        notificationRepository.save(notification);
+        if (notification.getCategory() != NotificationCategory.NEW_MESSAGE)
+            notificationRepository.save(notification);
         // send notification
         try {
             ObjectMapper objectMapper = new ObjectMapper();

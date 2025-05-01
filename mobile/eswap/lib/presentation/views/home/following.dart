@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
@@ -19,6 +20,7 @@ class FollowingPage extends StatefulWidget {
 
 class _FollowingPageState extends State<FollowingPage>
     with AutomaticKeepAliveClientMixin {
+  late final StreamSubscription<String> postSubscription;
   bool _isGridView = false;
   final ScrollController _scrollController = ScrollController();
   final PostService _postService = PostService();
@@ -133,18 +135,18 @@ class _FollowingPageState extends State<FollowingPage>
   }
 
   void _setupWebSocket() async {
-    final WebSocketService _webSocketService =
-        await WebSocketService.getInstance();
-    _webSocketService.listenForNewPosts((newPost) {
-      if (!mounted) return;
-      setState(() {
-        Map<String, dynamic> postJson = json.decode(newPost);
-        Post post = Post.fromJson(postJson);
+    WebSocketService.getInstance().then((ws) {
+      postSubscription = ws.postStream.listen((newPost) {
+        if (!mounted) return;
+        setState(() {
+          Map<String, dynamic> postJson = json.decode(newPost);
+          Post post = Post.fromJson(postJson);
 
-        _allPosts.add(post);
-        if (_allPosts.length > 100) {
-          _allPosts.removeAt(0);
-        }
+          _allPosts.add(post);
+          if (_allPosts.length > 100) {
+            _allPosts.removeAt(0);
+          }
+        });
       });
     });
   }
@@ -283,30 +285,5 @@ class _FollowingPageState extends State<FollowingPage>
         ),
       ),
     );
-  }
-}
-
-class _HeaderDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final double maxExtent;
-  final double minExtent;
-
-  const _HeaderDelegate({
-    required this.child,
-    required this.maxExtent,
-    required this.minExtent,
-  });
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  bool shouldRebuild(covariant _HeaderDelegate oldDelegate) {
-    return oldDelegate.child != child ||
-        oldDelegate.maxExtent != maxExtent ||
-        oldDelegate.minExtent != minExtent;
   }
 }

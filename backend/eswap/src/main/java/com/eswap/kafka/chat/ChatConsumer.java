@@ -5,6 +5,7 @@ import com.eswap.common.constants.NotificationType;
 import com.eswap.common.constants.RecipientType;
 import com.eswap.kafka.post.PostKafkaConfig;
 import com.eswap.model.User;
+import com.eswap.response.ChatResponse;
 import com.eswap.response.MessageResponse;
 import com.eswap.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,35 +21,41 @@ public class ChatConsumer {
     private final SimpMessagingTemplate messagingTemplate;
 
     @KafkaListener(topics = ChatKafkaConfig.NEW_MESSAGE_TOPIC, groupId = "chat-group-notification")
-    public void processNewMessageFcm(MessageResponse message) {
-        System.out.println("Kafka: new-message message-group-notification " + message);
-        notificationService.createAndPushNotification(
-                message.getFromUserId(),
-                RecipientType.INDIVIDUAL,
-                NotificationCategory.NEW_MESSAGE,
-                NotificationType.INFORM,
-                "Bạn có tin nhắn mới từ " + message.getFromUserFirstName() + " " + message.getFromUserLastName(),
-                message.getContent(),
-                null,
-                message.getToUserId()
-        );
+    public void processNewMessageFcm(ChatResponse chat) {
+        System.out.println("Kafka: new-message message-group-notification " + chat);
+        if (!chat.isForMe())
+            notificationService.createAndPushNotification(
+                    chat.getChatPartnerId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_MESSAGE,
+                    NotificationType.INFORM,
+                    "Bạn có tin nhắn mới từ " + chat.getMostRecentMessage().getFromUserFirstName() + " " + chat.getMostRecentMessage().getFromUserLastName(),
+                    chat.getMostRecentMessage().getContent(),
+                    null,
+                    chat.getMostRecentMessage().getToUserId()
+            );
     }
 
     @KafkaListener(topics = ChatKafkaConfig.NEW_MESSAGE_TOPIC, groupId = "chat-group-websocket")
-    public void processNewMessageWebSocket(MessageResponse message) {
-        System.out.println("Kafka: new-message message-group-websocket " + message);
+    public void processNewMessageWebSocket(ChatResponse chat) {
+        System.out.println("Kafka: new-message message-group-websocket " + chat);
         try {
-            System.out.println("Kafka: new-message message-group-websocket " + message);
-            messagingTemplate.convertAndSendToUser(
-                    message.getFromUserUsername(),
-                    "/queue/new-message",
-                    message
-            );
-            messagingTemplate.convertAndSendToUser(
-                    message.getToUserUsername(),
-                    "/queue/new-message",
-                    message
-            );
+            if (chat.isForMe()) {
+                System.out.println("Me => " + chat);
+                messagingTemplate.convertAndSendToUser(
+                        chat.getMostRecentMessage().getFromUserUsername(),
+                        "/queue/new-message",
+                        chat
+                );
+            }
+            if (!chat.isForMe()) {
+                System.out.println("Not Me => " + chat);
+                messagingTemplate.convertAndSendToUser(
+                        chat.getMostRecentMessage().getToUserUsername(),
+                        "/queue/new-message",
+                        chat
+                );
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

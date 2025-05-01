@@ -543,8 +543,7 @@ class _PostItemState extends State<PostItem> {
   }
 
   Widget _buildMediaItem(
-      dynamic mediaItem, String postId, BuildContext context)
-  {
+      dynamic mediaItem, String postId, BuildContext context) {
     final url = mediaItem.originalUrl;
     final contentType = mediaItem.originalUrl?.toString().toLowerCase() ?? '';
     final isVideo = contentType.contains('video') ||
@@ -594,6 +593,9 @@ class _PostItemState extends State<PostItem> {
                   appBar: AppBar(
                     backgroundColor: Colors.black,
                     iconTheme: const IconThemeData(color: Colors.white),
+                    leading: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_ios)),
                   ),
                   body: Center(
                     child: PhotoView(

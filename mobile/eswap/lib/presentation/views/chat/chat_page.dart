@@ -1,16 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
 import 'package:eswap/model/user_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
+import 'package:eswap/presentation/views/chat/ChatProvider.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/send_message.dart';
 import 'package:eswap/service/chat_service.dart';
 import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_player/video_player.dart';
 
 class ChatPage extends StatefulWidget {
+  static const String route = '/chats';
+
   final int chatPartnerId;
   final String chatPartnerFirstName;
   final String chatPartnerLastName;
@@ -40,10 +50,10 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  late final StreamSubscription<String> messagesSubscription;
   final _chatService = ChatService();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
-  late List<Message> _messages;
   int _currentPage = 0;
   final int _pageSize = 10;
   bool _isLoading = false;
@@ -58,18 +68,25 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _messages = [];
     _setupScrollListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialChat();
       _setupWebSocket();
+      _setIsChatNotify(true);
     });
+  }
+
+  Future<void> _setIsChatNotify(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool("isChatNotify", value);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _messageController.dispose();
+    messagesSubscription.cancel();
+    _setIsChatNotify(false);
     super.dispose();
   }
 
@@ -77,7 +94,6 @@ class _ChatPageState extends State<ChatPage> {
     if (!mounted || _isLoading) return;
     setState(() {
       _isLoading = true;
-      _messages = [];
       _currentPage = 0;
       _hasMore = true;
       _initialScrollDone = false;
@@ -87,13 +103,16 @@ class _ChatPageState extends State<ChatPage> {
       final messagesPage = await _chatService.fetchMessages(
           widget.chatPartnerId, _currentPage, _pageSize, context);
 
+      Provider.of<ChatProvider>(context, listen: false)
+          .updateMessages(messagesPage.content.reversed.toList());
       setState(() {
-        _messages = messagesPage.content.reversed.toList();
         _hasMore = !messagesPage.last;
         _isLoading = false;
       });
 
-      if (_messages.isNotEmpty) {
+      if (Provider.of<ChatProvider>(context, listen: false)
+          .messages
+          .isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients && !_initialScrollDone) {
             _scrollController
@@ -131,8 +150,8 @@ class _ChatPageState extends State<ChatPage> {
       if (mounted) {
         setState(() {
           _currentPage++;
-          _messages = List<Message>.from(messagePage.content.reversed.toList())
-            ..addAll(_messages);
+          Provider.of<ChatProvider>(context, listen: false)
+              .addMessages(messagePage.content.reversed.toList());
           _hasMore = !messagePage.last;
           _isLoadingMore = false;
         });
@@ -189,26 +208,24 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  bool check = false;
   void _setupWebSocket() async {
-    final WebSocketService webSocketService =
-        await WebSocketService.getInstance();
-    webSocketService.listenForNewMessage((message) {
-      if (!mounted) return;
-
-      Map<String, dynamic> messageJson = json.decode(message);
-      Message newMessage = Message.fromJson(messageJson);
-      setState(() {
-        _messages = List<Message>.from(_messages)..add(newMessage);
-      });
-
-      // Scroll to bottom
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
+    WebSocketService.getInstance().then((ws) {
+      messagesSubscription = ws.messageStream.listen((data) {
+        if (!mounted) return;
+        final chat = Chat.fromJson(json.decode(data));
+        Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+        if(check){
+          if (_scrollController.offset <
+              _scrollController.position.maxScrollExtent - 200) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Có tin nhắn mới"),
+                duration: const Duration(seconds: 3),
+                backgroundColor: Colors.grey,
+              ),
+            );
+          }
         }
       });
     });
@@ -218,8 +235,9 @@ class _ChatPageState extends State<ChatPage> {
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
       duration: Duration(seconds: 2),
-      curve: Curves.fastOutSlowIn,
+      curve: Curves.fastLinearToSlowEaseIn,
     );
+    // _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 
   void _setupScrollListener() {
@@ -274,12 +292,12 @@ class _ChatPageState extends State<ChatPage> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          leadingWidth: 32,
-          leading: IconButton(
-            padding: EdgeInsets.only(left: 10),
-            icon: Icon(Icons.arrow_back_ios),
-            onPressed: () => Navigator.pop(context),
-          ),
+          leading: GestureDetector(
+              onTap: () async {
+                _setIsChatNotify(false);
+                Navigator.pop(context);
+              },
+              child: Icon(Icons.arrow_back_ios)),
           title: UserItemForList(
             user: UserInfomation(
                 id: widget.chatPartnerId,
@@ -333,7 +351,7 @@ class _ChatPageState extends State<ChatPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_messages.isEmpty) {
+    if (Provider.of<ChatProvider>(context, listen: true).messages.isEmpty) {
       return Center(child: Text('no_messages_yet'.tr()));
     }
 
@@ -341,9 +359,14 @@ class _ChatPageState extends State<ChatPage> {
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-        itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
+        itemCount:
+            Provider.of<ChatProvider>(context, listen: true).messages.length +
+                (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index == _messages.length) {
+          if (index ==
+              Provider.of<ChatProvider>(context, listen: true)
+                  .messages
+                  .length) {
             return Center(
               child: Padding(
                 padding: EdgeInsets.all(8),
@@ -352,7 +375,8 @@ class _ChatPageState extends State<ChatPage> {
             );
           }
 
-          final message = _messages[index];
+          final message =
+              Provider.of<ChatProvider>(context, listen: true).messages[index];
           return MessageBubble(
             key: ValueKey(message.id),
             message: message,
@@ -553,12 +577,50 @@ class MessageBubble extends StatelessWidget {
                     margin: (i != urlList.length - 1)
                         ? EdgeInsets.only(bottom: 10)
                         : null,
-                    child: _buildVideoPlayer(urlList[i], context))
+                    child: Chewie(
+                      controller: ChewieController(
+                        videoPlayerController:
+                            VideoPlayerController.network(urlList[i]),
+                        autoPlay: false,
+                        looping: false,
+                        allowFullScreen: true,
+                      ),
+                    ))
                 : Container(
                     margin: (i != urlList.length - 1)
                         ? EdgeInsets.only(bottom: 10)
                         : null,
-                    child: _buildImage(urlList[i], context))
+                    child: GestureDetector(
+                      onTap: () {
+                        // Mở ảnh fullscreen
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Scaffold(
+                                appBar: AppBar(
+                                  backgroundColor: Colors.black,
+                                  iconTheme:
+                                      const IconThemeData(color: Colors.white),
+                                  leading: IconButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      icon: const Icon(Icons.arrow_back_ios)),
+                                ),
+                                body: Center(
+                                  child: PhotoView(
+                                    imageProvider: NetworkImage(urlList[i]),
+                                    minScale: PhotoViewComputedScale.contained,
+                                    maxScale:
+                                        PhotoViewComputedScale.covered * 2,
+                                    heroAttributes: PhotoViewHeroAttributes(
+                                        tag: urlList[i]),
+                                  ),
+                                ),
+                              ),
+                            ));
+                      },
+                      child: _buildImage(urlList[i], context),
+                    ))
         ]);
       case ContentType.POST:
         Map<String, dynamic> postData = json.decode(message.content);

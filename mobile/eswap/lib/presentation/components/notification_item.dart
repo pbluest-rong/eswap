@@ -59,6 +59,9 @@ class _NotificationItemState extends State<NotificationItem> {
         case NotificationCategory.NEW_NOTICE:
           return _isReadForNotification(
               notification, _buildSystemNotification(notification));
+        case NotificationCategory.NEW_MESSAGE:
+          return _isReadForNotification(
+              notification, Text(notification.category));
         default:
           return Container();
       }
@@ -67,8 +70,7 @@ class _NotificationItemState extends State<NotificationItem> {
   }
 
   Widget _isReadForNotification(
-      NotificationModel notification, Widget notificationWidget)
-  {
+      NotificationModel notification, Widget notificationWidget) {
     if (notification.read) {
       return notificationWidget;
     } else {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/presentation/components/post_item.dart';
@@ -30,6 +31,7 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
+  late final StreamSubscription<String> postSubscription;
   final ScrollController _scrollController = ScrollController();
   final PostService _postService = PostService();
   List<Post> _allPosts = [];
@@ -196,10 +198,9 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   }
 
   void _setupWebSocket() async {
-    if (mounted) {
-      final WebSocketService _webSocketService =
-          await WebSocketService.getInstance();
-      _webSocketService.listenForNewPosts((newPost) {
+    WebSocketService.getInstance().then((ws) {
+      postSubscription = ws.postStream.listen((newPost) {
+        if (!mounted) return;
         setState(() {
           Map<String, dynamic> postJson = json.decode(newPost);
           Post post = Post.fromJson(postJson);
@@ -210,7 +211,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
           }
         });
       });
-    }
+    });
   }
 
   @override

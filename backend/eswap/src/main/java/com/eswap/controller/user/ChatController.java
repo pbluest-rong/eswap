@@ -54,4 +54,9 @@ public class ChatController {
         ChatResponse chat = chatService.getChatInfo(auth, chatPartnerId);
         return ResponseEntity.ok(new ApiResponse(true, "chat info", chat));
     }
+
+    @PutMapping("/{chatPartnerId}")
+    public void markAsRead(Authentication auth, @PathVariable(name = "chatPartnerId") Long chatPartnerId) {
+        chatService.markAsRead(auth, chatPartnerId);
+    }
 }

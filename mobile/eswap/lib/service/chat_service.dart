@@ -233,4 +233,25 @@ class ChatService {
       showErrorDialog(context, "general_error".tr());
     }
   }
+
+  Future<void> markAsRead(int chatPartnerId) async {
+    try {
+      final dio = Dio();
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.get("accessToken");
+      dio
+          .put(
+            "${ApiEndpoints.chats_url}/$chatPartnerId",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer $accessToken"
+              },
+            ),
+          )
+          .catchError((error) => print("mark read message error"));
+    } catch (e) {
+      print("markAsRead error: ${e.toString()}");
+    }
+  }
 }
