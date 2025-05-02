@@ -6,12 +6,12 @@ void showErrorDialog(BuildContext context, String message) {
   AppAlert.show(
     context: context,
     title: message,
-    buttonLayout: _AlertButtonLayout.single,
-    actions: [_AlertAction(text: 'OK', handler: () {})],
+    buttonLayout: AlertButtonLayout.single,
+    actions: [AlertAction(text: 'OK', handler: () {})],
   );
 }
 
-void showErrorSnackbar(BuildContext context, String message) {
+void showErrorSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(message),
@@ -21,14 +21,14 @@ void showErrorSnackbar(BuildContext context, String message) {
   );
 }
 
-enum _AlertButtonLayout {
+enum AlertButtonLayout {
   single, // Single button
   dual, // Two buttons
   triple, // Three buttons
   stacked, // Vertical buttons
 }
 
-enum _AlertStyle {
+enum AlertStyle {
   basic, // Simple text
   emphasized, // Highlighted title
   bordered, // With border
@@ -36,12 +36,12 @@ enum _AlertStyle {
   icon, // With icon
 }
 
-class _AlertAction {
+class AlertAction {
   final String text;
   final VoidCallback? handler;
   final bool isDestructive;
 
-  _AlertAction({
+  AlertAction({
     required this.text,
     this.handler,
     this.isDestructive = false,
@@ -53,9 +53,9 @@ class AppAlert {
     required BuildContext context,
     required String title,
     String? description,
-    _AlertStyle style = _AlertStyle.basic,
-    _AlertButtonLayout buttonLayout = _AlertButtonLayout.dual,
-    List<_AlertAction> actions = const [],
+    AlertStyle style = AlertStyle.basic,
+    AlertButtonLayout buttonLayout = AlertButtonLayout.dual,
+    List<AlertAction> actions = const [],
     Color? primaryColor,
     Widget? icon,
     bool dismissible = true,
@@ -97,10 +97,10 @@ class AppAlert {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header with optional icon
-                  if (style == _AlertStyle.icon && icon != null)
+                  if (style == AlertStyle.icon && icon != null)
                     Center(child: icon),
 
-                  if (style == _AlertStyle.icon && icon != null)
+                  if (style == AlertStyle.icon && icon != null)
                     const SizedBox(height: 16),
 
                   // Title
@@ -110,10 +110,10 @@ class AppAlert {
                       title,
                       style: TextStyle(
                         fontSize: 20,
-                        fontWeight: style == _AlertStyle.emphasized
+                        fontWeight: style == AlertStyle.emphasized
                             ? FontWeight.bold
                             : FontWeight.w600,
-                        color: style == _AlertStyle.emphasized
+                        color: style == AlertStyle.emphasized
                             ? fbBlue
                             : textColor,
                       ),
@@ -158,8 +158,8 @@ class AppAlert {
 
   static Widget _buildButtons({
     required BuildContext context,
-    required _AlertButtonLayout layout,
-    required List<_AlertAction> actions,
+    required AlertButtonLayout layout,
+    required List<AlertAction> actions,
     required Color fbBlue,
     required Color fbGrey,
     required Color fbDarkGrey,
@@ -182,7 +182,7 @@ class AppAlert {
     };
 
     switch (layout) {
-      case _AlertButtonLayout.single:
+      case AlertButtonLayout.single:
         return Container(
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: fbDarkGrey, width: 0.5)),
@@ -206,7 +206,7 @@ class AppAlert {
             ),
           ),
         );
-      case _AlertButtonLayout.dual:
+      case AlertButtonLayout.dual:
         return Container(
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: fbDarkGrey, width: 0.5)),
@@ -259,7 +259,7 @@ class AppAlert {
             ],
           ),
         );
-      case _AlertButtonLayout.triple:
+      case AlertButtonLayout.triple:
         return Container(
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: fbDarkGrey, width: 0.5)),
@@ -332,7 +332,7 @@ class AppAlert {
             ],
           ),
         );
-      case _AlertButtonLayout.stacked:
+      case AlertButtonLayout.stacked:
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -393,8 +393,8 @@ class TestAlert extends StatelessWidget {
                 AppAlert.show(
                   context: context,
                   title: 'Title Here',
-                  buttonLayout: _AlertButtonLayout.single,
-                  actions: [_AlertAction(text: 'OK', handler: () {})],
+                  buttonLayout: AlertButtonLayout.single,
+                  actions: [AlertAction(text: 'OK', handler: () {})],
                 );
               },
               child: const Text("Simple alert with title and single button")),
@@ -404,8 +404,8 @@ class TestAlert extends StatelessWidget {
                   context: context,
                   title: 'Title Here',
                   description: 'Alert description with auto layout!',
-                  buttonLayout: _AlertButtonLayout.single,
-                  actions: [_AlertAction(text: 'Action', handler: () {})],
+                  buttonLayout: AlertButtonLayout.single,
+                  actions: [AlertAction(text: 'Action', handler: () {})],
                 );
               },
               child: const Text("Alert with description and single button")),
@@ -414,10 +414,10 @@ class TestAlert extends StatelessWidget {
                 AppAlert.show(
                   context: context,
                   title: 'Title Here',
-                  buttonLayout: _AlertButtonLayout.dual,
+                  buttonLayout: AlertButtonLayout.dual,
                   actions: [
-                    _AlertAction(text: 'Cancel', handler: () {}),
-                    _AlertAction(text: 'Confirm', handler: () {}),
+                    AlertAction(text: 'Cancel', handler: () {}),
+                    AlertAction(text: 'Confirm', handler: () {}),
                   ],
                 );
               },
@@ -428,10 +428,10 @@ class TestAlert extends StatelessWidget {
                   context: context,
                   title: 'Title Here',
                   description: 'Alert description with auto layout!',
-                  buttonLayout: _AlertButtonLayout.dual,
+                  buttonLayout: AlertButtonLayout.dual,
                   actions: [
-                    _AlertAction(text: 'Cancel', handler: () {}),
-                    _AlertAction(text: 'Confirm', handler: () {}),
+                    AlertAction(text: 'Cancel', handler: () {}),
+                    AlertAction(text: 'Confirm', handler: () {}),
                   ],
                 );
               },
@@ -443,8 +443,8 @@ class TestAlert extends StatelessWidget {
                   title: 'Delete item?',
                   description: 'This action cannot be undone',
                   actions: [
-                    _AlertAction(text: 'Cancel', handler: () {}),
-                    _AlertAction(
+                    AlertAction(text: 'Cancel', handler: () {}),
+                    AlertAction(
                         text: 'Delete', isDestructive: true, handler: () {}),
                   ],
                 );
@@ -455,11 +455,11 @@ class TestAlert extends StatelessWidget {
                 AppAlert.show(
                   context: context,
                   title: 'Title Here',
-                  buttonLayout: _AlertButtonLayout.stacked,
+                  buttonLayout: AlertButtonLayout.stacked,
                   actions: [
-                    _AlertAction(text: 'First Action', handler: () {}),
-                    _AlertAction(text: 'Second Action', handler: () {}),
-                    _AlertAction(text: 'Third Action', handler: () {}),
+                    AlertAction(text: 'First Action', handler: () {}),
+                    AlertAction(text: 'Second Action', handler: () {}),
+                    AlertAction(text: 'Third Action', handler: () {}),
                   ],
                 );
               },

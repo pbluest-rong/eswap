@@ -48,7 +48,6 @@ class _StandalonePostState extends State<StandalonePost> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        leadingWidth: 32,
         leading: IconButton(
           padding: EdgeInsets.only(left: 10),
           icon: Icon(Icons.arrow_back_ios),

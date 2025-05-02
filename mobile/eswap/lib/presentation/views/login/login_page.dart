@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/presentation/views/admin/admin_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/loading_overlay.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
@@ -51,6 +52,7 @@ class _LoginPageState extends State<LoginPage> {
               response.data["data"]["educationInstitutionId"];
           final educationInstitutionName =
               response.data["data"]["educationInstitutionName"];
+          final String role = response.data["data"]["role"];
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString("accessToken", accessToken);
@@ -81,11 +83,19 @@ class _LoginPageState extends State<LoginPage> {
               print("Lỗi khi gửi FCM Token: $error");
             });
           }
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => MainPage()),
-            (Route<dynamic> route) => false,
-          );
+          if (role == "ADMIN") {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => AdminPage()),
+              (Route<dynamic> route) => false,
+            );
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => MainPage()),
+              (Route<dynamic> route) => false,
+            );
+          }
         } else {
           showErrorDialog(context, response.data["message"]);
         }

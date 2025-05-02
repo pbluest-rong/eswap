@@ -115,7 +115,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isEducationLoading = false;
       });
-      showErrorSnackbar(
+      showErrorSnackBar(
           context, 'Error loading education institution: ${e.toString()}');
     }
   }
@@ -155,7 +155,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackbar(context, 'Error loading posts: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading posts: ${e.toString()}');
     }
   }
 
@@ -184,7 +184,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackbar(context, 'Error loading more posts: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 

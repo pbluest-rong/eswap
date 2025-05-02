@@ -3,11 +3,13 @@ import 'dart:convert';
 
 import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:eswap/main.dart';
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
 import 'package:eswap/model/user_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
-import 'package:eswap/presentation/views/chat/ChatProvider.dart';
+import 'package:eswap/presentation/views/chat/chat_provider.dart';
+import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/send_message.dart';
 import 'package:eswap/service/chat_service.dart';
@@ -110,24 +112,18 @@ class _ChatPageState extends State<ChatPage> {
         _isLoading = false;
       });
 
-      if (Provider.of<ChatProvider>(context, listen: false)
-          .messages
-          .isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients && !_initialScrollDone) {
-            _scrollController
-                .jumpTo(_scrollController.position.maxScrollExtent);
-            _initialScrollDone = true;
-          }
-        });
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
     } catch (e, a) {
       print(a.toString());
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        showErrorSnackbar(context, 'Error loading chat: ${e.toString()}');
+        showErrorSnackBar(context, 'Error loading chat: ${e.toString()}');
       }
     }
   }
@@ -169,7 +165,7 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           _isLoadingMore = false;
         });
-        showErrorSnackbar(
+        showErrorSnackBar(
             context, 'Error loading more messages: ${e.toString()}');
       }
     }
@@ -182,6 +178,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _handleSend() {
+    Provider.of<ChatProvider>(context, listen: false).setSendingMessage(true);
     final text = _messageController.text.trim();
     if (text.isNotEmpty) {
       SendMessageRequest messageRequest = SendMessageRequest(
@@ -209,13 +206,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   bool check = false;
+
   void _setupWebSocket() async {
     WebSocketService.getInstance().then((ws) {
       messagesSubscription = ws.messageStream.listen((data) {
         if (!mounted) return;
         final chat = Chat.fromJson(json.decode(data));
         Provider.of<ChatProvider>(context, listen: false).addChat(chat);
-        if(check){
+        if (check) {
           if (_scrollController.offset <
               _scrollController.position.maxScrollExtent - 200) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -235,9 +233,8 @@ class _ChatPageState extends State<ChatPage> {
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
       duration: Duration(seconds: 2),
-      curve: Curves.fastLinearToSlowEaseIn,
+      curve: Curves.fastOutSlowIn,
     );
-    // _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 
   void _setupScrollListener() {
@@ -321,10 +318,49 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 _isLoading
                     ? SizedBox.shrink()
-                    : _buildCurrentPostWidget(
-                        widget.firstMediaUrl,
-                        widget.postName,
-                        widget.salePrice,
+                    : GestureDetector(
+                        onTap: () {
+                          AppAlert.show(
+                            context: context,
+                            title: widget.postName.length < 15
+                                ? widget.postName
+                                : "${widget.postName.substring(0, 15)}...",
+                            buttonLayout: AlertButtonLayout.stacked,
+                            actions: [
+                              AlertAction(
+                                  text: 'Xem chi tiết',
+                                  handler: () {
+                                    navigatorKey.currentState?.push(
+                                      MaterialPageRoute(
+                                          builder: (_) => StandalonePost(
+                                              postId: widget.postId)),
+                                    );
+                                  }),
+                              AlertAction(
+                                  text: 'Xác nhận đã bán cho người này?',
+                                  handler: () {
+                                    AppAlert.show(
+                                      context: context,
+                                      title: 'Xác nhận đã bán cho người này?',
+                                      description:
+                                          'Sau khi xác nhận, bạn sẽ chờ đối phương xác nhận để được cộng điểm uy tín. Điểm uy tín sẽ hiển thị trên hồ sơ của bạn!',
+                                      buttonLayout: AlertButtonLayout.dual,
+                                      actions: [
+                                        AlertAction(
+                                            text: 'Cancel', handler: () {}),
+                                        AlertAction(
+                                            text: 'Confirm', handler: () {}),
+                                      ],
+                                    );
+                                  }),
+                            ],
+                          );
+                        },
+                        child: _buildCurrentPostWidget(
+                          widget.firstMediaUrl,
+                          widget.postName,
+                          widget.salePrice,
+                        ),
                       ),
                 Expanded(child: _buildMessagesWidget()),
                 _buildSendMessageWidget(),
@@ -650,20 +686,25 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildImage(String url, BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Image.network(
-        width: MediaQuery.of(context).size.width * 0.4,
-        url,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const Center(child: CircularProgressIndicator());
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return const Icon(Icons.error);
-        },
-      ),
+    return FutureBuilder(
+      future: precacheImage(NetworkImage(url), context),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              width: MediaQuery.of(context).size.width * 0.4,
+              url,
+              fit: BoxFit.cover,
+            ),
+          );
+        }
+        return Container(
+          width: MediaQuery.of(context).size.width * 0.4,
+          height: 200, // Set a fixed height while loading
+          child: Center(child: CircularProgressIndicator()),
+        );
+      },
     );
   }
 

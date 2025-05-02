@@ -5,7 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
-import 'package:eswap/presentation/views/chat/ChatProvider.dart';
+import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/search.dart';
@@ -108,7 +108,7 @@ class _ChatListState extends State<ChatList> {
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackbar(context, 'Error loading chats: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading chats: ${e.toString()}');
     }
   }
 
@@ -134,7 +134,7 @@ class _ChatListState extends State<ChatList> {
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackbar(context, 'Error loading more chats: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading more chats: ${e.toString()}');
     }
   }
 

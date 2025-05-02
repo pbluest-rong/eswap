@@ -98,7 +98,7 @@ class _SearchUserListState extends State<SearchUserList>
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackbar(context, 'Error loading users: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading users: ${e.toString()}');
     }
   }
 
@@ -123,7 +123,7 @@ class _SearchUserListState extends State<SearchUserList>
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackbar(context, 'Error loading more posts: ${e.toString()}');
+      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 

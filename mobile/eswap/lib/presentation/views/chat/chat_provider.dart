@@ -5,6 +5,11 @@ import 'package:flutter/cupertino.dart';
 class ChatProvider extends ChangeNotifier {
   List<Chat> chats = [];
   List<Message> messages = [];
+  bool isSendingMessage = false;
+
+  void setSendingMessage(bool value) {
+    isSendingMessage = value;
+  }
 
   // init load chats
   void updateChats(List<Chat> chats) {
@@ -45,6 +50,7 @@ class ChatProvider extends ChangeNotifier {
     } else {
       chats.insert(0, chat);
     }
+    setSendingMessage(false);
     notifyListeners();
   }
 

@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/theme/theme.dart';
-import 'package:eswap/presentation/views/chat/ChatProvider.dart';
+import 'package:eswap/presentation/views/admin/admin_page.dart';
+import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
@@ -92,7 +93,7 @@ class _MyAppState extends State<MyApp> {
         locale: context.locale,
         supportedLocales: context.supportedLocales,
         home: Scaffold(
-          body: InitPage(),
+          body: AdminPage(),
         ));
   }
 }
