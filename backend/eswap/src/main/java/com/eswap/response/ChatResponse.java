@@ -1,5 +1,6 @@
 package com.eswap.response;
 
+import com.eswap.common.constants.DealAgreementStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 public class ChatResponse {
+    // Chat
     private long id;
     private long chatPartnerId;
     private String chatPartnerAvatarUrl;
@@ -18,11 +20,18 @@ public class ChatResponse {
     private String chatPartnerLastName;
     private long educationInstitutionId;
     private String educationInstitutionName;
+    //Current Post
     private long currentPostId;
+    private long currentPostUserId;
     private String currentPostName;
     private BigDecimal currentPostSalePrice;
     private String currentPostFirstMediaUrl;
+    private int quantity;
+    private int sold;
+    //Deal Agreement
+    private DealAgreementStatus status;
 
+    // Messages
     private MessageResponse mostRecentMessage;
     private int unReadMessageNumber;
     private boolean forMe;

@@ -3,16 +3,13 @@ package com.eswap.model;
 import com.eswap.common.constants.NotificationCategory;
 import com.eswap.common.constants.NotificationType;
 import com.eswap.common.constants.RecipientType;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
 import java.time.OffsetDateTime;
-import java.util.Map;
 
 @Entity
 @Table(name = "notifications")

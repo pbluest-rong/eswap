@@ -50,6 +50,7 @@ class AlertAction {
 
 class AppAlert {
   static void show({
+    Widget? centerWidget,
     required BuildContext context,
     required String title,
     String? description,
@@ -113,9 +114,8 @@ class AppAlert {
                         fontWeight: style == AlertStyle.emphasized
                             ? FontWeight.bold
                             : FontWeight.w600,
-                        color: style == AlertStyle.emphasized
-                            ? fbBlue
-                            : textColor,
+                        color:
+                            style == AlertStyle.emphasized ? fbBlue : textColor,
                       ),
                     ),
                   ),
@@ -135,7 +135,7 @@ class AppAlert {
                       ),
                     ),
                   ],
-
+                  Container(child: centerWidget),
                   // Buttons area
                   const SizedBox(height: 20),
                   _buildButtons(
@@ -387,7 +387,6 @@ class TestAlert extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => ThemeTest()));
               },
               child: Text("set theme")),
-
           TextButton(
               onPressed: () {
                 AppAlert.show(

@@ -73,12 +73,18 @@ class _ChatListState extends State<ChatList> {
     });
   }
 
+  int? newMessageId;
+
   void _setupWebSocket() async {
     WebSocketService.getInstance().then((ws) {
       messagesSubscription = ws.messageStream.listen((data) {
         if (!mounted) return;
         final chat = Chat.fromJson(json.decode(data));
-        Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+        if (newMessageId == null ||
+            newMessageId != chat.mostRecentMessage!.id) {
+          newMessageId = chat.mostRecentMessage!.id;
+          Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+        }
       });
     });
   }
@@ -206,31 +212,8 @@ class _ChatListState extends State<ChatList> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => ChatPage(
-                                          chatPartnerId: chatProvider
-                                              .chats[index].chatPartnerId,
-                                          chatPartnerAvatarUrl: chatProvider
-                                              .chats[index]
-                                              .chatPartnerAvatarUrl,
-                                          chatPartnerFirstName: chatProvider
-                                              .chats[index]
-                                              .chatPartnerFirstName,
-                                          chatPartnerLastName: chatProvider
-                                              .chats[index].chatPartnerLastName,
-                                          chatPartnerEducationInstitutionId:
-                                              chatProvider.chats[index]
-                                                  .educationInstitutionId,
-                                          chatPartnerEducationInstitutionName:
-                                              chatProvider.chats[index]
-                                                  .educationInstitutionName,
-                                          postId: chatProvider
-                                              .chats[index].currentPostId,
-                                          postName: chatProvider
-                                              .chats[index].currentPostName,
-                                          salePrice: chatProvider.chats[index]
-                                              .currentPostSalePrice,
-                                          firstMediaUrl: chatProvider
-                                              .chats[index]
-                                              .currentPostFirstMediaUrl)));
+                                            chat: chatProvider.chats[index],
+                                          )));
                               chatProvider.markAsReadUI(index);
                               _chatService.markAsRead(
                                   chatProvider.chats[index].chatPartnerId);
@@ -348,6 +331,8 @@ class _ChatListState extends State<ChatList> {
         return "$senderName Đã trao đổi bài viết mới";
       case ContentType.LOCATION:
         return "$senderName Đã chia sẻ vị trí";
+      case ContentType.DEAL:
+        return "$senderName Đã gửi xác nhận trao đổi";
       default:
         return "$senderName ${chat.mostRecentMessage!.content}";
     }

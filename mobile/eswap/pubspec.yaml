@@ -57,6 +57,7 @@ dependencies:
   dotted_border: ^2.1.0
   flutter_image_compress: ^2.4.0
   path_provider: ^2.1.5
+  google_maps_flutter: ^2.12.1
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

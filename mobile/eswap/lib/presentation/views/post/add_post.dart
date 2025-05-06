@@ -7,6 +7,7 @@ import 'package:eswap/core/validation/validators.dart';
 import 'package:eswap/model/category_brand_model.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/presentation/components/pick_media.dart';
+import 'package:eswap/presentation/components/quantity_selector.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/category_brand_service.dart';
@@ -599,75 +600,5 @@ class _AddPostPageState extends State<AddPostPage> {
             _brandController.text = "";
           }
         });
-  }
-}
-
-class QuantitySelector extends StatefulWidget {
-  final int initialValue;
-  final ValueChanged<int>? onChanged;
-
-  const QuantitySelector({
-    super.key,
-    this.initialValue = 1,
-    this.onChanged,
-  });
-
-  @override
-  State<QuantitySelector> createState() => _QuantitySelectorState();
-}
-
-class _QuantitySelectorState extends State<QuantitySelector> {
-  late int _quantity;
-
-  @override
-  void initState() {
-    super.initState();
-    _quantity = widget.initialValue;
-  }
-
-  void _increment() {
-    setState(() {
-      _quantity++;
-      widget.onChanged?.call(_quantity);
-    });
-  }
-
-  void _decrement() {
-    if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-        widget.onChanged?.call(_quantity);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.remove),
-          onPressed: _decrement,
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.grey[200],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            '$_quantity',
-            style: const TextStyle(fontSize: 18),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: _increment,
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.grey[200],
-          ),
-        ),
-      ],
-    );
   }
 }

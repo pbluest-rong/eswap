@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:eswap/model/chat_model.dart';
+import 'package:eswap/model/deal_agreement.dart';
+import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/message_model.dart';
 import 'package:flutter/cupertino.dart';
 

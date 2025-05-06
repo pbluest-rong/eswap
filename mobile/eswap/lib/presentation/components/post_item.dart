@@ -2,16 +2,20 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/main.dart';
+import 'package:eswap/model/chat_model.dart';
+import 'package:eswap/model/deal_agreement.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/like_model.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
+import 'package:eswap/service/chat_service.dart';
 import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 class PostItem extends StatefulWidget {
@@ -342,23 +346,38 @@ class _PostItemState extends State<PostItem> {
                   activeIcon: Icons.chat_bubble,
                   isActive: false,
                   label: "Nhắn tin",
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ChatPage(
-                                chatPartnerId: post.userId,
-                                chatPartnerAvatarUrl: post.avtUrl,
-                                chatPartnerFirstName: post.firstname,
-                                chatPartnerLastName: post.lastname,
-                                chatPartnerEducationInstitutionId:
-                                    post.educationInstitutionId,
-                                chatPartnerEducationInstitutionName:
-                                    post.educationInstitutionName,
-                                postId: post.id,
-                                postName: post.name,
-                                salePrice: post.salePrice,
-                                firstMediaUrl: post.media.first.originalUrl)));
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    int? userId = prefs.getInt("userId");
+                    if (userId != null) {
+                      final dealAgreement = await ChatService()
+                          .fetchDealAgreement(post.id, userId, context);
+                      Chat chat = new Chat(
+                          id: -1,
+                          chatPartnerId: post.userId,
+                          chatPartnerAvatarUrl: post.avtUrl,
+                          chatPartnerFirstName: post.firstname,
+                          chatPartnerLastName: post.lastname,
+                          educationInstitutionId: post.educationInstitutionId,
+                          educationInstitutionName:
+                              post.educationInstitutionName,
+                          currentPostId: post.id,
+                          currentPostName: post.name,
+                          currentPostSalePrice: post.salePrice,
+                          quantity: post.quantity,
+                          sold: post.sold,
+                          currentPostFirstMediaUrl:
+                              post.media.first.originalUrl,
+                          unReadMessageNumber: 0,
+                          status: dealAgreement?.status,
+                          currentPostUserId: post.userId);
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                    chat: chat,
+                                  )));
+                    }
                   },
                 ),
                 _buildActionButton(
@@ -427,33 +446,47 @@ class _PostItemState extends State<PostItem> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (post.salePrice != null)
-                      Text(
-                        "${post.salePrice} VND",
-                        style: textTheme.bodyMedium!.copyWith(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      "${post.salePrice} VND",
+                      style: textTheme.bodyMedium!.copyWith(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
                     GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ChatPage(
-                                      chatPartnerId: post.userId,
-                                      chatPartnerAvatarUrl: post.avtUrl,
-                                      chatPartnerFirstName: post.firstname,
-                                      chatPartnerLastName: post.lastname,
-                                      chatPartnerEducationInstitutionId:
-                                          post.educationInstitutionId,
-                                      chatPartnerEducationInstitutionName:
-                                          post.educationInstitutionName,
-                                      postId: post.id,
-                                      postName: post.name,
-                                      salePrice: post.salePrice,
-                                      firstMediaUrl:
-                                          post.media.first.originalUrl)));
+                        onTap: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          int? userId = prefs.getInt("userId");
+                          if (userId != null) {
+                            final dealAgreement = await ChatService()
+                                .fetchDealAgreement(post.id, userId, context);
+                            Chat chat = new Chat(
+                                id: -1,
+                                chatPartnerId: post.userId,
+                                chatPartnerAvatarUrl: post.avtUrl,
+                                chatPartnerFirstName: post.firstname,
+                                chatPartnerLastName: post.lastname,
+                                educationInstitutionId:
+                                    post.educationInstitutionId,
+                                educationInstitutionName:
+                                    post.educationInstitutionName,
+                                currentPostId: post.id,
+                                currentPostName: post.name,
+                                currentPostSalePrice: post.salePrice,
+                                quantity: post.quantity,
+                                sold: post.sold,
+                                currentPostFirstMediaUrl:
+                                    post.media.first.originalUrl,
+                                unReadMessageNumber: 0,
+                                status: dealAgreement?.status,
+                                currentPostUserId: post.userId);
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ChatPage(
+                                          chat: chat,
+                                        )));
+                          }
                         },
                         child: Icon(Icons.chat_bubble_outline))
                   ],

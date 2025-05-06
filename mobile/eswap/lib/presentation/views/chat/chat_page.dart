@@ -5,8 +5,11 @@ import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/main.dart';
 import 'package:eswap/model/chat_model.dart';
+import 'package:eswap/model/deal_agreement.dart';
+import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/message_model.dart';
 import 'package:eswap/model/user_model.dart';
+import 'package:eswap/presentation/components/quantity_selector.dart';
 import 'package:eswap/presentation/components/user_item.dart';
 import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
@@ -22,30 +25,9 @@ import 'package:video_player/video_player.dart';
 
 class ChatPage extends StatefulWidget {
   static const String route = '/chats';
+  final Chat chat;
 
-  final int chatPartnerId;
-  final String chatPartnerFirstName;
-  final String chatPartnerLastName;
-  final String? chatPartnerAvatarUrl;
-  final int chatPartnerEducationInstitutionId;
-  final String chatPartnerEducationInstitutionName;
-  final int postId;
-  final String postName;
-  final double salePrice;
-  final String firstMediaUrl;
-
-  const ChatPage(
-      {super.key,
-      required this.chatPartnerId,
-      required this.chatPartnerFirstName,
-      required this.chatPartnerLastName,
-      this.chatPartnerAvatarUrl,
-      required this.chatPartnerEducationInstitutionId,
-      required this.chatPartnerEducationInstitutionName,
-      required this.postId,
-      required this.postName,
-      required this.salePrice,
-      required this.firstMediaUrl});
+  const ChatPage({super.key, required this.chat});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -57,7 +39,7 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
   int _currentPage = 0;
-  final int _pageSize = 10;
+  final int _pageSize = 15;
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -71,8 +53,8 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _setupScrollListener();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialChat();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadInitialChat();
       _setupWebSocket();
       _setIsChatNotify(true);
     });
@@ -103,7 +85,7 @@ class _ChatPageState extends State<ChatPage> {
 
     try {
       final messagesPage = await _chatService.fetchMessages(
-          widget.chatPartnerId, _currentPage, _pageSize, context);
+          widget.chat.chatPartnerId, _currentPage, _pageSize, context);
 
       Provider.of<ChatProvider>(context, listen: false)
           .updateMessages(messagesPage.content.reversed.toList());
@@ -114,11 +96,10 @@ class _ChatPageState extends State<ChatPage> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent + 200);
         }
       });
-    } catch (e, a) {
-      print(a.toString());
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -130,6 +111,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _loadMoreOldMessage() async {
     if (_isLoadingMore || !_hasMore) return;
+
     if (mounted) {
       setState(() {
         _isLoadingMore = true;
@@ -138,16 +120,23 @@ class _ChatPageState extends State<ChatPage> {
 
     try {
       final messagePage = await _chatService.fetchMessages(
-          widget.chatPartnerId, _currentPage + 1, _pageSize, context);
+          widget.chat.chatPartnerId, _currentPage + 1, _pageSize, context);
 
+      if (messagePage.content.isEmpty) {
+        setState(() {
+          _hasMore = false;
+          _isLoadingMore = false;
+        });
+        return;
+      }
       final previousMaxExtent = _scrollController.position.maxScrollExtent;
       final previousPixels = _scrollController.position.pixels;
 
       if (mounted) {
+        Provider.of<ChatProvider>(context, listen: false)
+            .addMessages(messagePage.content.reversed.toList());
         setState(() {
           _currentPage++;
-          Provider.of<ChatProvider>(context, listen: false)
-              .addMessages(messagePage.content.reversed.toList());
           _hasMore = !messagePage.last;
           _isLoadingMore = false;
         });
@@ -182,10 +171,10 @@ class _ChatPageState extends State<ChatPage> {
     final text = _messageController.text.trim();
     if (text.isNotEmpty) {
       SendMessageRequest messageRequest = SendMessageRequest(
-          chatPartnerId: widget.chatPartnerId,
+          chatPartnerId: widget.chat.chatPartnerId,
           contentType: isLink(text) ? ContentType.LINK : ContentType.TEXT,
           content: text,
-          postId: widget.postId);
+          postId: widget.chat.currentPostId);
 
       _chatService.sendMessage(
           sendMessageRequest: messageRequest, context: context);
@@ -195,9 +184,9 @@ class _ChatPageState extends State<ChatPage> {
     }
     if (mediaFiles.isNotEmpty) {
       SendMessageRequest messageRequest = SendMessageRequest(
-          chatPartnerId: widget.chatPartnerId,
+          chatPartnerId: widget.chat.chatPartnerId,
           contentType: ContentType.MEDIA,
-          postId: widget.postId);
+          postId: widget.chat.currentPostId);
       _chatService.sendMessage(
           sendMessageRequest: messageRequest,
           context: context,
@@ -205,15 +194,31 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  bool check = false;
+  int? newMessageId;
 
   void _setupWebSocket() async {
     WebSocketService.getInstance().then((ws) {
       messagesSubscription = ws.messageStream.listen((data) {
         if (!mounted) return;
         final chat = Chat.fromJson(json.decode(data));
-        Provider.of<ChatProvider>(context, listen: false).addChat(chat);
-        if (check) {
+
+        // current Post
+        if (newMessageId == null ||
+            newMessageId != chat.mostRecentMessage!.id) {
+          newMessageId = chat.mostRecentMessage!.id;
+          Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+          if (chat.mostRecentMessage!.contentType == ContentType.DEAL) {
+            Map<String, dynamic> dealData =
+                json.decode(chat.mostRecentMessage!.content);
+            DealAgreement deal = DealAgreement.fromJson(dealData);
+            setState(() {
+              widget.chat.status = deal.status;
+              if (deal.status == DealAgreementStatus.COMPLETED.name) {
+                widget.chat.sold += deal.quantity;
+              }
+            });
+          }
+          // Notify
           if (_scrollController.offset <
               _scrollController.position.maxScrollExtent - 200) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -293,17 +298,17 @@ class _ChatPageState extends State<ChatPage> {
               onTap: () async {
                 _setIsChatNotify(false);
                 Navigator.pop(context);
+                _chatService.markAsRead(widget.chat.chatPartnerId);
               },
               child: Icon(Icons.arrow_back_ios)),
           title: UserItemForList(
             user: UserInfomation(
-                id: widget.chatPartnerId,
+                id: widget.chat.chatPartnerId,
                 username: null,
-                firstname: widget.chatPartnerFirstName,
-                lastname: widget.chatPartnerLastName,
-                educationInstitutionName:
-                    widget.chatPartnerEducationInstitutionName,
-                avatarUrl: widget.chatPartnerAvatarUrl),
+                firstname: widget.chat.chatPartnerFirstName,
+                lastname: widget.chat.chatPartnerLastName,
+                educationInstitutionName: widget.chat.educationInstitutionName,
+                avatarUrl: widget.chat.chatPartnerAvatarUrl),
           ),
           actions: [
             IconButton(
@@ -319,48 +324,91 @@ class _ChatPageState extends State<ChatPage> {
                 _isLoading
                     ? SizedBox.shrink()
                     : GestureDetector(
-                        onTap: () {
-                          AppAlert.show(
-                            context: context,
-                            title: widget.postName.length < 15
-                                ? widget.postName
-                                : "${widget.postName.substring(0, 15)}...",
-                            buttonLayout: AlertButtonLayout.stacked,
-                            actions: [
-                              AlertAction(
-                                  text: 'Xem chi tiết',
-                                  handler: () {
-                                    navigatorKey.currentState?.push(
-                                      MaterialPageRoute(
-                                          builder: (_) => StandalonePost(
-                                              postId: widget.postId)),
-                                    );
-                                  }),
-                              AlertAction(
-                                  text: 'Xác nhận đã bán cho người này?',
-                                  handler: () {
-                                    AppAlert.show(
-                                      context: context,
-                                      title: 'Xác nhận đã bán cho người này?',
-                                      description:
-                                          'Sau khi xác nhận, bạn sẽ chờ đối phương xác nhận để được cộng điểm uy tín. Điểm uy tín sẽ hiển thị trên hồ sơ của bạn!',
-                                      buttonLayout: AlertButtonLayout.dual,
-                                      actions: [
-                                        AlertAction(
-                                            text: 'Cancel', handler: () {}),
-                                        AlertAction(
-                                            text: 'Confirm', handler: () {}),
-                                      ],
-                                    );
-                                  }),
-                            ],
-                          );
+                        onTap: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          int? userId = prefs.getInt("userId");
+                          if (userId != null) {
+                            if (userId == widget.chat.currentPostUserId) {
+                              // seller
+                              if (widget.chat.quantity > widget.chat.sold &&
+                                  (widget.chat.status == null ||
+                                      widget.chat.status !=
+                                          DealAgreementStatus.WAITING)) {
+                                int quantity = 1;
+                                AppAlert.show(
+                                  centerWidget: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        "Số lượng bán:",
+                                        style: TextStyle(fontSize: 20),
+                                      ),
+                                      QuantitySelector(
+                                        initialValue: 1,
+                                        maxValue: widget.chat.quantity -
+                                            widget.chat.sold,
+                                        onChanged: (value) {
+                                          quantity = value;
+                                        },
+                                      )
+                                    ],
+                                  ),
+                                  context: context,
+                                  title: 'Xác nhận bán cho người này?',
+                                  description:
+                                      'Sau khi xác nhận, bạn sẽ chờ đối phương xác nhận để được cộng điểm uy tín. Điểm uy tín sẽ hiển thị trên hồ sơ của bạn!',
+                                  buttonLayout: AlertButtonLayout.dual,
+                                  actions: [
+                                    AlertAction(text: 'Hủy', handler: () {}),
+                                    AlertAction(
+                                        text: 'Xác nhận',
+                                        handler: () async {
+                                          DealAgreement? dealAgreement =
+                                              await _chatService
+                                                  .requestDealAgreement(
+                                                      widget.chat.currentPostId,
+                                                      widget.chat.chatPartnerId,
+                                                      quantity,
+                                                      context);
+                                          setState(() {
+                                            widget.chat.status =
+                                                dealAgreement!.status;
+                                          });
+                                        }),
+                                  ],
+                                );
+                              } else {
+                                if (widget.chat.quantity <= widget.chat.sold) {
+                                  AppAlert.show(
+                                    context: context,
+                                    title: 'Số lượng đã hết',
+                                    buttonLayout: AlertButtonLayout.single,
+                                    actions: [
+                                      AlertAction(text: 'OK', handler: () {})
+                                    ],
+                                  );
+                                } else if (widget.chat.status != null) {
+                                  AppAlert.show(
+                                    context: context,
+                                    title:
+                                        'Vui lòng chờ đối phương xác nhận mua hoặc từ chối yêu cầu đã gửi trước đó',
+                                    buttonLayout: AlertButtonLayout.single,
+                                    actions: [
+                                      AlertAction(text: 'OK', handler: () {})
+                                    ],
+                                  );
+                                }
+                              }
+                            }
+                          }
                         },
                         child: _buildCurrentPostWidget(
-                          widget.firstMediaUrl,
-                          widget.postName,
-                          widget.salePrice,
-                        ),
+                            widget.chat.currentPostId,
+                            widget.chat.currentPostFirstMediaUrl,
+                            widget.chat.currentPostName,
+                            widget.chat.currentPostSalePrice,
+                            widget.chat.quantity,
+                            widget.chat.sold),
                       ),
                 Expanded(child: _buildMessagesWidget()),
                 _buildSendMessageWidget(),
@@ -413,11 +461,64 @@ class _ChatPageState extends State<ChatPage> {
 
           final message =
               Provider.of<ChatProvider>(context, listen: true).messages[index];
-          return MessageBubble(
-            key: ValueKey(message.id),
-            message: message,
-            isMe: !(message.fromUserId == widget.chatPartnerId),
-          );
+          return message.contentType == ContentType.DEAL
+              ? GestureDetector(
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    int? userId = prefs.getInt("userId");
+                    if (userId != null) {
+                      // buyer: Get deal from seller
+                      final dealAgreement =
+                          await _chatService.fetchDealAgreement(
+                              widget.chat.currentPostId, userId, context);
+                      // if(deal is waiting) => confirm
+                      if (dealAgreement != null &&
+                          dealAgreement.status ==
+                              DealAgreementStatus.WAITING.name) {
+                        AppAlert.show(
+                          context: context,
+                          title: 'Xác nhận đã mua?',
+                          description:
+                              'Sau khi xác nhận, bạn không thể hoàn tác thao tác này!',
+                          buttonLayout: AlertButtonLayout.triple,
+                          actions: [
+                            AlertAction(text: 'Hủy', handler: () {}),
+                            AlertAction(
+                                text: 'Chưa mua bao giờ',
+                                handler: () async {
+                                  DealAgreement? cancelDealAgreement =
+                                      await _chatService.cancelDealAgreement(
+                                          dealAgreement.id, context);
+                                  if (cancelDealAgreement != null) {
+                                    setState(() {
+                                      widget.chat.status =
+                                          cancelDealAgreement.status;
+                                    });
+                                  }
+                                }),
+                            AlertAction(
+                                text: 'Xác nhận đã mua',
+                                handler: () async {
+                                  DealAgreement? completedDealAgreement =
+                                      await _chatService.confirmDealAgreement(
+                                          dealAgreement.id, context);
+                                }),
+                          ],
+                        );
+                      }
+                    }
+                  },
+                  child: MessageBubble(
+                    key: ValueKey(message.id),
+                    message: message,
+                    isMe: !(message.fromUserId == widget.chat.chatPartnerId),
+                  ),
+                )
+              : MessageBubble(
+                  key: ValueKey(message.id),
+                  message: message,
+                  isMe: !(message.fromUserId == widget.chat.chatPartnerId),
+                );
         },
       ),
     );
@@ -435,7 +536,323 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-Widget _buildCurrentPostWidget(
+Widget _buildCurrentPostWidget(int postId, String firstMediaUrl,
+    String postName, double salePrice, int quantity, int sold) {
+  return Card(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 2,
+    clipBehavior: Clip.antiAlias,
+    child: IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(
+            flex: 1,
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image.network(
+                  firstMediaUrl,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      postName ?? 'Không có tiêu đề',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            "Số lượng: ",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            "$quantity",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            "Đã bán: ",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            "$sold",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            "Giá bán: ",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            "${salePrice} VND",
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                          onTap: () {
+                            navigatorKey.currentState?.push(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      StandalonePost(postId: postId)),
+                            );
+                          },
+                          child: Icon(Icons.arrow_forward_ios))
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildDealForMessage(DealAgreement deal) {
+  return Card(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 2,
+    clipBehavior: Clip.antiAlias,
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product image and basic info
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  deal.firstMediaUrl,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deal.postName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    if (deal.originalPrice != null)
+                      Text(
+                        "Giá gốc: ${deal.originalPrice} VND",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    Text(
+                      "Giá bán: ${deal.salePrice} VND",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "Số lượng: ${deal.quantity}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Deal participants
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                _buildParticipantRow("Người bán:",
+                    "${deal.sellerFirstName} ${deal.sellerLastName}"),
+                const SizedBox(height: 4),
+                _buildParticipantRow("Người mua:",
+                    "${deal.buyerFirstName} ${deal.buyerLastName}"),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Deal timeline and status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Yêu cầu lúc: ${DateFormat('dd/MM/yyyy  HH:mm').format(deal.requestAt)}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (deal.completedAt != null)
+                    Text(
+                      "Hoàn thành lúc: ${DateFormat('dd/MM/yyyy  HH:mm').format(deal.completedAt!)}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusColor(deal.status),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _getStatusText(deal.status),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildParticipantRow(String label, String value) {
+  return Row(
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[700],
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ],
+  );
+}
+
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'WAITING':
+      return Colors.orange;
+    case 'COMPLETED':
+      return Colors.green;
+    case 'CANCELLED':
+      return Colors.red;
+    default:
+      return Colors.grey;
+  }
+}
+
+String _getStatusText(String status) {
+  switch (status) {
+    case 'WAITING':
+      return 'Đang chờ';
+    case 'COMPLETED':
+      return 'Hoàn thành';
+    case 'CANCELLED':
+      return 'Đã hủy';
+    default:
+      return status;
+  }
+}
+
+Widget _buildNewPostForMessage(
     String firstMediaUrl, String postName, double salePrice) {
   return Card(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -536,12 +953,14 @@ class MessageBubble extends StatelessWidget {
           children: [
             Container(
               padding: (message.contentType != ContentType.MEDIA &&
-                      message.contentType != ContentType.POST)
+                      message.contentType != ContentType.POST &&
+                      message.contentType != ContentType.DEAL)
                   ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
                   : EdgeInsets.zero,
               decoration: BoxDecoration(
                 color: (message.contentType != ContentType.MEDIA &&
-                        message.contentType != ContentType.POST)
+                        message.contentType != ContentType.POST &&
+                        message.contentType != ContentType.DEAL)
                     ? bubbleColor
                     : null,
                 borderRadius: BorderRadius.circular(16),
@@ -664,11 +1083,21 @@ class MessageBubble extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.8,
           ),
-          child: _buildCurrentPostWidget(
+          child: _buildNewPostForMessage(
             postData['firstMediaUrl'],
             postData['postName'],
             postData['salePrice'],
           ),
+        );
+      case ContentType.DEAL:
+        Map<String, dynamic> dealData = json.decode(message.content);
+        DealAgreement deal = DealAgreement.fromJson(dealData);
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.8,
+          ),
+          child: _buildDealForMessage(deal),
         );
       default:
         return Text(

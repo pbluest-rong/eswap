@@ -45,6 +45,7 @@ public class PostResponse {
     private int likesCount;
     private boolean liked;
 
+
     public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl,
                                                 int likesCount, boolean liked, FollowStatus followStatus) {
         return PostResponse.builder()

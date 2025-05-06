@@ -5,5 +5,6 @@ public enum ContentType {
     LINK,
     LOCATION,
     MEDIA,
-    POST
+    POST,
+    DEAL
 }

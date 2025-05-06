@@ -93,7 +93,7 @@ class _MyAppState extends State<MyApp> {
         locale: context.locale,
         supportedLocales: context.supportedLocales,
         home: Scaffold(
-          body: AdminPage(),
+          body: InitPage(),
         ));
   }
 }

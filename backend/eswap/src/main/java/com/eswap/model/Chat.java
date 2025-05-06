@@ -24,7 +24,7 @@ public class Chat {
     @JoinColumn(name = "user_2_id", nullable = false)
     private User user2;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "current_post_id")
     private Post currentPost;
 

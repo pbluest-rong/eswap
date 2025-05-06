@@ -51,7 +51,7 @@ public class Post {
 
     private int quantity;
 
-    private int sold;
+    private int sold;// sold == quantity => hết hàng
 
     @Enumerated(EnumType.STRING)
     private PostStatus status;
@@ -69,7 +69,7 @@ public class Post {
 
 
     @Column(name = "is_deleted")
-    private boolean isDeleted;
+    private boolean isDeleted;// thừa => status
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
