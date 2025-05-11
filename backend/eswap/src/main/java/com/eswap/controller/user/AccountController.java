@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,7 @@ public class AccountController {
                         "Login Success",
                         authenticationResponse));
     }
+
     @PostMapping("/enable-account")
     public ResponseEntity<ApiResponse> enableUser(Authentication authentication) {
         userService.enableAccount(authentication);
@@ -84,9 +86,21 @@ public class AccountController {
         FollowResponse followResponse = userService.follow(authentication, followeeUserId);
         return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", followResponse));
     }
+
     @PostMapping("/unfollow/{followeeUserId}")
     public ResponseEntity<ApiResponse> unfollow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
         userService.unfollow(authentication, followeeUserId);
         return ResponseEntity.ok(new ApiResponse(true, "Unfollow user successfully", null));
+    }
+
+    @PostMapping("/update-avatar")
+    public ResponseEntity<ApiResponse> updateAvatar(Authentication auth, @RequestParam("image") MultipartFile image) {
+        String avatarUrl = userService.updateAvatar(auth, image);
+        return ResponseEntity.ok(new ApiResponse(true, "Avatar updated successfully", avatarUrl));
+    }
+
+    @PostMapping("/delete-avatar")
+    public void deleteAvatar(Authentication auth) {
+        userService.deleteAvatar(auth);
     }
 }

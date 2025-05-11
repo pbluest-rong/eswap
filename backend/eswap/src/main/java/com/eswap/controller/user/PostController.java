@@ -92,16 +92,6 @@ public class PostController {
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<ApiResponse> getOwnPosts(
-            Authentication connectedUser,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        PageResponse<PostResponse> postResponses = postService.getOwnPosts(connectedUser, page, size);
-        return ResponseEntity.ok(new ApiResponse(true, "Your posts retrieved successfully", postResponses));
-    }
-
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse> getUserPosts(
             Authentication auth,
@@ -109,8 +99,18 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        PageResponse<PostResponse> postResponses = postService.getUserPosts(auth, userId, page, size);
+        PageResponse<PostResponse> postResponses = postService.getShowingPosts(auth, userId, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
+    }
 
+    @GetMapping("/user/{userId}/sold")
+    public ResponseEntity<ApiResponse> getSoldUserPosts(
+            Authentication auth,
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getSoldUserPosts(auth, userId, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
     }
 

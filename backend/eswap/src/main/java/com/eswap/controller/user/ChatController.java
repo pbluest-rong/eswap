@@ -4,7 +4,6 @@ import com.eswap.common.ApiResponse;
 import com.eswap.common.constants.PageResponse;
 import com.eswap.request.MessageRequest;
 import com.eswap.response.ChatResponse;
-import com.eswap.response.DealAgreementResponse;
 import com.eswap.response.MessageResponse;
 import com.eswap.service.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -59,35 +58,5 @@ public class ChatController {
     @PutMapping("/{chatPartnerId}")
     public void markAsRead(Authentication auth, @PathVariable(name = "chatPartnerId") Long chatPartnerId) {
         chatService.markAsRead(auth, chatPartnerId);
-    }
-
-    @GetMapping("/deal-agreement")
-    public ResponseEntity<ApiResponse> getWaitingDealAgreement(Authentication auth, @RequestParam("postId") long postId,
-                                                               @RequestParam("buyerId") long buyerId) {
-        DealAgreementResponse response = chatService.getWaitingDealAgreement(auth, postId, buyerId);
-        return ResponseEntity.ok(new ApiResponse(true, "deal agreement", response));
-    }
-
-    @PostMapping("/deal-agreement")
-    public ResponseEntity<ApiResponse> requestDealAgreement(Authentication auth, @RequestParam("postId") long postId,
-                                                            @RequestParam("buyerId") long buyerId,
-                                                            @RequestParam("quantity") int quantity
-    ) {
-        DealAgreementResponse response = chatService.requestDealAgreement(auth, postId, buyerId, quantity);
-        return ResponseEntity.ok(new ApiResponse(true, "deal agreement", response));
-    }
-
-    @PutMapping("/deal-agreement/{dealAgreementId}/cancel")
-    public ResponseEntity<ApiResponse> cancelDealAgreement(Authentication auth, @PathVariable("dealAgreementId") long dealAgreementId
-    ) {
-        DealAgreementResponse response = chatService.cancelDealAgreement(auth, dealAgreementId);
-        return ResponseEntity.ok(new ApiResponse(true, "deal agreement", response));
-    }
-
-    @PutMapping("/deal-agreement/{dealAgreementId}/confirm")
-    public ResponseEntity<ApiResponse> confirmDealAgreement(Authentication auth, @PathVariable("dealAgreementId") long dealAgreementId
-    ) {
-        DealAgreementResponse response = chatService.confirmDealAgreement(auth, dealAgreementId);
-        return ResponseEntity.ok(new ApiResponse(true, "deal agreement", response));
     }
 }

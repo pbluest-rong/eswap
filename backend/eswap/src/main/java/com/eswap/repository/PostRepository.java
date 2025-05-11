@@ -19,7 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("""
             SELECT p FROM Post p
-                     WHERE p.id = :id AND p.isDeleted = false
+                     WHERE p.id = :id AND p.status!=com.eswap.common.constants.PostStatus.DELETED
                            AND (
                                 p.user = :user
                                 OR(
@@ -36,26 +36,37 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                 )
                            )
             """)
-    Optional<Post> findByIdAndConnectedUser(@Param("id") long id,@Param("user") User user);
-    @Query("""
-            SELECT p FROM Post p
-                        WHERE p.user = :user AND p.isDeleted = false
-                               AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
-                               AND p.privacy=com.eswap.common.constants.Privacy.PUBLIC
-            """)
-    Page<Post> getPublicPost(@Param("user") User user, Pageable pageable);
+    Optional<Post> findByIdAndConnectedUser(@Param("id") long id, @Param("user") User user);
 
     @Query("""
             SELECT p FROM Post p
-                        WHERE p.user = :user AND p.isDeleted = false
-                               AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
+                        WHERE p.user = :user AND p.status!=com.eswap.common.constants.PostStatus.DELETED
+                               AND (p.status=com.eswap.common.constants.PostStatus.PUBLISHED
+                                    OR :user in(
+                                       SELECT f.followee FROM Follow f
+                                       WHERE f.follower = :connectedUser and f.waitConfirm=false
+                                    )     
+                               )
+                               AND p.quantity > p.sold
             """)
-    Page<Post> getPost(@Param("user") User user, Pageable pageable);
+    Page<Post> getShowingPosts(@Param("connectedUser") User connectedUser, @Param("user") User user, Pageable pageable);
 
+    @Query("""
+            SELECT p FROM Post p
+                        WHERE p.user = :user AND p.status!=com.eswap.common.constants.PostStatus.DELETED
+                               AND (p.status=com.eswap.common.constants.PostStatus.PUBLISHED
+                                    OR :user in(
+                                       SELECT f.followee FROM Follow f
+                                       WHERE f.follower = :connectedUser and f.waitConfirm=false
+                                    )     
+                               )
+                               AND p.sold > 0
+            """)
+    Page<Post> getSoldPosts(@Param("connectedUser") User connectedUser, @Param("user") User user, Pageable pageable);
 
     @Query("""
                 SELECT p FROM Post p
-                            WHERE p.isDeleted=false
+                            WHERE p.status!=com.eswap.common.constants.PostStatus.DELETED
                               AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
                                AND p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                AND (p.user in(
@@ -85,7 +96,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("""
                 SELECT p FROM Post p
-                            WHERE p.isDeleted=false 
+                            WHERE p.status!=com.eswap.common.constants.PostStatus.DELETED 
                                AND p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     OR p.user in(
@@ -99,7 +110,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p 
                         WHERE p.educationInstitution = :educationInstitution 
-                                    AND p.isDeleted = false
+                                    AND p.status!=com.eswap.common.constants.PostStatus.DELETED
                                     AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
@@ -130,7 +141,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p 
                         WHERE p.educationInstitution = :educationInstitution 
-                                    AND p.isDeleted = false
+                                    AND p.status!=com.eswap.common.constants.PostStatus.DELETED
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                         OR p.user in(
@@ -144,7 +155,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p 
                         WHERE p.educationInstitution.province = :province 
-                                    AND p.isDeleted = false
+                                    AND p.status!=com.eswap.common.constants.PostStatus.DELETED
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                         OR p.user in(
@@ -158,7 +169,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p 
                         WHERE p.educationInstitution.province = :province 
-                                    AND p.isDeleted = false
+                                    AND p.status!=com.eswap.common.constants.PostStatus.DELETED
                                     AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
@@ -192,13 +203,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 where f.follower = :user and f.waitConfirm = false
                        AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                 )
-                and p.isDeleted = false
+                and p.status!=com.eswap.common.constants.PostStatus.DELETED
                 order by p.createdAt desc
             """)
     Page<Post> findPostsOfFollowing(User user, Pageable pageable);
+
     @Query("""
             SELECT COUNT(p) FROM Post p
-            WHERE p.isDeleted = false AND p.user = :user
+            WHERE p.status!=com.eswap.common.constants.PostStatus.DELETED AND p.user = :user
             """)
     Integer countPostsByUser(@Param("user") User user);
 }

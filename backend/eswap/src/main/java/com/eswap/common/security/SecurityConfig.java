@@ -32,7 +32,8 @@ public class SecurityConfig {
                                 "/institutions/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/v3/api-docs.yaml"
+                                "/v3/api-docs.yaml",
+                                "/orders/momo/ipn-handler"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole(RoleType.ADMIN)
                         .anyRequest().authenticated())

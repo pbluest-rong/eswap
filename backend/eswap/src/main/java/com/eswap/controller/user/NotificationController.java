@@ -38,4 +38,9 @@ public class NotificationController {
     public void markAsRead(@PathVariable("notificationId") Long notificationId, Authentication auth) {
         notificationService.markAsRead(notificationId);
     }
+
+    @GetMapping("count-unread")
+    public ResponseEntity<ApiResponse> countUnreadNotifications(Authentication auth) {
+        return ResponseEntity.ok(new ApiResponse(true, "countUnreadNotifications", notificationService.countUnreadNotifications(auth)));
+    }
 }

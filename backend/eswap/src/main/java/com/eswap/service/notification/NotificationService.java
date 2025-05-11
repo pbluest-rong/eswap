@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -99,11 +100,16 @@ public class NotificationService {
         }
     }
 
+    @Transactional
     public void markAsRead(Long notificationId) {
         Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
         notificationOpt.ifPresent(notification -> {
-            notification.setRead(true);
-            notificationRepository.save(notification);
+            if (notification.getCategory() == NotificationCategory.NEW_MESSAGE) {
+                notificationRepository.deleteById(notificationId);
+            } else {
+                notification.setRead(true);
+                notificationRepository.save(notification);
+            }
         });
     }
 
@@ -117,18 +123,23 @@ public class NotificationService {
                         .stream()
                         .map(
                                 notification -> {
+                                    User sender = userRepository.findById(notification.getSenderId()).orElse(null);
+                                    String role = sender != null ? sender.getRole().getName() : "ADMIN";
+                                    String firstName = sender != null ? sender.getFirstName() : "";
+                                    String lastName = sender != null ? sender.getLastName() : "";
+                                    String avatarUrl = sender != null ? sender.getAvatarUrl() : null;
                                     return NotificationResponse.builder()
                                             .id(notification.getId())
                                             .senderId(notification.getSenderId())
-                                            .senderFirstName(user.getFirstName())
-                                            .senderLastName(user.getLastName())
-                                            .senderRole(user.getRole().getName())
+                                            .senderFirstName(firstName)
+                                            .senderLastName(lastName)
+                                            .senderRole(role)
                                             .category(notification.getCategory().name())
                                             .type(notification.getType().name())
                                             .read(notification.isRead())
                                             .postId(notification.getPostId())
                                             .createdAt(notification.getCreatedAt())
-                                            .avatarUrl(user.getAvatarUrl())
+                                            .avatarUrl(avatarUrl)
                                             .build();
                                 }
                         ).collect(Collectors.toList());
@@ -140,5 +151,10 @@ public class NotificationService {
                 notifications.getTotalPages(),
                 notifications.isFirst(),
                 notifications.isLast());
+    }
+
+    public int countUnreadNotifications(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        return notificationRepository.countUnreadByRecipientId(user.getId());
     }
 }

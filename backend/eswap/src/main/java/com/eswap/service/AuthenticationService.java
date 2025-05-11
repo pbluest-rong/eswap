@@ -5,17 +5,14 @@ import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.exception.*;
 import com.eswap.common.security.JwtService;
 import com.eswap.model.EducationInstitution;
-import com.eswap.repository.EducationInstitutionRepository;
+import com.eswap.repository.*;
 import com.eswap.request.AuthenticationRequest;
 import com.eswap.request.ForgotPasswordRequest;
 import com.eswap.request.RefreshTokenRequest;
 import com.eswap.request.ResgistrationRequest;
 import com.eswap.response.AuthenticationResponse;
-import com.eswap.repository.RoleRepository;
 import com.eswap.model.OTP;
-import com.eswap.repository.OTPRepository;
 import com.eswap.model.User;
-import com.eswap.repository.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.validation.Valid;
@@ -47,6 +44,8 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final EducationInstitutionRepository educationInstitutionRepository;
     private final UserDetailsService userDetailsService;
+    private final NotificationRepository notificationRepository;
+    private final MessageRepository messageRepository;
 
     private boolean existsUser(String usernameEmailPhoneNumber) {
         return User.isValidUsername(usernameEmailPhoneNumber) ?
@@ -111,22 +110,22 @@ public class AuthenticationService {
                             )
                     )
                     .map(req -> {
-                            EducationInstitution eduInstitution = educationInstitutionRepository.findById(request.getEducationInstitutionId()).orElseThrow(() -> new IllegalArgumentException("EDUCATION INSTITUTION ID was not initialized"));
-                            User user = User.builder()
-                                    .firstName(request.getFirstname())
-                                    .lastName(request.getLastname())
-                                    .educationInstitution(eduInstitution)
-                                    .dob(request.getDob())
-                                    .gender(request.getGender())
-                                    .phoneNumber(request.getEmailPhoneNumber())
-                                    .password(passwordEncoder.encode(request.getPassword()))
-                                    .accountLocked(false)
-                                    .enabled(true)
-                                    .role(userRole)
-                                    .build();
-                            ;
-                            otpRepository.deleteByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
-                            return userRepository.save(user);
+                        EducationInstitution eduInstitution = educationInstitutionRepository.findById(request.getEducationInstitutionId()).orElseThrow(() -> new IllegalArgumentException("EDUCATION INSTITUTION ID was not initialized"));
+                        User user = User.builder()
+                                .firstName(request.getFirstname())
+                                .lastName(request.getLastname())
+                                .educationInstitution(eduInstitution)
+                                .dob(request.getDob())
+                                .gender(request.getGender())
+                                .phoneNumber(request.getEmailPhoneNumber())
+                                .password(passwordEncoder.encode(request.getPassword()))
+                                .accountLocked(false)
+                                .enabled(true)
+                                .role(userRole)
+                                .build();
+                        ;
+                        otpRepository.deleteByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
+                        return userRepository.save(user);
                     })
                     .orElseThrow(() -> new AlreadyExistsException(AppErrorCode.USER_EXISTS, "phone number", request.getEmailPhoneNumber()));
         } catch (Exception e) {
@@ -163,14 +162,21 @@ public class AuthenticationService {
             var jwtToken = jwtService.generateToken(claims, user);
             var refreshToken = jwtService.generateRefreshToken(user);
 
-
+            int unreadNotificationNumber = notificationRepository.countUnreadByRecipientId(user.getId());
+            int unreadMessageNumber = messageRepository.countUnreadMessagesForUser(user.getId());
             return AuthenticationResponse.builder()
                     .accessToken(jwtToken)
                     .refreshToken(refreshToken)
                     .userId(info.getId())
+                    .username(info.getUsername())
+                    .avatarUrl(info.getAvatarUrl())
+                    .firstName(info.getFirstName())
+                    .lastName(info.getLastName())
                     .role(info.getRole().getName())
                     .educationInstitutionId(info.getEducationInstitution().getId())
                     .educationInstitutionName(info.getEducationInstitution().getName())
+                    .unreadNotificationNumber(unreadNotificationNumber)
+                    .unreadMessageNumber(unreadMessageNumber)
                     .build();
         } catch (BadCredentialsException ex) {
             throw new InvalidCredentialsException(AppErrorCode.USER_INVALID_CREDENTIALS);

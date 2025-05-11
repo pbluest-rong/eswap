@@ -70,7 +70,6 @@ public class PostService {
         post.setStatus(PostStatus.PUBLISHED);
         post.setPrivacy(request.getPrivacy());
         post.setCondition(request.getCondition());
-        post.setDeleted(false);
         post.setAddress(request.getAddress());
         post.setPhoneNumber(request.getPhoneNumber());
         // Lưu Post vào database
@@ -128,28 +127,22 @@ public class PostService {
         return convertPostResponseToPageResponse(user, posts);
     }
 
-    public PageResponse<PostResponse> getOwnPosts(Authentication connectedUser, int page, int size) {
-        User user = (User) connectedUser.getPrincipal();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = postRepository.getPost(user, pageable);
-
-        List<PostResponse> postResponses = posts.stream().map(post -> {
-            int likeNumber = likeRepository.countByPostId(post.getId());
-            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
-            return PostResponse.mapperToResponse(post, user.getFirstName(), user.getLastName(), user.getAvatarUrl(), likeNumber, liked, null);
-        }).collect(Collectors.toList());
-
-        return new PageResponse<>(postResponses, posts.getNumber(), posts.getSize(), (int) posts.getTotalElements(), posts.getTotalPages(), posts.isFirst(), posts.isLast());
-    }
-
-    public PageResponse<PostResponse> getUserPosts(Authentication connectedUser, long userId, int page, int size) {
+    public PageResponse<PostResponse> getShowingPosts(Authentication connectedUser, long userId, int page, int size) {
         User userPrincipal = (User) connectedUser.getPrincipal();
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
-        Follow follow = (followRepository.getByFollowerIdAndFolloweeId(userPrincipal.getId(), user.getId()));
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Post> posts = (follow.isWaitConfirm() == true) ? postRepository.getPost(user, pageable) : postRepository.getPublicPost(user, pageable);
+        Page<Post> posts = postRepository.getShowingPosts(userPrincipal, user, pageable);
         return convertPostResponseToPageResponse(user, posts);
     }
+
+    public PageResponse<PostResponse> getSoldUserPosts(Authentication connectedUser, long userId, int page, int size) {
+        User userPrincipal = (User) connectedUser.getPrincipal();
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", userId));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.getSoldPosts(userPrincipal, user, pageable);
+        return convertPostResponseToPageResponse(user, posts);
+    }
+
 
     public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();

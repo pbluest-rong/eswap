@@ -67,10 +67,6 @@ public class Post {
     @Column(name = "item_condition ")
     private Condition condition;
 
-
-    @Column(name = "is_deleted")
-    private boolean isDeleted;// thừa => status
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

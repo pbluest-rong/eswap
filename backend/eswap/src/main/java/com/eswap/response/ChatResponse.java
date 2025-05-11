@@ -28,8 +28,6 @@ public class ChatResponse {
     private String currentPostFirstMediaUrl;
     private int quantity;
     private int sold;
-    //Deal Agreement
-    private DealAgreementStatus status;
 
     // Messages
     private MessageResponse mostRecentMessage;

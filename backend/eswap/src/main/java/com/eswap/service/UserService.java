@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ public class UserService {
     private final FollowRepository followRepository;
     private final NotificationService notificationService;
     private final PostRepository postRepository;
+    private final UploadService uploadService;
 
 
     public AuthenticationResponse getLoginInfo(Authentication auth) {
@@ -302,8 +304,22 @@ public class UserService {
     /**
      * 17. update avt
      */
-    public void updateAvatar(Authentication connectedUser, MultipartFile file) {
+    public String updateAvatar(Authentication connectedUser, MultipartFile file) {
+        User user = (User) connectedUser.getPrincipal();
+        String newAvatarUrl = uploadService.upload(file);
+        user.setAvatarUrl(newAvatarUrl);
+        user.setLastModified(OffsetDateTime.now());
+        user = userRepository.save(user);
+        return user.getAvatarUrl();
+    }
 
+    public void deleteAvatar(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        String oldAvatarUrl = user.getAvatarUrl();
+        user.setAvatarUrl(null);
+        user.setLastModified(OffsetDateTime.now());
+        userRepository.save(user);
+        uploadService.deleteByUrl(oldAvatarUrl);
     }
 
     public List<User> getFollowers(long userId) {
@@ -348,5 +364,14 @@ public class UserService {
         int followeeCount = followRepository.countByFollower(user);
         UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(), findUser.getCreatedAt().toString(), findUser.getId() == user.getId());
         return userResponse;
+    }
+
+    public PageResponse<UserResponse> getUsersForAdmin(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = keyword != null ? userRepository.getUsersWithKeyword(keyword, pageable)
+                : userRepository.getUsers(pageable);
+
+        List<UserResponse> usersResponse = users.stream().map(u -> UserResponse.mapperToUserResponse(u, FollowStatus.UNFOLLOWED, false)).collect(Collectors.toList());
+        return new PageResponse<>(usersResponse, users.getNumber(), users.getSize(), (int) users.getTotalElements(), users.getTotalPages(), users.isFirst(), users.isLast());
     }
 }

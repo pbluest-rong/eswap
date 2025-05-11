@@ -1,3 +1,6 @@
-1.
+1. kafka
 docker exec -it kafka kafka-console-consumer -topic new-post --from-beginning --bootstrap-server localhost:9092
-2.
+2. ngrok
+Setup: https://dashboard.ngrok.com/get-started/setup/windows
+ngrok http http://localhost:8080
+http://localhost:4040/inspect/http
