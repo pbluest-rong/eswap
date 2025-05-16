@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/model/category_brand_model.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/service/auth_interceptor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,15 +10,14 @@ class CategoryBrandService {
 
   Future<List<Brand>> fetchBrandsByCategoryId(int categoryId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString("accessToken");
-      dio.interceptors.add(AuthInterceptor(dio, prefs));
+      final userSession = await UserSession.load();
+      dio.interceptors.add(AuthInterceptor(dio));
 
       final response = await dio.get(
         "${ApiEndpoints.getCategories}/$categoryId/brands",
         options: Options(headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $accessToken",
+          "Authorization": "Bearer ${userSession!.accessToken}",
         }),
       );
 

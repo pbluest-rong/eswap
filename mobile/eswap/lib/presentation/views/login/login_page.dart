@@ -1,5 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/admin/admin_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/loading_overlay.dart';
@@ -10,8 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_email_page.dart';
 import 'package:eswap/presentation/views/main_page.dart';
 import 'package:eswap/presentation/views/signup/signup_name_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,26 +47,38 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (response.statusCode == 200 && response.data["success"] == true) {
-          final accessToken = response.data["data"]["accessToken"];
-          final refreshToken = response.data["data"]["refreshToken"];
-          final userId = response.data["data"]["userId"];
-          final educationInstitutionId =
-              response.data["data"]["educationInstitutionId"];
-          final educationInstitutionName =
-              response.data["data"]["educationInstitutionName"];
-          final String role = response.data["data"]["role"];
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString("accessToken", accessToken);
-          await prefs.setString("refreshToken", refreshToken);
-          await prefs.setInt("userId", userId);
-          prefs.setInt("educationInstitutionId", educationInstitutionId);
-          prefs.setString("educationInstitutionName", educationInstitutionName);
-
           // Lấy FCM token mới
           final fcmToken = await FirebaseMessaging.instance.getToken();
           if (fcmToken != null) {
-            await prefs.setString("fcmToken", fcmToken);
+            UserSession userSession = UserSession(
+                accessToken: response.data["data"]["accessToken"],
+                refreshToken: response.data["data"]["refreshToken"],
+                userId: response.data["data"]["userId"],
+                firstName: response.data["data"]["firstName"],
+                lastName: response.data["data"]["lastName"],
+                educationInstitutionId: response.data["data"]
+                    ["educationInstitutionId"],
+                educationInstitutionName: response.data["data"]
+                    ["educationInstitutionName"],
+                role: response.data["data"]["role"],
+                fcmToken: fcmToken,
+                username: response.data["data"]["username"],
+                avatarUrl: response.data["data"]["avatarUrl"]);
+            userSession.save();
+
+            int unreadNotificationNumber =
+                response.data["data"]["unreadNotificationNumber"];
+            if (unreadNotificationNumber != null &&
+                unreadNotificationNumber > 0) {
+              Provider.of<UserSessionProvider>(context, listen: false)
+                  .updateUnreadNotificationNumber(unreadNotificationNumber);
+            }
+            int unreadMessageNumber =
+                response.data["data"]["unreadMessageNumber"];
+            if (unreadMessageNumber != null && unreadMessageNumber > 0) {
+              Provider.of<UserSessionProvider>(context, listen: false)
+                  .updateUnreadMessageNumber(unreadMessageNumber);
+            }
             // Gửi FCM token lên server
             url = ApiEndpoints.saveFcmToken_url;
             await dio
@@ -75,26 +89,26 @@ class _LoginPageState extends State<LoginPage> {
                 headers: {
                   "Content-Type": "application/json",
                   "Accept-Language": context.locale.languageCode,
-                  "Authorization": "Bearer $accessToken",
+                  "Authorization": "Bearer ${userSession!.accessToken}",
                 },
               ),
             )
                 .catchError((error) {
               print("Lỗi khi gửi FCM Token: $error");
             });
-          }
-          if (role == "ADMIN") {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => AdminPage()),
-              (Route<dynamic> route) => false,
-            );
-          } else {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => MainPage()),
-              (Route<dynamic> route) => false,
-            );
+            if (userSession.role == "ADMIN") {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => AdminPage()),
+                (Route<dynamic> route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainPage()),
+                (Route<dynamic> route) => false,
+              );
+            }
           }
         } else {
           showErrorDialog(context, response.data["message"]);

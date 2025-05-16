@@ -29,3 +29,11 @@ enum NotificationCategory {
 enum NotificationType { INFORM, ALERT, SUCCESS, ERROR, WARNING, SYSTEM }
 
 enum DealAgreementStatus { WAITING, COMPLETED, CANCELLED }
+
+enum PostStatus {
+  PUBLISHED,
+  HIDDEN,
+  PENDING,
+  DELETED,
+  REJECTED,
+}

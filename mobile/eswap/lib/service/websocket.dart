@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:eswap/core/constants/api_endpoints.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 class WebSocketService {
@@ -11,10 +11,13 @@ class WebSocketService {
 
   final _postStreamController = StreamController<String>.broadcast();
   final _messageStreamController = StreamController<String>.broadcast();
+  final _depositOrderStreamController = StreamController<String>.broadcast();
 
   Stream<String> get postStream => _postStreamController.stream;
+
   Stream<String> get messageStream => _messageStreamController.stream;
 
+  Stream<String> get depositOrderStream => _depositOrderStreamController.stream;
   WebSocketService._internal();
 
   static Future<WebSocketService> getInstance() async {
@@ -25,8 +28,8 @@ class WebSocketService {
   }
 
   Future<void> _initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    accessToken = prefs.getString("accessToken");
+    final userSession = await UserSession.load();
+    accessToken = userSession!.accessToken;
 
     if (accessToken == null || accessToken!.isEmpty) return;
 
@@ -79,6 +82,16 @@ class WebSocketService {
       },
     );
 
+    stompClient?.subscribe(
+      destination: '/user/queue/deposit-order',
+      headers: {'Authorization': 'Bearer $accessToken'},
+      callback: (frame) {
+        if (frame.body != null) {
+          _depositOrderStreamController.add(frame.body!);
+        }
+      },
+    );
+
     _isSubscribed = true;
   }
 
@@ -90,5 +103,6 @@ class WebSocketService {
 
     _postStreamController.close();
     _messageStreamController.close();
+    _depositOrderStreamController.close();
   }
 }

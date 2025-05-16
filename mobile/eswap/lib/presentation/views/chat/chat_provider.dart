@@ -1,8 +1,6 @@
 import 'dart:convert';
 
 import 'package:eswap/model/chat_model.dart';
-import 'package:eswap/model/deal_agreement.dart';
-import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/message_model.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -42,7 +40,6 @@ class ChatProvider extends ChangeNotifier {
 
   // add new message
   void addChat(Chat chat) {
-    print("CHAT ${chat.unReadMessageNumber} - ${chat.chatPartnerLastName}");
     final index = chats.indexWhere((c) => c.id == chat.id);
     if (index != -1) {
       if (chats[index].mostRecentMessage!.id != chat.mostRecentMessage!.id) {

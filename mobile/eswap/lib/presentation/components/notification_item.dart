@@ -2,12 +2,14 @@ import 'package:eswap/main.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/notification_model.dart';
 import 'package:eswap/model/post_model.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/service/notification_service.dart';
 import 'package:eswap/service/post_service.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class NotificationItem extends StatefulWidget {
   final NotificationModel notification;
@@ -43,7 +45,7 @@ class _NotificationItemState extends State<NotificationItem> {
 
   Widget _buildNotificationItem(NotificationModel notification) {
     NotificationCategory? category =
-        notificationCategoryFromString(notification.category);
+    notificationCategoryFromString(notification.category);
 
     if (category != null) {
       switch (category) {
@@ -69,8 +71,8 @@ class _NotificationItemState extends State<NotificationItem> {
     return Container();
   }
 
-  Widget _isReadForNotification(
-      NotificationModel notification, Widget notificationWidget) {
+  Widget _isReadForNotification(NotificationModel notification,
+      Widget notificationWidget) {
     if (notification.read) {
       return notificationWidget;
     } else {
@@ -93,6 +95,15 @@ class _NotificationItemState extends State<NotificationItem> {
           onTap();
           if (!notification.read) {
             _notificationService.markAsRead(notification.id);
+            int unreadNotificationNumber =
+                Provider
+                    .of<UserSessionProvider>(context, listen: false)
+                    .unreadNotificationNumber;
+            if (unreadNotificationNumber > 0) {
+              Provider.of<UserSessionProvider>(context, listen: false)
+                  .updateUnreadNotificationNumber(
+                  unreadNotificationNumber - 1);
+            }
           }
           setState(() {
             notification.read = true;
@@ -127,7 +138,8 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                        '${notification.senderFirstName} ${notification.senderLastName}',
+                    '${notification.senderFirstName} ${notification
+                        .senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -135,8 +147,9 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) => DetailUserPage(
-                                    userId: notification.senderId!)),
+                                builder: (_) =>
+                                    DetailUserPage(
+                                        userId: notification.senderId!)),
                           );
                         }
                       },
@@ -174,7 +187,8 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                        '${notification.senderFirstName} ${notification.senderLastName}',
+                    '${notification.senderFirstName} ${notification
+                        .senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -182,8 +196,9 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) => DetailUserPage(
-                                    userId: notification.senderId!)),
+                                builder: (_) =>
+                                    DetailUserPage(
+                                        userId: notification.senderId!)),
                           );
                         }
                       },
@@ -221,7 +236,8 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                        '${notification.senderFirstName} ${notification.senderLastName}',
+                    '${notification.senderFirstName} ${notification
+                        .senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -229,8 +245,9 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) => DetailUserPage(
-                                    userId: notification.senderId!)),
+                                builder: (_) =>
+                                    DetailUserPage(
+                                        userId: notification.senderId!)),
                           );
                         }
                       },
@@ -265,7 +282,8 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                        '${notification.senderFirstName} ${notification.senderLastName}',
+                    '${notification.senderFirstName} ${notification
+                        .senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -273,8 +291,9 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) => DetailUserPage(
-                                    userId: notification.senderId!)),
+                                builder: (_) =>
+                                    DetailUserPage(
+                                        userId: notification.senderId!)),
                           );
                         }
                       },

@@ -3,11 +3,11 @@ import 'package:chewie/chewie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/main.dart';
 import 'package:eswap/model/chat_model.dart';
-import 'package:eswap/model/deal_agreement.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/like_model.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/components/user_item.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/service/chat_service.dart';
@@ -15,7 +15,6 @@ import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 class PostItem extends StatefulWidget {
@@ -38,11 +37,29 @@ class _PostItemState extends State<PostItem> {
   final Map<String, VideoPlayerController> _videoControllers = {};
   final Map<String, ChewieController> _chewieControllers = {};
   final PostService _postService = PostService();
+  int? sessionUserId;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _post = widget.post;
+    loadSessionUserId().then((_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  Future<void> loadSessionUserId() async {
+    final userSession = await UserSession.load();
+    if (userSession != null) {
+      setState(() {
+        sessionUserId = userSession.userId;
+      });
+    }
   }
 
   @override
@@ -341,45 +358,41 @@ class _PostItemState extends State<PostItem> {
                     }
                   },
                 ),
-                _buildActionButton(
-                  icon: Icons.chat_bubble_outline,
-                  activeIcon: Icons.chat_bubble,
-                  isActive: false,
-                  label: "Nhắn tin",
-                  onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    int? userId = prefs.getInt("userId");
-                    if (userId != null) {
-                      final dealAgreement = await ChatService()
-                          .fetchDealAgreement(post.id, userId, context);
-                      Chat chat = new Chat(
-                          id: -1,
-                          chatPartnerId: post.userId,
-                          chatPartnerAvatarUrl: post.avtUrl,
-                          chatPartnerFirstName: post.firstname,
-                          chatPartnerLastName: post.lastname,
-                          educationInstitutionId: post.educationInstitutionId,
-                          educationInstitutionName:
-                              post.educationInstitutionName,
-                          currentPostId: post.id,
-                          currentPostName: post.name,
-                          currentPostSalePrice: post.salePrice,
-                          quantity: post.quantity,
-                          sold: post.sold,
-                          currentPostFirstMediaUrl:
-                              post.media.first.originalUrl,
-                          unReadMessageNumber: 0,
-                          status: dealAgreement?.status,
-                          currentPostUserId: post.userId);
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ChatPage(
-                                    chat: chat,
-                                  )));
-                    }
-                  },
-                ),
+                if (sessionUserId != null && sessionUserId != _post.userId)
+                  _buildActionButton(
+                    icon: Icons.chat_bubble_outline,
+                    activeIcon: Icons.chat_bubble,
+                    isActive: false,
+                    label: "Nhắn tin",
+                    onPressed: () async {
+                      if (sessionUserId != null) {
+                        Chat chat = new Chat(
+                            id: -1,
+                            chatPartnerId: post.userId,
+                            chatPartnerAvatarUrl: post.avtUrl,
+                            chatPartnerFirstName: post.firstname,
+                            chatPartnerLastName: post.lastname,
+                            educationInstitutionId: post.educationInstitutionId,
+                            educationInstitutionName:
+                                post.educationInstitutionName,
+                            currentPostId: post.id,
+                            currentPostName: post.name,
+                            currentPostSalePrice: post.salePrice,
+                            quantity: post.quantity,
+                            sold: post.sold,
+                            currentPostFirstMediaUrl:
+                                post.media.first.originalUrl,
+                            unReadMessageNumber: 0,
+                            currentPostUserId: post.userId);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ChatPage(
+                                      chat: chat,
+                                    )));
+                      }
+                    },
+                  ),
                 _buildActionButton(
                   icon: Icons.share,
                   isActive: false,
@@ -453,42 +466,38 @@ class _PostItemState extends State<PostItem> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    GestureDetector(
-                        onTap: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          int? userId = prefs.getInt("userId");
-                          if (userId != null) {
-                            final dealAgreement = await ChatService()
-                                .fetchDealAgreement(post.id, userId, context);
-                            Chat chat = new Chat(
-                                id: -1,
-                                chatPartnerId: post.userId,
-                                chatPartnerAvatarUrl: post.avtUrl,
-                                chatPartnerFirstName: post.firstname,
-                                chatPartnerLastName: post.lastname,
-                                educationInstitutionId:
-                                    post.educationInstitutionId,
-                                educationInstitutionName:
-                                    post.educationInstitutionName,
-                                currentPostId: post.id,
-                                currentPostName: post.name,
-                                currentPostSalePrice: post.salePrice,
-                                quantity: post.quantity,
-                                sold: post.sold,
-                                currentPostFirstMediaUrl:
-                                    post.media.first.originalUrl,
-                                unReadMessageNumber: 0,
-                                status: dealAgreement?.status,
-                                currentPostUserId: post.userId);
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => ChatPage(
-                                          chat: chat,
-                                        )));
-                          }
-                        },
-                        child: Icon(Icons.chat_bubble_outline))
+                    if (sessionUserId != null && sessionUserId != _post.userId)
+                      GestureDetector(
+                          onTap: () async {
+                            if (sessionUserId != null) {
+                              Chat chat = new Chat(
+                                  id: -1,
+                                  chatPartnerId: post.userId,
+                                  chatPartnerAvatarUrl: post.avtUrl,
+                                  chatPartnerFirstName: post.firstname,
+                                  chatPartnerLastName: post.lastname,
+                                  educationInstitutionId:
+                                      post.educationInstitutionId,
+                                  educationInstitutionName:
+                                      post.educationInstitutionName,
+                                  currentPostId: post.id,
+                                  currentPostName: post.name,
+                                  currentPostSalePrice: post.salePrice,
+                                  quantity: post.quantity,
+                                  sold: post.sold,
+                                  currentPostFirstMediaUrl:
+                                      post.media.first.originalUrl,
+                                  unReadMessageNumber: 0,
+                                  currentPostUserId: post.userId);
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ChatPage(
+                                            chat: chat,
+                                          )));
+                            }
+                          },
+                          child: Icon(Icons.chat_bubble_outline))
                   ],
                 )
               ],

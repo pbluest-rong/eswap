@@ -1,5 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/theme/theme.dart';
+import 'package:eswap/presentation/provider/order_counter_provider.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/views/admin/admin_page.dart';
 import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
@@ -15,6 +17,7 @@ import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:eswap/presentation/views/notification/notification_page.dart';
 
@@ -24,12 +27,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp();
-
-// Initialize notifications
+  // Initialize notifications
   await LocalNotifications.init();
   final notificationService = NotificationService();
   await notificationService.initNotifications();
-
+  // Trong suot notification bar
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
   runApp(EasyLocalization(
     supportedLocales: [Locale("vi"), Locale("en")],
     path: "assets/translations",
@@ -40,6 +46,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SearchFilterSortProvider()),
         ChangeNotifierProvider(create: (_) => AddPostProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => UserSessionProvider()),
+        ChangeNotifierProvider(create: (_) => OrderCounterProvider())
       ],
       child: MyApp(),
     ),

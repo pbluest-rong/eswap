@@ -14,10 +14,12 @@ import com.eswap.service.notification.NotificationService;
 import com.eswap.service.upload.UploadService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostService {
     private final PostRepository postRepository;
     private final EducationInstitutionRepository educationInstitutionRepository;
@@ -41,6 +44,7 @@ public class PostService {
     private final ProvinceRepository provinceRepository;
     private final CategoryService categoryService;
     private final NotificationService notificationService;
+    private final RecentSearchesRepository recentSearchesRepository;
 
     @Transactional
     public void addPost(Authentication connectedUser, AddPostRequest request, MultipartFile[] mediaFiles) {
@@ -118,12 +122,24 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
+
+            if (searchFilterSortRequest.getKeyword() != null && !searchFilterSortRequest.getKeyword().isEmpty()) {
+                saveRecentSearchWord(user.getId(), searchFilterSortRequest.getKeyword());
+            }
+
             Page<Post> posts = postRepository.getSuggestedPosts(user, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Post> posts = postRepository.getSuggestedPosts(user, pageable);
+        return convertPostResponseToPageResponse(user, posts);
+    }
+
+    public PageResponse<PostResponse> getPostsForHome(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findByFollowingOrEducationInstitution(user, user.getEducationInstitution(), pageable);
         return convertPostResponseToPageResponse(user, posts);
     }
 
@@ -143,6 +159,24 @@ public class PostService {
         return convertPostResponseToPageResponse(user, posts);
     }
 
+    public PageResponse<PostResponse> getRecommendUserPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        RecentSearches recentWordSearch = recentSearchesRepository.findByUserId(user.getId()).orElse(null);
+        Page<Post> posts;
+        if (recentWordSearch != null) {
+            posts = postRepository.getRecommendUserPosts(user,
+                    recentWordSearch.getWord1(),
+                    recentWordSearch.getWord2(),
+                    recentWordSearch.getWord3(),
+                    recentWordSearch.getWord4(),
+                    recentWordSearch.getWord5(),
+                    pageable);
+        } else {
+            posts = postRepository.getSuggestedPosts(user, pageable);
+        }
+        return convertPostResponseToPageResponse(user, posts);
+    }
 
     public PageResponse<PostResponse> getPostsByEducationInstitution(Authentication connectedUser, long educationInstitutionId, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
         User user = (User) connectedUser.getPrincipal();
@@ -169,6 +203,11 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
+
+            if (searchFilterSortRequest.getKeyword() != null && !searchFilterSortRequest.getKeyword().isEmpty()) {
+                saveRecentSearchWord(user.getId(), searchFilterSortRequest.getKeyword());
+            }
+
             Page<Post> posts = postRepository.findByEducationInstitution(user, educationInstitution, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
@@ -202,6 +241,11 @@ public class PostService {
             if (searchFilterSortRequest.getCategoryIdList() != null) {
                 expandedCategoryIds = new ArrayList<>(categoryService.getAllCategoryIds(searchFilterSortRequest.getCategoryIdList()));
             }
+
+            if (searchFilterSortRequest.getKeyword() != null && !searchFilterSortRequest.getKeyword().isEmpty()) {
+                saveRecentSearchWord(user.getId(), searchFilterSortRequest.getKeyword());
+            }
+
             Page<Post> posts = postRepository.findByProvince(user, province, pageable, searchFilterSortRequest.getKeyword(), expandedCategoryIds, searchFilterSortRequest.getBrandIdList(), searchFilterSortRequest.getMinPrice(), searchFilterSortRequest.getMaxPrice(), condition, isOnlyShop);
             return convertPostResponseToPageResponse(user, posts);
         }
@@ -295,5 +339,49 @@ public class PostService {
         }
 
         return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
+    }
+
+
+    @Async
+    public void saveRecentSearchWord(long userId, String word) {
+        if (word == null || word.trim().isEmpty()) {
+            return; // Don't save empty/null words
+        }
+
+        try {
+            RecentSearches recentSearches = recentSearchesRepository.findByUserId(userId)
+                    .orElseGet(() -> {
+                        RecentSearches newSearch = new RecentSearches();
+                        newSearch.setUserId(userId);
+                        return newSearch;
+                    });
+
+            // Shift all words down one position
+            String currentWord1 = recentSearches.getWord1();
+            String currentWord2 = recentSearches.getWord2();
+            String currentWord3 = recentSearches.getWord3();
+            String currentWord4 = recentSearches.getWord4();
+
+            // Set new word at position 1
+            recentSearches.setWord1(word);
+
+            // Shift previous words down
+            recentSearches.setWord2(currentWord1);
+            recentSearches.setWord3(currentWord2);
+            recentSearches.setWord4(currentWord3);
+            recentSearches.setWord5(currentWord4);
+
+            // Don't keep duplicate words in the history
+            if (word.equals(currentWord1)) {
+                recentSearches.setWord2(currentWord2);
+                recentSearches.setWord3(currentWord3);
+                recentSearches.setWord4(currentWord4);
+                recentSearches.setWord5(null);
+            }
+
+            recentSearchesRepository.save(recentSearches);
+        } catch (Exception e) {
+            log.error("Failed to save recent search word for user {}: {}", userId, e.getMessage());
+        }
     }
 }

@@ -5,6 +5,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
@@ -52,8 +54,8 @@ class _ChatListState extends State<ChatList> {
   }
 
   Future<void> _loadUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt("userId");
+    final userSession = await UserSession.load();
+    userId = userSession!.userId;
   }
 
   @override
@@ -84,6 +86,10 @@ class _ChatListState extends State<ChatList> {
             newMessageId != chat.mostRecentMessage!.id) {
           newMessageId = chat.mostRecentMessage!.id;
           Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+          if(userId != chat.mostRecentMessage!.fromUserId){
+            Provider.of<UserSessionProvider>(context, listen: false)
+                .plusUnreadMessageNumber(1);
+          }
         }
       });
     });
@@ -331,8 +337,6 @@ class _ChatListState extends State<ChatList> {
         return "$senderName Đã trao đổi bài viết mới";
       case ContentType.LOCATION:
         return "$senderName Đã chia sẻ vị trí";
-      case ContentType.DEAL:
-        return "$senderName Đã gửi xác nhận trao đổi";
       default:
         return "$senderName ${chat.mostRecentMessage!.content}";
     }

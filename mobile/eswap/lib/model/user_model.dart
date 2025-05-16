@@ -25,6 +25,7 @@ class UserInfomation {
   int? followingCount;
   bool? gender;
   String? createdAt;
+  int reputationScore = 0;
 
   UserInfomation(
       {required this.id,
@@ -38,7 +39,8 @@ class UserInfomation {
       this.followerCount,
       this.followingCount,
       this.gender,
-      this.createdAt});
+      this.createdAt,
+      this.reputationScore = 0});
 
   factory UserInfomation.fromJson(Map<String, dynamic> json) {
     return UserInfomation(
@@ -53,6 +55,7 @@ class UserInfomation {
         followerCount: json['followerCount'],
         followingCount: json['followingCount'],
         gender: json['gender'],
-        createdAt: json['createdAt']);
+        createdAt: json['createdAt'],
+        reputationScore: json['reputationScore'] ?? 0);
   }
 }

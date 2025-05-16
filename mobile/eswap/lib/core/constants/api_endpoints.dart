@@ -1,6 +1,6 @@
 class ApiEndpoints {
   static String PROTOCOL = "http";
-  static String HOST = "192.168.1.12";
+  static String HOST = "192.168.1.17";
   static String PORT = "8080";
   static String CONTEXT_PATH = "/api/v1/";
 
@@ -23,6 +23,7 @@ class ApiEndpoints {
 
   static String saveFcmToken_url = _baseUrl + "notifications/save-fcm-token";
   static String getNotifications = _baseUrl + "notifications";
+  static String getUnreadNotificationNumber = _baseUrl + "notifications/count-unread";
   static String markAsReadNotification = _baseUrl + "notifications";
   static String getPostsByEducationInstitution_url =
       _baseUrl + "posts/education-institutions";
@@ -41,5 +42,18 @@ class ApiEndpoints {
   static String detail_accounts_url = _baseUrl + "users";
   static String addPost_url = _baseUrl + "posts";
   static String chats_url = _baseUrl + "chats";
-  static String getDealAgreement_url = _baseUrl + "chats/deal-agreement";
+  static String updateAvatar_url = _baseUrl + "accounts/update-avatar";
+  static String deleteAvatar_url = _baseUrl + "accounts/delete-avatar";
+  static String orders_url = _baseUrl + "orders";
+  static String orders_buyer_pending_url = _baseUrl + "orders/buyer/pending";
+  static String orders_buyer_accepted_url = _baseUrl + "orders/buyer/seller-accepted";
+  static String orders_buyer_await_deposit_url = _baseUrl + "orders/buyer/await-deposit";
+  static String orders_buyer_deposit_url = _baseUrl + "orders/buyer/deposited";
+  static String orders_buyer_cancelled_url = _baseUrl + "orders/buyer/cancelled";
+  static String orders_buyer_completed_url = _baseUrl + "orders/buyer/completed";
+  static String orders_seller_pending_url = _baseUrl + "orders/seller/pending";
+  static String orders_seller_accepted_url = _baseUrl + "orders/seller/accepted";
+  static String orders_seller_deposited_url = _baseUrl + "orders/seller/deposited";
+  static String orders_seller_cancelled_url = _baseUrl + "orders/seller/cancelled";
+  static String orders_seller_completed_url = _baseUrl + "orders/seller/completed";
 }

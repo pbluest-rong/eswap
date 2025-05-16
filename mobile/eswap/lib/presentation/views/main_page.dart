@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:eswap/main.dart';
 import 'package:eswap/presentation/components/bottom_sheet.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/post/add_post.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
@@ -10,8 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/search/search_page.dart';
-import 'package:eswap/presentation/views/account/other_page.dart';
+import 'package:eswap/presentation/views/order/order_management_page.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -22,7 +24,6 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _currentPageIndex = 0;
-  final int _notificationCount = 12;
   final HomePageController _homePageController = HomePageController();
   late final List<Widget> _pages;
 
@@ -34,7 +35,7 @@ class _MainPageState extends State<MainPage> {
       const SearchPage(),
       const SizedBox(),
       ChatList(),
-      const OtherPage(),
+      const OrderManagementPage(),
     ];
   }
 
@@ -73,24 +74,45 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount =
+        Provider.of<UserSessionProvider>(context).unreadMessageNumber;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _currentPageIndex,
         children: _pages,
       ),
-      floatingActionButton: SizedBox(
-        width: 60,
-        height: 60,
-        child: FloatingActionButton(
-          onPressed: () {
-            showCategorySelectionSheet(context);
-          },
-          backgroundColor: Color(0xFF1F41BB),
-          shape: CircleBorder(),
-          child: Icon(Icons.add, size: 50, color: Colors.white),
-        ),
-      ),
+      floatingActionButton:
+          Provider.of<UserSessionProvider>(context, listen: true).addPostName !=
+                  null
+              ? Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        showCategorySelectionSheet(context);
+                      },
+                      backgroundColor: Color(0xFF1F41BB),
+                      shape: CircleBorder(),
+                      child: Icon(Icons.add, size: 50, color: Colors.white),
+                    ),
+                  ),
+                )
+              : SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      showCategorySelectionSheet(context);
+                    },
+                    backgroundColor: Color(0xFF1F41BB),
+                    shape: CircleBorder(),
+                    child: Icon(Icons.add, size: 50, color: Colors.white),
+                  ),
+                ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: SizedBox(
         height: 70,
@@ -106,8 +128,10 @@ class _MainPageState extends State<MainPage> {
                 _buildNavItem(Icons.home, 0),
                 _buildNavItem(Icons.search, 1),
                 SizedBox(width: 40),
-                _buildNavItem(Icons.message_outlined, 3,
-                    hasBadge: true, notificationCount: _notificationCount),
+                (unreadCount > 0)
+                    ? _buildNavItem(Icons.message_outlined, 3,
+                        hasBadge: true, notificationCount: unreadCount)
+                    : _buildNavItem(Icons.message_outlined, 3),
                 _buildNavItem(Icons.menu_sharp, 4),
               ],
             ),

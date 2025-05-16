@@ -7,6 +7,7 @@ import 'package:eswap/main.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/notification_model.dart';
 import 'package:eswap/model/page_response.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
@@ -26,10 +27,6 @@ class NotificationService {
 
   Future<void> initNotifications() async {
     await _firebaseMessaging.requestPermission();
-    final fcmToken = await _firebaseMessaging.getToken();
-    final prefs = await SharedPreferences.getInstance();
-    print("FCM Token: $fcmToken");
-    await prefs.setString("fcmToken", fcmToken!);
     await initPushNotifications();
   }
 
@@ -148,17 +145,16 @@ class NotificationService {
   Future<PageResponse<NotificationModel>> fetchNotifications(
       int page, int size, BuildContext context) async {
     try {
+      final userSession = await UserSession.load();
       final dio = Dio();
-      final prefs = await SharedPreferences.getInstance();
-      dio.interceptors.add(AuthInterceptor(dio, prefs));
-      final accessToken = prefs.getString('accessToken');
+      dio.interceptors.add(AuthInterceptor(dio));
 
       final response = await dio.get(
         ApiEndpoints.getNotifications,
         queryParameters: {'page': page, 'size': size},
         options: Options(headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $accessToken",
+          "Authorization": "Bearer ${userSession!.accessToken}",
         }),
       );
 
@@ -190,15 +186,14 @@ class NotificationService {
   Future<void> markAsRead(int notificationId) async {
     try {
       final dio = Dio();
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.get("accessToken");
+      final userSession = await UserSession.load();
       dio
           .put(
             "${ApiEndpoints.markAsReadNotification}/$notificationId",
             options: Options(
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": "Bearer $accessToken"
+                "Authorization": "Bearer ${userSession!.accessToken}"
               },
             ),
           )

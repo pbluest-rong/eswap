@@ -3,10 +3,9 @@ package com.eswap.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "orders")
@@ -49,12 +48,11 @@ public class Order {
     private OrderStatus status;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "cancel_reason")
@@ -72,6 +70,7 @@ public class Order {
     public enum OrderStatus {
         PENDING,       // Đơn được tạo nhưng chưa đặt cọc
         SELLER_ACCEPTS, // Người bán cho phép không đặt cọc
+        AWAITING_DEPOSIT,
         DEPOSITED,     // Đã đặt cọc
         COMPLETED,     // Đã thanh toán đủ
         CANCELLED      // Đã hủy

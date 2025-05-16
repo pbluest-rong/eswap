@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 
-enum ContentType { TEXT, LINK, LOCATION, MEDIA, POST, DEAL }
+enum ContentType { TEXT, LINK, LOCATION, MEDIA, POST }
 
 bool isToday(DateTime date) {
   final now = DateTime.now();

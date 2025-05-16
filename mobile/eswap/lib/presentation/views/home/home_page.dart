@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/presentation/components/post_item.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/login/login_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/model/post_model.dart';
@@ -11,7 +13,6 @@ import 'package:eswap/presentation/views/home/explore.dart';
 import 'package:eswap/presentation/views/home/following.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eswap/presentation/views/notification/notification_page.dart';
 import 'package:eswap/service/websocket.dart';
 
@@ -77,6 +78,20 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     super.didChangeDependencies();
     if (!_isEducationLoaded && !_isEducationLoading) {
       _loadEducationInstitution();
+      _getUnreadNotificationNumber();
+    }
+  }
+
+  Future<void> _getUnreadNotificationNumber() async {
+    try {
+      final unreadNotificationNumber =
+          await _postService.getUnreadNotificationNumber(
+        context,
+      );
+      Provider.of<UserSessionProvider>(context, listen: false)
+          .updateUnreadNotificationNumber(unreadNotificationNumber);
+    } catch (e) {
+      print("getUnreadNotificationNumber error");
     }
   }
 
@@ -87,15 +102,12 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final educationInstitutionId = prefs.getInt("educationInstitutionId");
-      final educationInstitutionName =
-          prefs.getString("educationInstitutionName");
+      final userSession = await UserSession.load();
 
-      if (educationInstitutionId != null && educationInstitutionName != null) {
+      if (userSession != null) {
         setState(() {
-          _educationInstitutionId = educationInstitutionId;
-          _educationInstitutionName = educationInstitutionName;
+          _educationInstitutionId = userSession.educationInstitutionId;
+          _educationInstitutionName = userSession.educationInstitutionName;
         });
       } else {
         Navigator.pushAndRemoveUntil(
@@ -138,11 +150,9 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
 
     try {
-      final postpage = await _postService.fetchPostByEducationInstitution(
-        _educationInstitutionId!,
+      final postpage = await _postService.fetchPostsForHome(
         _currentPage,
         _pageSize,
-        false,
         context,
       );
 
@@ -167,12 +177,8 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
     });
 
     try {
-      final postpage = await _postService.fetchPostByEducationInstitution(
-          _educationInstitutionId!,
-          _currentPage + 1,
-          _pageSize,
-          false,
-          context);
+      final postpage = await _postService.fetchPostsForHome(
+          _currentPage + 1, _pageSize, context);
 
       setState(() {
         _currentPage++;
@@ -387,17 +393,20 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
           child: Stack(
             children: [
               const Icon(Icons.notifications),
-              Positioned(
-                right: 0,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+              if (Provider.of<UserSessionProvider>(context, listen: true)
+                      .unreadNotificationNumber >
+                  0)
+                Positioned(
+                  right: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

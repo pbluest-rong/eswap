@@ -8,6 +8,8 @@ import 'package:eswap/model/category_brand_model.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/presentation/components/pick_media.dart';
 import 'package:eswap/presentation/components/quantity_selector.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
+import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/category_brand_service.dart';
@@ -138,7 +140,19 @@ class _AddPostPageState extends State<AddPostPage> {
                         Provider.of<AddPostProvider>(context, listen: false)
                             .isCanPost();
                     if (canPost) {
+                      String? name =
+                          Provider.of<AddPostProvider>(context, listen: false)
+                              .name;
+                      if (name != null) {
+                        print("updateAddPostName $name");
+                        Provider.of<UserSessionProvider>(context, listen: false)
+                            .updateAddPostName(name);
+                      }
                       _addPost();
+                      Navigator.pop(context);
+                      Provider.of<UserSessionProvider>(context, listen: false)
+                          .deleteAddPostName();
+                      print("deleteAddPostName ${Provider.of<UserSessionProvider>(context, listen: false).addPostName}");
                     }
                   }
                 },

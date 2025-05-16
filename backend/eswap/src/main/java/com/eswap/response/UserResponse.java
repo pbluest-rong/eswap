@@ -18,6 +18,7 @@ public class UserResponse {
     private FollowStatus followStatus;
     private Integer postCount;
     private Integer followerCount;
+
     private Integer followingCount;
     private Boolean gender;
     private String createdAt;
@@ -25,7 +26,8 @@ public class UserResponse {
     private int reputationScore;
 
     public static UserResponse mapperToUserResponse(User user, FollowStatus followtSatus, boolean isConnectedUser) {
-        return new UserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getEducationInstitution().getName(), followtSatus,
+        return new UserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
+                user.getEducationInstitution().getName(), followtSatus,
                 null, null, null, null, null, isConnectedUser, user.getReputationScore());
     }
 

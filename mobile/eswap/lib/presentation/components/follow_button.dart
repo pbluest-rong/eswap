@@ -1,13 +1,19 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/model/enum_model.dart';
+import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/user_service.dart';
 import 'package:flutter/material.dart';
 
 class FollowButton extends StatefulWidget {
   final FollowStatus followStatus;
   final int otherUserId;
+  final bool bigSize;
 
-  const FollowButton(
-      {super.key, required this.followStatus, required this.otherUserId});
+  FollowButton(
+      {super.key,
+      required this.followStatus,
+      required this.otherUserId,
+      this.bigSize = false});
 
   @override
   State<FollowButton> createState() => _FollowButtonState();
@@ -27,35 +33,28 @@ class _FollowButtonState extends State<FollowButton> {
 
   void _handleTap() async {
     if (_status == FollowStatus.FOLLOWED || _status == FollowStatus.WAITING) {
-      final shouldCancel = await showDialog<bool>(
+      String title = _status == FollowStatus.FOLLOWED
+          ? "Bỏ theo dõi?"
+          : "Hủy yêu cầu theo dõi?";
+      String description = _status == FollowStatus.FOLLOWED
+          ? "Bạn có chắc chắn muốn bỏ theo dõi người này?"
+          : "Bạn có chắc chắn muốn hủy yêu cầu theo dõi đã gửi?";
+      AppAlert.show(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(_status == FollowStatus.FOLLOWED
-              ? "Bỏ theo dõi?"
-              : "Hủy yêu cầu theo dõi?"),
-          content: Text(_status == FollowStatus.FOLLOWED
-              ? "Bạn có chắc chắn muốn bỏ theo dõi người này?"
-              : "Bạn có chắc chắn muốn hủy yêu cầu theo dõi đã gửi?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Không"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Có"),
-            ),
-          ],
-        ),
+        title: title,
+        description: description,
+        buttonLayout: AlertButtonLayout.dual,
+        actions: [
+          AlertAction(text: "cancel".tr(), handler: () {}),
+          AlertAction(text: "confirm".tr(), handler: () async {
+            // unfollow
+            await _userService.unfollow(_otherUserId, context);
+            setState(() {
+              _status = FollowStatus.UNFOLLOWED;
+            });
+          }),
+        ],
       );
-
-      if (shouldCancel == true) {
-        // unfollow
-        await _userService.unfollow(_otherUserId, context);
-        setState(() {
-          _status = FollowStatus.UNFOLLOWED;
-        });
-      }
     } else {
       // follow
       FollowStatus? newStatus =
@@ -82,23 +81,35 @@ class _FollowButtonState extends State<FollowButton> {
         text = "Theo dõi";
     }
 
-    return GestureDetector(
-      onTap: _handleTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue[100]!),
-        ),
+    if (widget.bigSize) {
+      return OutlinedButton(
+        onPressed: _handleTap,
         child: Text(
           text,
           style: TextStyle(
             color: Colors.blue[800],
-            fontSize: 12,
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      return GestureDetector(
+        onTap: _handleTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[100]!),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.blue[800],
+              fontSize: 12,
+            ),
+          ),
+        ),
+      );
+    }
   }
 }

@@ -109,11 +109,19 @@
   "item_name": "Item name",
   "item_desc": "Description",
   "item_brand": "Brand",
-  "item_original_price" : "Original price",
+  "item_original_price": "Original price",
   "item_sale_price": "Sale price",
   "item_address": "Address",
   "item_phone_number": "Phone number",
-  "item_quantity"  : "Quantity",
-  "no_messages_yet" : "No messages yet",
-  "free": "Free"
+  "item_quantity": "Quantity",
+  "no_messages_yet": "No messages yet",
+  "free": "Free",
+  "posts": "Posts",
+  "followers": "Followers",
+  "edit_profile": "Edit profile",
+  "share": "Share",
+  "location": "Location",
+  "joined": "Joined",
+  "available": "Available",
+  "sold": "Sold"
 }

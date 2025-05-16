@@ -1,13 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/model/category_brand_model.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CategorySelectionWidget extends StatefulWidget {
-
-  const CategorySelectionWidget({Key? key})
-      : super(key: key);
+  const CategorySelectionWidget({Key? key}) : super(key: key);
 
   @override
   _CategorySelectionWidgetState createState() =>
@@ -59,13 +57,12 @@ class _CategorySelectionWidgetState extends State<CategorySelectionWidget> {
   Future<List<Category>> fetchCategories(BuildContext context) async {
     final dio = Dio();
     final languageCode = Localizations.localeOf(context).languageCode;
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('accessToken');
+    final userSession = await UserSession.load();
     final response = await dio.get(ApiEndpoints.getCategories,
         options: Options(headers: {
           "Content-Type": "application/json",
           "Accept-Language": languageCode,
-          "Authorization": "Bearer $accessToken",
+          "Authorization": "Bearer ${userSession!.accessToken}",
         }));
     final data = response.data['data'] as List;
     return data.map((json) => Category.fromJson(json)).toList();

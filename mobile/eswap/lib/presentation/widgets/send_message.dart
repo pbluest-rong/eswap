@@ -196,7 +196,10 @@ class _SendMessageWidgetState extends State<SendMessageWidget> {
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: _handleSend, // Sử dụng hàm mới
-                  child: Icon(Icons.send, color: AppColors.lightPrimary),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: Icon(Icons.send, color: AppColors.lightPrimary),
+                  ),
                 ),
               ],
             ),

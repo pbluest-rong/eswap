@@ -4,10 +4,10 @@ import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/core/theme/theme.dart';
 import 'package:eswap/core/onboarding/onboarding_page_position.dart';
 import 'package:eswap/model/category_brand_model.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CategoryPage extends StatefulWidget {
   @override
@@ -49,13 +49,12 @@ class _CategoryPageState extends State<CategoryPage> {
 Future<List<Category>> fetchCategories(BuildContext context) async {
   final dio = Dio();
   final languageCode = Localizations.localeOf(context).languageCode;
-  final prefs = await SharedPreferences.getInstance();
-  final accessToken = prefs.getString('accessToken');
+  final userSession = await UserSession.load();
   final response = await dio.get(ApiEndpoints.getCategories,
       options: Options(headers: {
         "Content-Type": "application/json",
         "Accept-Language": languageCode,
-        "Authorization": "Bearer $accessToken",
+        "Authorization": "Bearer ${userSession!.accessToken}",
       }));
   final data = response.data['data'] as List;
   return data.map((json) => Category.fromJson(json)).toList();

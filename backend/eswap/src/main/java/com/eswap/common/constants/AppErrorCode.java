@@ -18,7 +18,9 @@ public enum AppErrorCode {
     FOLLOW_USER_FOLLOWED("FOLLOW_USER_FOLLOWED", "error.follow.user_followed"),
     LIKE_POST_EXISTS("LIKE_POST_EXISTS", "error.post.like_exists"),
     LIKE_NOT_FOUND("LIKE_NOT_FOUND", "error.post.like_not_found"),
-    CHAT_NOT_FOUND("CHAT_NOT_FOUND", "error.chat.not_found"),;
+    CHAT_NOT_FOUND("CHAT_NOT_FOUND", "error.chat.not_found"),
+    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "error.order.not_found"),
+    ORDER_EXISTS("ORDER_EXISTS", "error.order.exists"),;
     private final String code;
     private final String messageKey;
 

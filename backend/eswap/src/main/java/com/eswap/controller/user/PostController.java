@@ -42,6 +42,16 @@ public class PostController {
         return ResponseEntity.ok(new ApiResponse(true, "Get post by id", postResponse));
     }
 
+    @GetMapping("/home")
+    public ResponseEntity<ApiResponse> getPostsForHome(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getPostsForHome(authentication, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
+    }
+
     //tìm kiếm, filter(category, brand, price, condition), sort (related, latest, price asc, price desc)
     @GetMapping
     public ResponseEntity<ApiResponse> getSuggestedPosts(
@@ -83,7 +93,7 @@ public class PostController {
     }
 
     @GetMapping("/following")
-    public ResponseEntity<ApiResponse> getPostsOfFollwing(
+    public ResponseEntity<ApiResponse> getPostsOfFollowing(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -112,6 +122,14 @@ public class PostController {
     ) {
         PageResponse<PostResponse> postResponses = postService.getSoldUserPosts(auth, userId, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully", postResponses));
+    }
+
+    @GetMapping("/user/recommend")
+    public ResponseEntity<ApiResponse> getRecommendUserPosts(Authentication auth,
+                                                             @RequestParam(defaultValue = "0") int page,
+                                                             @RequestParam(defaultValue = "10") int size) {
+        PageResponse<PostResponse> postResponses = postService.getRecommendUserPosts(auth, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Recommend gosts successfully", postResponses));
     }
 
     @PostMapping("/like/{postId}")

@@ -17,7 +17,6 @@ class Chat {
   final String currentPostFirstMediaUrl;
   Message? mostRecentMessage;
   int unReadMessageNumber;
-  String? status;
 
   Chat(
       {required this.id,
@@ -35,29 +34,28 @@ class Chat {
       required this.sold,
       required this.currentPostFirstMediaUrl,
       this.mostRecentMessage,
-      required this.unReadMessageNumber,
-      this.status});
+      required this.unReadMessageNumber});
 
   factory Chat.fromJson(Map<String, dynamic> json) {
     return Chat(
-        id: json['id'],
-        chatPartnerId: json['chatPartnerId'],
-        chatPartnerAvatarUrl: json['chatPartnerAvatarUrl'],
-        chatPartnerFirstName: json['chatPartnerFirstName'],
-        chatPartnerLastName: json['chatPartnerLastName'],
-        educationInstitutionId: json['educationInstitutionId'],
-        educationInstitutionName: json['educationInstitutionName'],
-        currentPostId: json['currentPostId'],
-        currentPostUserId: json['currentPostUserId'],
-        currentPostName: json['currentPostName'],
-        currentPostSalePrice: json['currentPostSalePrice'],
-        quantity: json['quantity'],
-        sold: json['sold'],
-        currentPostFirstMediaUrl: json['currentPostFirstMediaUrl'],
-        mostRecentMessage: json['mostRecentMessage'] != null
-            ? Message.fromJson(json['mostRecentMessage'])
-            : null,
-        unReadMessageNumber: json['unReadMessageNumber'] ?? 0,
-        status: json['status']);
+      id: json['id'],
+      chatPartnerId: json['chatPartnerId'],
+      chatPartnerAvatarUrl: json['chatPartnerAvatarUrl'],
+      chatPartnerFirstName: json['chatPartnerFirstName'],
+      chatPartnerLastName: json['chatPartnerLastName'],
+      educationInstitutionId: json['educationInstitutionId'],
+      educationInstitutionName: json['educationInstitutionName'],
+      currentPostId: json['currentPostId'],
+      currentPostUserId: json['currentPostUserId'],
+      currentPostName: json['currentPostName'],
+      currentPostSalePrice: json['currentPostSalePrice'],
+      quantity: json['quantity'],
+      sold: json['sold'],
+      currentPostFirstMediaUrl: json['currentPostFirstMediaUrl'],
+      mostRecentMessage: json['mostRecentMessage'] != null
+          ? Message.fromJson(json['mostRecentMessage'])
+          : null,
+      unReadMessageNumber: json['unReadMessageNumber'] ?? 0,
+    );
   }
 }

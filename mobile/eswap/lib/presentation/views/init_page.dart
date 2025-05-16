@@ -1,3 +1,4 @@
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/main_page.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/presentation/views/splash/splash_page.dart';
@@ -13,20 +14,19 @@ class InitPage extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString("accessToken");
-      if(accessToken==null){
+      final loadedUser = await UserSession.load();
+      if (loadedUser == null) {
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
                 builder: (context) => WelcomePage(
-                  isFirstTimeInstallApp: false,
-                )));
-      }else{
+                      isFirstTimeInstallApp: false,
+                    )));
+      } else {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => MainPage()),
-              (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
         );
       }
     } else {
@@ -37,7 +37,6 @@ class InitPage extends StatelessWidget {
           context, MaterialPageRoute(builder: (context) => SplashPage()));
     }
   }
-
 
   Future<bool> _isOnboardingCompleted() async {
     try {
