@@ -73,6 +73,7 @@ public class Order {
         AWAITING_DEPOSIT,
         DEPOSITED,     // Đã đặt cọc
         COMPLETED,     // Đã thanh toán đủ
-        CANCELLED      // Đã hủy
+        CANCELLED, // Đã hủy
+        DELETED
     }
 }

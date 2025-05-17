@@ -5,16 +5,16 @@ import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:flutter/material.dart';
 
 class OrderItem extends StatefulWidget {
-  Order order;
+  final Order order;
 
-  OrderItem({super.key, required this.order});
+  const OrderItem({super.key, required this.order});
 
   @override
   State<OrderItem> createState() => _OrderItemState();
 }
 
 class _OrderItemState extends State<OrderItem> {
-  bool isSellOrder = false;
+  bool? isSellOrder;
 
   @override
   void initState() {
@@ -25,7 +25,8 @@ class _OrderItemState extends State<OrderItem> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return _buildOrderItem(widget.order, textTheme);
+    if (isSellOrder != null) return _buildOrderItem(textTheme);
+    return SizedBox.shrink();
   }
 
   Future<void> loadUserSession() async {
@@ -34,13 +35,17 @@ class _OrderItemState extends State<OrderItem> {
       setState(() {
         isSellOrder = true;
       });
+    } else {
+      setState(() {
+        isSellOrder = false;
+      });
     }
   }
 
-  Widget _buildOrderItem(Order order, TextTheme textTheme) {
-    final otherPartyName = isSellOrder
-        ? '${order.buyerFirstName} ${order.buyerLastName}'
-        : '${order.sellerFirstName} ${order.sellerLastName}';
+  Widget _buildOrderItem(TextTheme textTheme) {
+    final otherPartyName = isSellOrder!
+        ? '${widget.order.buyerFirstName} ${widget.order.buyerLastName}'
+        : '${widget.order.sellerFirstName} ${widget.order.sellerLastName}';
 
     return Card(
       margin: EdgeInsets.all(8),
@@ -78,7 +83,7 @@ class _OrderItemState extends State<OrderItem> {
                             )
                           ],
                           image: DecorationImage(
-                            image: NetworkImage(order.firstMediaUrl),
+                            image: NetworkImage(widget.order.firstMediaUrl),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -94,7 +99,7 @@ class _OrderItemState extends State<OrderItem> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.postName,
+                          widget.order.postName,
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -115,7 +120,7 @@ class _OrderItemState extends State<OrderItem> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '${order.quantity} × ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(order.totalAmount / order.quantity)}',
+                                '${widget.order.quantity} × ${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.order.totalAmount / widget.order.quantity)}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.lightPrimary,
@@ -126,7 +131,7 @@ class _OrderItemState extends State<OrderItem> {
                             Text(
                               NumberFormat.currency(
                                       locale: 'vi_VN', symbol: '₫')
-                                  .format(order.totalAmount),
+                                  .format(widget.order.totalAmount),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -156,83 +161,131 @@ class _OrderItemState extends State<OrderItem> {
               _buildCompactDetailRow(
                 icon: Icons.receipt,
                 title: 'Mã đơn hàng',
-                value: order.id,
+                value: widget.order.id,
               ),
 
               _buildCompactDetailRow(
                 icon: Icons.person,
-                title: isSellOrder ? 'Người mua' : 'Người bán',
+                title: isSellOrder! ? 'Người mua' : 'Người bán',
                 value: otherPartyName,
               ),
 
               _buildCompactDetailRow(
                 icon: Icons.calendar_today,
                 title: 'Ngày tạo',
-                value: DateFormat('dd/MM/yyyy').format(order.createdAt),
+                value: DateFormat('dd/MM/yyyy').format(widget.order.createdAt),
               ),
-              if (order.status == 'DEPOSITED')
+              if (widget.order.status == 'DEPOSITED')
                 _buildCompactDetailRow(
                   icon: Icons.account_balance_wallet,
                   title: 'Đã đặt cọc',
                   value: NumberFormat.currency(locale: 'vi_VN', symbol: '₫')
-                      .format(order.depositAmount),
+                      .format(widget.order.depositAmount),
                 ),
-
-              if (order.status == 'CANCELLED' && order.cancelReason != null)
-                _buildCompactDetailRow(
-                  icon: Icons.cancel,
-                  title: 'Lý do hủy',
-                  value:
-                      '${order.cancelReason}${order.cancelReasonContent != null ? ': ${order.cancelReasonContent}' : ''}',
-                  valueColor: Colors.red,
-                ),
-
-              SizedBox(height: 12),
-
-              // Action buttons with better styling
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: Icon(Icons.remove_red_eye, size: 18),
-                      label: Text('Chi tiết'),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        // Handle view details
-                      },
-                    ),
-                  ),
-                  if (_shouldShowActionButton(order.status)) ...[
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon:
-                            Icon(_getActionButtonIcon(order.status), size: 18),
-                        label: Text(_getActionButtonText(order.status)),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: _getActionButtonColor(order.status),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: () {
-                          // Handle action
-                        },
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              _buildActionButtons(widget.order),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButtons(Order order) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Wrap(
+          spacing: 6,
+          children: [
+            if (isSellOrder! && order.status == OrderStatus.PENDING.name)
+              OutlinedButton.icon(
+                label: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
+                style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: Colors.blue)),
+                onPressed: () {
+                  // Handle view details
+                },
+              ),
+            // Chỉ người mua mới đặt cọc
+            if (!isSellOrder! &&
+                order.status == OrderStatus.AWAITING_DEPOSIT.name)
+              OutlinedButton.icon(
+                label: Text('Đặt cọc', style: TextStyle(color: Colors.orange)),
+                style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: Colors.orange)),
+                onPressed: () {
+                  // Handle view details
+                },
+              ),
+            //Chỉ người bán mới hoàn thành đơn đã xác nhận
+            if (isSellOrder! && order.status == OrderStatus.SELLER_ACCEPTS.name)
+              OutlinedButton.icon(
+                label:
+                    Text('Hoàn thành', style: TextStyle(color: Colors.green)),
+                style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: Colors.green)),
+                onPressed: () {
+                  // Handle view details
+                },
+              ),
+            // Chỉ người mua mới hoàn thành đơn đặt cọc
+            if (!isSellOrder! && order.status == OrderStatus.DEPOSITED.name)
+              OutlinedButton.icon(
+                label:
+                    Text('Hoàn thành', style: TextStyle(color: Colors.green)),
+                style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: Colors.green)),
+                onPressed: () {
+                  // Handle view details
+                },
+              ),
+            if (order.status != OrderStatus.COMPLETED.name &&
+                order.status != OrderStatus.CANCELLED.name &&
+                order.status != OrderStatus.DELETED.name)
+              OutlinedButton.icon(
+                label: Text('Hủy bỏ', style: TextStyle(color: Colors.red)),
+                style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: Colors.red)),
+                onPressed: () {
+                  // Handle view details
+                },
+              ),
+            // OutlinedButton.icon(
+            //   label:
+            //       Text('Xem chi tiết', style: TextStyle(color: Colors.black)),
+            //   style: OutlinedButton.styleFrom(
+            //       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(8),
+            //       ),
+            //       side: BorderSide(color: Colors.black45)),
+            //   onPressed: () {
+            //     // Handle view details
+            //   },
+            // ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -270,42 +323,5 @@ class _OrderItemState extends State<OrderItem> {
         ],
       ),
     );
-  }
-
-  IconData _getActionButtonIcon(String status) {
-    switch (status) {
-      case 'PENDING':
-        return isSellOrder ? Icons.thumb_up : Icons.cancel;
-      case 'ACCEPTED':
-        return Icons.account_balance_wallet;
-      default:
-        return Icons.remove_red_eye;
-    }
-  }
-
-  Color _getActionButtonColor(String status) {
-    switch (status) {
-      case 'PENDING':
-        return isSellOrder ? Colors.green : Colors.red;
-      case 'ACCEPTED':
-        return AppColors.lightPrimary;
-      default:
-        return Colors.blue;
-    }
-  }
-
-  bool _shouldShowActionButton(String status) {
-    return status == 'PENDING' || status == 'ACCEPTED';
-  }
-
-  String _getActionButtonText(String status) {
-    switch (status) {
-      case 'PENDING':
-        return isSellOrder ? 'Xác nhận' : 'Hủy đơn';
-      case 'ACCEPTED':
-        return 'Đặt cọc';
-      default:
-        return 'Chi tiết';
-    }
   }
 }

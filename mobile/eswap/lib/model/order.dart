@@ -80,12 +80,13 @@ class Order {
 enum CancelReason { BUYER_CANCELLED, SELLER_REJECTED, TIMEOUT, OTHER }
 
 enum OrderStatus {
-  PENDING,       // Đơn được tạo nhưng chưa đặt cọc
+  PENDING, // Đơn được tạo nhưng chưa đặt cọc
   SELLER_ACCEPTS, // Người bán cho phép không đặt cọc
   AWAITING_DEPOSIT,
-  DEPOSITED,     // Đã đặt cọc
-  COMPLETED,     // Đã thanh toán đủ
-  CANCELLED      // Đã hủy
+  DEPOSITED, // Đã đặt cọc
+  COMPLETED, // Đã thanh toán đủ
+  CANCELLED, // Đã hủy
+  DELETED
 }
 
 class CreatePayment {

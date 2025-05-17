@@ -3,6 +3,7 @@ package com.eswap.service;
 import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.constants.PageResponse;
 import com.eswap.common.exception.AlreadyExistsException;
+import com.eswap.common.exception.OperationNotPermittedException;
 import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.model.Order;
 import com.eswap.model.Post;
@@ -179,6 +180,39 @@ public class OrderService {
         );
     }
 
+    public CreatePaymentResponse deposit(Authentication connectedUser, String orderId) {
+        User seller = (User) connectedUser.getPrincipal();
+        Order order = orderRepository.findByIdAndSeller(orderId, seller.getId());
+
+        if (order == null) throw new ResourceNotFoundException(AppErrorCode.ORDER_NOT_FOUND, "id", orderId);
+        if (order.getStatus() != Order.OrderStatus.AWAITING_DEPOSIT) {
+            throw new IllegalStateException("Only AWAITING_DEPOSIT orders can be deposit");
+        }
+        //QR thanh toán
+        CreatePaymentResponse paymentResponse = paymentService.createPaymentQR(order, "");
+        OrderResponse orderResponse = OrderResponse.mapperToOrderResponse(order);
+        return paymentResponse;
+    }
+
+    public OrderResponse deleteOrder(Authentication connectedUser, String orderId) {
+        User user = (User) connectedUser.getPrincipal();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.ORDER_NOT_FOUND, "id", orderId));
+        Boolean isBuyer;
+        if (user.getId() == order.getBuyer().getId()) isBuyer = true;
+        else if (user.getId() == order.getSeller().getId()) isBuyer = false;
+        else return null;
+
+        // Chỉ cho phép xóa khi awaiting deposit,
+        if (order.getStatus() != Order.OrderStatus.AWAITING_DEPOSIT) {
+            throw new IllegalStateException("Only AWAITING_DEPOSIT orders can be deposited");
+        }
+
+        order.setStatus(Order.OrderStatus.DELETED);
+        OrderResponse response = OrderResponse.mapperToOrderResponse(order);
+        return response;
+    }
+
     public OrderResponse handleSellerAcceptNoDeposit(Authentication connectedUser, String orderId) {
         User seller = (User) connectedUser.getPrincipal();
         Order order = orderRepository.findByIdAndSeller(orderId, seller.getId());
@@ -217,9 +251,13 @@ public class OrderService {
         else if (user.getId() == order.getSeller().getId()) isBuyer = false;
         else return null;
 
-        // Chỉ cho phép hủy khi chưa hoàn tất
-        if (order.getStatus() == Order.OrderStatus.COMPLETED) {
+        // Chỉ cho phép hủy khi chưa hoàn tất,
+        if (order.getStatus() == Order.OrderStatus.COMPLETED && order.getStatus() == Order.OrderStatus.DELETED) {
             throw new IllegalStateException("Completed orders cannot be cancelled");
+        }
+        // Chỉ cho phép người mua mới hủy đơn đang đợi đặt cọc
+        if (!isBuyer && order.getStatus() == Order.OrderStatus.AWAITING_DEPOSIT) {
+            throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
         // cập nhật status order -> CANCELLED
         order.setStatus(Order.OrderStatus.CANCELLED);
@@ -267,9 +305,19 @@ public class OrderService {
         if (user.getId() == order.getBuyer().getId()) isBuyer = true;
         else if (user.getId() == order.getSeller().getId()) isBuyer = false;
         else return null;
+
+        // Chỉ cho phép hoàn thành khi ở trạng thái đặt cọc hoặc người bán cho phép
+        if (!(order.getStatus() == Order.OrderStatus.DEPOSITED || order.getStatus() == Order.OrderStatus.SELLER_ACCEPTS)) {
+            throw new IllegalStateException("Completed orders cannot be cancelled");
+        }
+        // Chỉ cho phép người mua mới hủy đơn đang đợi đặt cọc
+        if (!isBuyer && order.getStatus() == Order.OrderStatus.AWAITING_DEPOSIT) {
+            throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
+        }
+
         // buyer handle
         if (isBuyer) {
-            // Chỉ cho phép người mua hoàn thàng khi đã đặt cọc
+            // Chỉ cho phép người mua hoàn thành khi đã đặt cọc
             if (order.getStatus() != Order.OrderStatus.DEPOSITED) {
                 throw new IllegalStateException("Only DEPOSITED orders can be completed");
             }

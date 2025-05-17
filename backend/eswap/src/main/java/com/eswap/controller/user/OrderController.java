@@ -6,8 +6,10 @@ import com.eswap.response.OrderCounterResponse;
 import com.eswap.response.OrderCreationResponse;
 import com.eswap.response.OrderResponse;
 import com.eswap.service.OrderService;
+import com.eswap.service.payment.CreatePaymentResponse;
 import com.eswap.service.payment.momo.MomoIpnRequest;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +39,26 @@ public class OrderController {
         return ResponseEntity.ok(new ApiResponse(true, "Create payment QR code successful", depositAmount));
     }
 
+    @PostMapping("/momo/ipn-handler")
+    public void ipnHandler(@RequestBody MomoIpnRequest request) {
+        if (request.getResultCode() == 0) {
+            orderService.handleDepositSuccess(request.getOrderId(), String.valueOf(request.getTransId()));
+        }
+    }
+
+    // Thanh toán lại
+    @PutMapping("/deposit")
+    public ResponseEntity<ApiResponse> deposit(Authentication auth, @RequestParam("orderId") String orderId) {
+        CreatePaymentResponse paymentResponse = orderService.deposit(auth, orderId);
+        return ResponseEntity.ok(new ApiResponse(true, "Create payment successful", paymentResponse));
+    }
+    // Xóa đơn hàng đang đợi thanh toán
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse> deleteOrder(Authentication auth, @RequestParam("orderId") String orderId) {
+        OrderResponse order = orderService.deleteOrder(auth, orderId);
+        return ResponseEntity.ok(new ApiResponse(true, "Delete order successful", order));
+    }
+
     @PutMapping("/accept-no-deposit")
     public ResponseEntity<ApiResponse> sellerAcceptNoDeposit(Authentication auth, @RequestParam("orderId") String orderId) {
         OrderResponse order = orderService.handleSellerAcceptNoDeposit(auth, orderId);
@@ -55,16 +77,6 @@ public class OrderController {
     public ResponseEntity<ApiResponse> completeOrder(Authentication auth, @RequestParam("orderId") String orderId) {
         OrderResponse order = orderService.completeOrder(auth, orderId);
         return ResponseEntity.ok(new ApiResponse(true, "Complete order successful", order));
-    }
-
-    @PostMapping("/momo/ipn-handler")
-    public String ipnHandler(@RequestBody MomoIpnRequest request) {
-        System.out.println("ipn-handler: " + request.getMessage());
-        if (request.getResultCode() == 0) {
-            orderService.handleDepositSuccess(request.getOrderId(), String.valueOf(request.getTransId()));
-            return "Giao dich thanh cong";
-        }
-        return "Giao dich that bai";
     }
 
     //đơn mua: chờ xác nhận
@@ -116,7 +128,7 @@ public class OrderController {
     }
 
     //đơn bán: cần xác nhận
-    @GetMapping("/seller/ ")
+    @GetMapping("/seller/pending")
     public ResponseEntity<ApiResponse> getSellerPendingOrders(Authentication auth, @RequestParam(defaultValue = "0") int page,
                                                               @RequestParam(defaultValue = "10") int size) {
         PageResponse<OrderResponse> orders = orderService.getSellerPendingOrders(auth, page, size);

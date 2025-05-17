@@ -7,6 +7,7 @@ import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/post/add_post.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/views/post/select_category.dart';
+import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
@@ -40,34 +41,109 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> showCategorySelectionSheet(BuildContext context) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.transparent,
-        builder: (context) => EnhancedDraggableSheet(
+    final chooseAddPostOrStore =
+        await showModalBottomSheet<Map<String, dynamic>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.transparent,
+            builder: (context) => EnhancedDraggableSheet(
+                    child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: AppBody(
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                              onPressed: () {
+                                final result = {
+                                  'isAddPost': false,
+                                };
+                                Navigator.pop(context, result);
+                              },
+                              child: Text("Sử dụng dịch vụ Eswap Store")),
+                        ),
+                        SizedBox(
+                          height: 14,
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                              onPressed: () {
+                                final result = {
+                                  'isAddPost': true,
+                                };
+                                Navigator.pop(context, result);
+                              },
+                              child: Text("Đăng trên hồ sơ của bạn")),
+                        )
+                      ],
+                    ),
+                  ),
+                )));
+
+    if (chooseAddPostOrStore != null) {
+      bool isAddPost = chooseAddPostOrStore['isAddPost'];
+      if (isAddPost) {
+        final result = await showModalBottomSheet<Map<String, dynamic>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.transparent,
+            builder: (context) => EnhancedDraggableSheet(
+                    child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: CategorySelectionWidget(),
+                )));
+
+        if (result != null) {
+          if (result != null && result['childCategory'] != null) {
+            final parentCategory = result['parentCategory'] ?? '';
+            final childCategory = result['childCategory'];
+
+            int categoryId = childCategory['id'];
+            String categoryName =
+                "${childCategory['name']} - ${parentCategory['name']}";
+
+            Provider.of<AddPostProvider>(context, listen: false)
+                .updateCategory(categoryId, categoryName);
+
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => AddPostPage()),
+            );
+          }
+        }
+      } else {
+        final result = await showModalBottomSheet<Map<String, dynamic>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.transparent,
+            builder: (context) => EnhancedDraggableSheet(
                 child: Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: CategorySelectionWidget(),
-            )));
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: CategorySelectionWidget(),
+                )));
 
-    if (result != null) {
-      if (result != null && result['childCategory'] != null) {
-        final parentCategory = result['parentCategory'] ?? '';
-        final childCategory = result['childCategory'];
+        if (result != null) {
+          if (result != null && result['childCategory'] != null) {
+            final parentCategory = result['parentCategory'] ?? '';
+            final childCategory = result['childCategory'];
 
-        int categoryId = childCategory['id'];
-        String categoryName =
-            "${childCategory['name']} - ${parentCategory['name']}";
+            int categoryId = childCategory['id'];
+            String categoryName =
+                "${childCategory['name']} - ${parentCategory['name']}";
 
-        Provider.of<AddPostProvider>(context, listen: false)
-            .updateCategory(categoryId, categoryName);
-
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => AddPostPage()),
-        );
+            
+          }
+        }
       }
     }
   }
