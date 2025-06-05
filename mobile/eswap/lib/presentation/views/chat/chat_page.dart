@@ -129,7 +129,6 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           _isLoading = false;
         });
-        showErrorSnackBar(context, 'Error loading chat: ${e.toString()}');
       }
     }
   }
@@ -179,8 +178,6 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           _isLoadingMore = false;
         });
-        showErrorSnackBar(
-            context, 'Error loading more messages: ${e.toString()}');
       }
     }
   }
@@ -235,7 +232,7 @@ class _ChatPageState extends State<ChatPage> {
           Provider.of<ChatProvider>(context, listen: false).addChat(chat);
           // Notify
           if (_scrollController.offset <
-              _scrollController.position.maxScrollExtent - 700) {
+              _scrollController.position.maxScrollExtent - 300) {
             if (userSession!.userId != chat.chatPartnerId) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -322,6 +319,7 @@ class _ChatPageState extends State<ChatPage> {
           title: UserItemForList(
             user: UserInfomation(
                 id: widget.chat.chatPartnerId,
+                waitingAcceptFollow: false,
                 username: null,
                 firstname: widget.chat.chatPartnerFirstName,
                 lastname: widget.chat.chatPartnerLastName,
@@ -547,6 +545,7 @@ class _ChatPageState extends State<ChatPage> {
                       },
                       child: Icon(Icons.arrow_forward_ios)),
                   if (userSession != null &&
+                      userSession!.userId != widget.chat.currentPostUserId &&
                       userSession!.userId != widget.chat.chatPartnerId &&
                       widget.chat.quantity > widget.chat.sold)
                     GestureDetector(

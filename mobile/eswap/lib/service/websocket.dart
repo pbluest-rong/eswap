@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/model/order.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
+import 'package:eswap/service/order_service.dart';
+import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 class WebSocketService {
@@ -11,13 +16,16 @@ class WebSocketService {
 
   final _postStreamController = StreamController<String>.broadcast();
   final _messageStreamController = StreamController<String>.broadcast();
-  final _depositOrderStreamController = StreamController<String>.broadcast();
+  final _orderStreamController = StreamController<String>.broadcast();
 
   Stream<String> get postStream => _postStreamController.stream;
 
   Stream<String> get messageStream => _messageStreamController.stream;
 
-  Stream<String> get depositOrderStream => _depositOrderStreamController.stream;
+  Stream<String> get orderStream => _orderStreamController.stream;
+
+  OrderProvider? _orderProvider;
+
   WebSocketService._internal();
 
   static Future<WebSocketService> getInstance() async {
@@ -25,6 +33,13 @@ class WebSocketService {
       await _instance._initialize();
     }
     return _instance;
+  }
+
+  Future<void> initializeWithProvider(OrderProvider orderProvider) async {
+    _orderProvider = orderProvider;
+    if (!_isSubscribed) {
+      await _initialize();
+    }
   }
 
   Future<void> _initialize() async {
@@ -83,11 +98,12 @@ class WebSocketService {
     );
 
     stompClient?.subscribe(
-      destination: '/user/queue/deposit-order',
+      destination: '/user/queue/order',
       headers: {'Authorization': 'Bearer $accessToken'},
       callback: (frame) {
         if (frame.body != null) {
-          _depositOrderStreamController.add(frame.body!);
+          _orderStreamController.add(frame.body!);
+          _processOrder(frame.body!);
         }
       },
     );
@@ -103,6 +119,21 @@ class WebSocketService {
 
     _postStreamController.close();
     _messageStreamController.close();
-    _depositOrderStreamController.close();
+    _orderStreamController.close();
+  }
+
+  void _processOrder(String data) async {
+    if (_orderProvider == null) return;
+
+    final order = Order.fromJson(json.decode(data));
+    _orderProvider!.addOrder(order);
+
+    try {
+      final orderService = OrderService();
+      final jsonData = await orderService.getOrderCounters();
+      _orderProvider!.updateFromJson(jsonData);
+    } catch (e) {
+      e.toString();
+    }
   }
 }

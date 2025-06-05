@@ -166,16 +166,12 @@ class NotificationService {
           (json) => NotificationModel.fromJson(json),
         );
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {

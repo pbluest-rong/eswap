@@ -24,4 +24,5 @@ public class NotificationResponse {
     private Long postId;
     private OffsetDateTime createdAt;
     private String avatarUrl;
+    private String orderId;
 }

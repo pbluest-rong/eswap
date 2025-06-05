@@ -32,6 +32,7 @@ public class ChatConsumer {
                     "Bạn có tin nhắn mới từ " + chat.getMostRecentMessage().getFromUserFirstName() + " " + chat.getMostRecentMessage().getFromUserLastName(),
                     chat.getMostRecentMessage().getContent(),
                     null,
+                    null,
                     chat.getMostRecentMessage().getToUserId()
             );
     }

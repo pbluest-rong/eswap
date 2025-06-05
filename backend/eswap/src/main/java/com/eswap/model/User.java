@@ -75,10 +75,8 @@ public class User implements UserDetails {
     @JsonIgnore
     private List<Follow> followers = new ArrayList<>();
 
-    @CreatedDate
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     @Column(name = "last_modified")
     private OffsetDateTime lastModified;

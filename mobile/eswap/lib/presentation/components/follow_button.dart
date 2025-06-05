@@ -8,11 +8,13 @@ class FollowButton extends StatefulWidget {
   final FollowStatus followStatus;
   final int otherUserId;
   final bool bigSize;
+  final bool waitingAcceptFollow;
 
   FollowButton(
       {super.key,
       required this.followStatus,
       required this.otherUserId,
+      required this.waitingAcceptFollow,
       this.bigSize = false});
 
   @override
@@ -23,12 +25,14 @@ class _FollowButtonState extends State<FollowButton> {
   late FollowStatus _status;
   late int _otherUserId;
   final UserService _userService = UserService();
+  late bool waitingAcceptFollow;
 
   @override
   void initState() {
     super.initState();
     _status = widget.followStatus;
     _otherUserId = widget.otherUserId;
+    waitingAcceptFollow = widget.waitingAcceptFollow;
   }
 
   void _handleTap() async {
@@ -46,13 +50,15 @@ class _FollowButtonState extends State<FollowButton> {
         buttonLayout: AlertButtonLayout.dual,
         actions: [
           AlertAction(text: "cancel".tr(), handler: () {}),
-          AlertAction(text: "confirm".tr(), handler: () async {
-            // unfollow
-            await _userService.unfollow(_otherUserId, context);
-            setState(() {
-              _status = FollowStatus.UNFOLLOWED;
-            });
-          }),
+          AlertAction(
+              text: "confirm".tr(),
+              handler: () async {
+                // unfollow
+                await _userService.unfollow(_otherUserId, context);
+                setState(() {
+                  _status = FollowStatus.UNFOLLOWED;
+                });
+              }),
         ],
       );
     } else {
@@ -65,6 +71,13 @@ class _FollowButtonState extends State<FollowButton> {
         });
       }
     }
+  }
+
+  void _acceptFollow() async {
+    setState(() {
+      waitingAcceptFollow = false;
+    });
+    _userService.acceptFollow(_otherUserId, context);
   }
 
   @override
@@ -82,33 +95,57 @@ class _FollowButtonState extends State<FollowButton> {
     }
 
     if (widget.bigSize) {
-      return OutlinedButton(
-        onPressed: _handleTap,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Colors.blue[800],
-          ),
-        ),
-      );
-    } else {
-      return GestureDetector(
-        onTap: _handleTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue[100]!),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.blue[800],
-              fontSize: 12,
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _handleTap,
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: Colors.blue[800],
+                ),
+              ),
             ),
           ),
-        ),
+          if (waitingAcceptFollow)
+            Container(
+              margin: EdgeInsets.only(left: 4),
+              child: OutlinedButton(
+                onPressed: _acceptFollow,
+                child: Text(
+                  "Chấp nhận",
+                  style: TextStyle(
+                    color: Colors.blue[800],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          GestureDetector(
+            onTap: _handleTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[100]!),
+              ),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: Colors.blue[800],
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          )
+        ],
       );
     }
   }

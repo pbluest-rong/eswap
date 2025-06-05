@@ -33,6 +33,7 @@ public class Notification implements Serializable {
     private String message;
     private Long postId;
     private boolean isRead = false;
+    private String orderId;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -23,7 +23,9 @@ enum NotificationCategory {
   NEW_MESSAGE,
   NEW_LIKE,
   NEW_FOLLOW,
-  NEW_NOTICE;
+  NEW_REQUEST_FOLLOW,
+  NEW_NOTICE,
+  ORDER,
 }
 
 enum NotificationType { INFORM, ALERT, SUCCESS, ERROR, WARNING, SYSTEM }

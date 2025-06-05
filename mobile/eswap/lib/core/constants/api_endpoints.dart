@@ -1,6 +1,6 @@
 class ApiEndpoints {
   static String PROTOCOL = "http";
-  static String HOST = "192.168.1.17";
+  static String HOST = "192.168.1.21";
   static String PORT = "8080";
   static String CONTEXT_PATH = "/api/v1/";
 
@@ -36,6 +36,8 @@ class ApiEndpoints {
   static String auto_login_url = _baseUrl + "accounts/auto-login";
   static String follow_url = _baseUrl + "accounts/follow";
   static String unfollow_url = _baseUrl + "accounts/unfollow";
+  static String accept_follow_url = _baseUrl + "accounts/accept-follow";
+  static String remove_follower_url = _baseUrl + "accounts/remove-follow";
   static String like_post_url = _baseUrl + "posts/like";
   static String unlike_post_url = _baseUrl + "posts/unlike";
   static String getPostById_url = _baseUrl + "posts";
@@ -44,6 +46,7 @@ class ApiEndpoints {
   static String chats_url = _baseUrl + "chats";
   static String updateAvatar_url = _baseUrl + "accounts/update-avatar";
   static String deleteAvatar_url = _baseUrl + "accounts/delete-avatar";
+  static String change_info_url = _baseUrl + "accounts/change-info";
   static String orders_url = _baseUrl + "orders";
   static String orders_buyer_pending_url = _baseUrl + "orders/buyer/pending";
   static String orders_buyer_accepted_url = _baseUrl + "orders/buyer/seller-accepted";
@@ -56,4 +59,7 @@ class ApiEndpoints {
   static String orders_seller_deposited_url = _baseUrl + "orders/seller/deposited";
   static String orders_seller_cancelled_url = _baseUrl + "orders/seller/cancelled";
   static String orders_seller_completed_url = _baseUrl + "orders/seller/completed";
+  static String get_stores_url = _baseUrl + "auth/stores";
+  static String admin_url = _baseUrl + "admin";
+  static String balances_url = _baseUrl + "balances";
 }

@@ -181,7 +181,9 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       final size = await file.length();
       if (size > maxImageSize) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ảnh không được vượt quá ${maxImageSize ~/ (1024*1024)}MB')),
+          SnackBar(
+              content: Text(
+                  'Ảnh không được vượt quá ${maxImageSize ~/ (1024 * 1024)}MB')),
         );
         return;
       }
@@ -246,6 +248,7 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       }
     });
   }
+
   Future<bool> _checkAssetSize(AssetEntity asset) async {
     try {
       final file = await asset.file;
@@ -256,7 +259,9 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       if (asset.type == AssetType.image && size > maxImageSize) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ảnh không được vượt quá ${maxImageSize ~/ (1024*1024)}MB')),
+            SnackBar(
+                content: Text(
+                    'Ảnh không được vượt quá ${maxImageSize ~/ (1024 * 1024)}MB')),
           );
         }
         return false;
@@ -265,7 +270,9 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       if (asset.type == AssetType.video && size > maxVideoSize) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Video không được vượt quá ${maxVideoSize ~/ (1024*1024)}MB')),
+            SnackBar(
+                content: Text(
+                    'Video không được vượt quá ${maxVideoSize ~/ (1024 * 1024)}MB')),
           );
         }
         return false;
@@ -306,43 +313,61 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
   }
 
   Widget _buildAlbumDropdown() {
-    if (_albums.isEmpty) return const Text('Thư viện ảnh');
+    if (_albums.isEmpty) {
+      return const Text(
+        'Thư viện ảnh',
+        overflow: TextOverflow.ellipsis,
+      );
+    }
 
-    return FutureBuilder<int>(
-      future: _selectedAlbum?.assetCountAsync,
-      builder: (context, snapshot) {
-        final count = snapshot.hasData ? snapshot.data! : 0;
-        return DropdownButton<AssetPathEntity>(
-          value: _selectedAlbum,
-          underline: Container(),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FutureBuilder<int>(
+          future: _selectedAlbum?.assetCountAsync,
+          builder: (context, snapshot) {
+            final count = snapshot.hasData ? snapshot.data! : 0;
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.7,
               ),
-          items: _albums.map((album) {
-            return DropdownMenuItem<AssetPathEntity>(
-              value: album,
-              child: FutureBuilder<int>(
-                future: album.assetCountAsync,
-                initialData: 0,
-                builder: (context, snapshot) {
-                  final albumCount = snapshot.hasData ? snapshot.data! : 0;
-                  return Text(
-                    '${album.name} ($albumCount)',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.black,
-                        ),
+              child: DropdownButton<AssetPathEntity>(
+                isExpanded: true,
+                value: _selectedAlbum,
+                underline: Container(),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                ),
+                items: _albums.map((album) {
+                  return DropdownMenuItem<AssetPathEntity>(
+                    value: album,
+                    child: FutureBuilder<int>(
+                      future: album.assetCountAsync,
+                      initialData: 0,
+                      builder: (context, snapshot) {
+                        final albumCount = snapshot.hasData ? snapshot.data! : 0;
+                        return Text(
+                          '${album.name} ($albumCount)',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.black,
+                          ),
+                        );
+                      },
+                    ),
                   );
+                }).toList(),
+                onChanged: (album) {
+                  if (album != null) {
+                    setState(() {
+                      _selectedAlbum = album;
+                      _loadMediaFromAlbum(reset: true);
+                    });
+                  }
                 },
+                dropdownColor: Colors.white,
               ),
             );
-          }).toList(),
-          onChanged: (album) {
-            if (album != null) {
-              setState(() {
-                _selectedAlbum = album;
-                _loadMediaFromAlbum(reset: true);
-              });
-            }
           },
         );
       },
@@ -398,6 +423,7 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       ),
     );
   }
+
   Widget _buildFileSize(AssetEntity asset) {
     return FutureBuilder<File?>(
       future: asset.file,
@@ -433,6 +459,7 @@ class _MediaLibraryScreenState extends State<MediaLibraryScreen> {
       },
     );
   }
+
   Widget _buildThumbnail(AssetEntity asset) {
     if (_thumbnailCache.containsKey(asset.id)) {
       return Image.memory(

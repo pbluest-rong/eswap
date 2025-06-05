@@ -3,6 +3,7 @@ package com.eswap.controller.user;
 import com.eswap.common.ApiResponse;
 import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.FollowResponse;
+import com.eswap.response.UserResponse;
 import com.eswap.service.UserService;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
@@ -12,9 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("accounts")
@@ -43,24 +41,39 @@ public class AccountController {
         return ResponseEntity.ok(new ApiResponse(true, "Disable account successfully", null));
     }
 
-    @PostMapping("/block/{blockedId}")
-    public ResponseEntity<ApiResponse> blockOtherUser(Authentication authentication, @PathVariable("otherUserId") long blockedId) {
-        userService.blockUser(authentication, blockedId);
-        return ResponseEntity.ok(new ApiResponse(true, "Blocked user successfully", null));
+    @PostMapping("/follow/{followeeUserId}")
+    public ResponseEntity<ApiResponse> follow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
+        FollowResponse followResponse = userService.follow(authentication, followeeUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", followResponse));
     }
 
-    @PostMapping("/unblock/{blockedId}")
-    public ResponseEntity<ApiResponse> unblockOtherUser(Authentication authentication, @PathVariable("otherUserId") long blockedId) {
-        userService.blockUser(authentication, blockedId);
-        return ResponseEntity.ok(new ApiResponse(true, "Unblocked user successfully", null));
+    @PostMapping("/unfollow/{followeeUserId}")
+    public ResponseEntity<ApiResponse> unfollow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
+        userService.unfollow(authentication, followeeUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Unfollow user successfully", null));
     }
 
-    @GetMapping("/is-blocked")
-    public ResponseEntity<Boolean> isBlocked(
-            @RequestParam long blockerId,
-            @RequestParam long blockedId) {
-        boolean result = userService.isBlocked(blockerId, blockedId);
-        return ResponseEntity.ok(result);
+    @PutMapping("/accept-follow/{followerUserId}")
+    public ResponseEntity<ApiResponse> acceptFollow(Authentication authentication, @PathVariable("followerUserId") long followerUserId) {
+        FollowResponse followResponse = userService.acceptFollow(authentication, followerUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", followResponse));
+    }
+
+    @PostMapping("/remove-follow/{followerUserId}")
+    public ResponseEntity<ApiResponse> removeFollow(Authentication authentication, @PathVariable("followerUserId") long followerUserId) {
+        userService.removeFollow(authentication, followerUserId);
+        return ResponseEntity.ok(new ApiResponse(true, "Unfollow user successfully", null));
+    }
+
+    @PostMapping("/update-avatar")
+    public ResponseEntity<ApiResponse> updateAvatar(Authentication auth, @RequestParam("image") MultipartFile image) {
+        String avatarUrl = userService.updateAvatar(auth, image);
+        return ResponseEntity.ok(new ApiResponse(true, "Avatar updated successfully", avatarUrl));
+    }
+
+    @PostMapping("/delete-avatar")
+    public void deleteAvatar(Authentication auth) {
+        userService.deleteAvatar(auth);
     }
 
     @PostMapping("/change-pw")
@@ -75,32 +88,9 @@ public class AccountController {
         return ResponseEntity.ok(new ApiResponse(true, "Change email successfully", null));
     }
 
-    @PostMapping("/change-info")
+    @PutMapping("/change-info")
     public ResponseEntity<ApiResponse> changeInfo(Authentication authentication, @RequestBody ChangeInfoRequest request) {
-        userService.changeInformation(authentication, request);
-        return ResponseEntity.ok(new ApiResponse(true, "Change information successfully", null));
-    }
-
-    @PostMapping("/follow/{followeeUserId}")
-    public ResponseEntity<ApiResponse> follow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
-        FollowResponse followResponse = userService.follow(authentication, followeeUserId);
-        return ResponseEntity.ok(new ApiResponse(true, "Follow user successfully", followResponse));
-    }
-
-    @PostMapping("/unfollow/{followeeUserId}")
-    public ResponseEntity<ApiResponse> unfollow(Authentication authentication, @PathVariable("followeeUserId") long followeeUserId) {
-        userService.unfollow(authentication, followeeUserId);
-        return ResponseEntity.ok(new ApiResponse(true, "Unfollow user successfully", null));
-    }
-
-    @PostMapping("/update-avatar")
-    public ResponseEntity<ApiResponse> updateAvatar(Authentication auth, @RequestParam("image") MultipartFile image) {
-        String avatarUrl = userService.updateAvatar(auth, image);
-        return ResponseEntity.ok(new ApiResponse(true, "Avatar updated successfully", avatarUrl));
-    }
-
-    @PostMapping("/delete-avatar")
-    public void deleteAvatar(Authentication auth) {
-        userService.deleteAvatar(auth);
+        UserResponse userResponse = userService.changeInformation(authentication, request);
+        return ResponseEntity.ok(new ApiResponse(true, "Change information successfully", userResponse));
     }
 }

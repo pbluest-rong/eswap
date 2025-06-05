@@ -1,8 +1,15 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
+import 'package:eswap/main.dart';
 import 'package:eswap/model/order.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/order/detail_order_item.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
+import 'package:eswap/presentation/views/order/payment_momo_page.dart';
+import 'package:eswap/presentation/widgets/dialog.dart';
+import 'package:eswap/service/order_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class OrderItem extends StatefulWidget {
   final Order order;
@@ -15,6 +22,7 @@ class OrderItem extends StatefulWidget {
 
 class _OrderItemState extends State<OrderItem> {
   bool? isSellOrder;
+  final orderService = OrderService();
 
   @override
   void initState() {
@@ -56,7 +64,10 @@ class _OrderItemState extends State<OrderItem> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // Handle tap on entire card
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+                builder: (_) => DetailOrderItem(orderId: widget.order.id)),
+          );
         },
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -207,7 +218,20 @@ class _OrderItemState extends State<OrderItem> {
                     ),
                     side: BorderSide(color: Colors.blue)),
                 onPressed: () {
-                  // Handle view details
+                  AppAlert.show(
+                      context: context,
+                      title: "Chấp nhận bán cho người dùng này?",
+                      actions: [
+                        AlertAction(text: "Hủy"),
+                        AlertAction(
+                            text: "Xác nhận",
+                            handler: () {
+                              orderService.acceptNoDepositBySeller(
+                                  order.id, context);
+                              Provider.of<OrderProvider>(context, listen: false)
+                                  .removeOrder(order.id);
+                            })
+                      ]);
                 },
               ),
             // Chỉ người mua mới đặt cọc
@@ -221,8 +245,26 @@ class _OrderItemState extends State<OrderItem> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     side: BorderSide(color: Colors.orange)),
-                onPressed: () {
-                  // Handle view details
+                onPressed: () async {
+                  try {
+                    OrderCreation orderCreation = await orderService
+                        .depositByBuyer(order.id, "momo", context);
+                    Provider.of<OrderProvider>(context, listen: false)
+                        .removeOrder(order.id);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PaymentScreen(orderCreation: orderCreation),
+                      ),
+                    );
+                  } catch (e) {
+                    AppAlert.show(
+                        context: context,
+                        title:
+                            "Đơn hàng đã yêu cầu thanh toán đặt cọc nhiều lần, vui lòng hủy đơn hàng",
+                        actions: [AlertAction(text: "OK")]);
+                  }
                 },
               ),
             //Chỉ người bán mới hoàn thành đơn đã xác nhận
@@ -237,7 +279,17 @@ class _OrderItemState extends State<OrderItem> {
                     ),
                     side: BorderSide(color: Colors.green)),
                 onPressed: () {
-                  // Handle view details
+                  AppAlert.show(
+                      context: context,
+                      title: "Xác nhận đã bán đơn hàng",
+                      actions: [
+                        AlertAction(text: "Hủy"),
+                        AlertAction(
+                            text: "Xác nhận",
+                            handler: () {
+                              orderService.completeOrder(order.id, context);
+                            })
+                      ]);
                 },
               ),
             // Chỉ người mua mới hoàn thành đơn đặt cọc
@@ -252,7 +304,19 @@ class _OrderItemState extends State<OrderItem> {
                     ),
                     side: BorderSide(color: Colors.green)),
                 onPressed: () {
-                  // Handle view details
+                  AppAlert.show(
+                      context: context,
+                      title: "Xác nhận đã mua đơn hàng",
+                      actions: [
+                        AlertAction(text: "Hủy"),
+                        AlertAction(
+                            text: "Xác nhận",
+                            handler: () {
+                              orderService.completeOrder(order.id, context);
+                              Provider.of<OrderProvider>(context, listen: false)
+                                  .removeOrder(order.id);
+                            })
+                      ]);
                 },
               ),
             if (order.status != OrderStatus.COMPLETED.name &&
@@ -267,22 +331,40 @@ class _OrderItemState extends State<OrderItem> {
                     ),
                     side: BorderSide(color: Colors.red)),
                 onPressed: () {
-                  // Handle view details
+                  TextEditingController _reasonController =
+                      TextEditingController();
+                  AppAlert.show(
+                    context: context,
+                    centerWidget: TextField(
+                      controller: _reasonController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: "Vui lòng nhập lý do hủy",
+                      ),
+                    ),
+                    title: "Bạn có chắc muốn hủy bỏ đơn hàng?",
+                    actions: [
+                      AlertAction(text: "Hủy"),
+                      AlertAction(
+                          text: "Xác nhận",
+                          handler: () {
+                            final reason = _reasonController.text.trim();
+                            if (reason.isEmpty) {
+                              AppAlert.show(
+                                  context: context,
+                                  title: "Vui lòng nhập lý do hủy đơn hàng",
+                                  actions: [AlertAction(text: "OK")]);
+                              return;
+                            }
+                            orderService.cancelOrder(order.id, reason, context);
+                            Provider.of<OrderProvider>(context, listen: false)
+                                .removeOrder(order.id);
+                          },
+                          isDestructive: true),
+                    ],
+                  );
                 },
               ),
-            // OutlinedButton.icon(
-            //   label:
-            //       Text('Xem chi tiết', style: TextStyle(color: Colors.black)),
-            //   style: OutlinedButton.styleFrom(
-            //       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            //       shape: RoundedRectangleBorder(
-            //         borderRadius: BorderRadius.circular(8),
-            //       ),
-            //       side: BorderSide(color: Colors.black45)),
-            //   onPressed: () {
-            //     // Handle view details
-            //   },
-            // ),
           ],
         ),
       ],

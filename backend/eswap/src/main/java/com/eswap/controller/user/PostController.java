@@ -36,6 +36,12 @@ public class PostController {
         return ResponseEntity.ok(new ApiResponse(true, "Đăng bài thành công!", null));
     }
 
+    @DeleteMapping("/remove/{postId}")
+    public ResponseEntity<ApiResponse> removePost(@PathVariable("postId") long postId, Authentication auth) {
+        postService.removePost(postId, auth);
+        return ResponseEntity.ok(new ApiResponse(true, "Xóa bài thành công!", null));
+    }
+
     @GetMapping("/{postId}")
     public ResponseEntity<ApiResponse> getPostById(@PathVariable("postId") long postId, Authentication auth) {
         PostResponse postResponse = postService.getPostById(auth, postId);
@@ -100,6 +106,58 @@ public class PostController {
     ) {
         PageResponse<PostResponse> postResponses = postService.getPostsOfFollowing(authentication, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
+    }
+
+    @GetMapping("/store")
+    public ResponseEntity<ApiResponse> getStorePosts(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getStorePostsForCustomer(authentication, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
+    }
+
+    @GetMapping("/store/pending")
+    public ResponseEntity<ApiResponse> getPendingPosts(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getPendingPosts(authentication, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
+    }
+
+    @GetMapping("/store/accepted")
+    public ResponseEntity<ApiResponse> getAcceptedPosts(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getAcceptedPosts(authentication, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
+    }
+
+    @GetMapping("/store/rejected")
+    public ResponseEntity<ApiResponse> getRejectedPosts(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PostResponse> postResponses = postService.getRejectedPosts(authentication, page, size);
+        return ResponseEntity.ok(new ApiResponse(true, "Posts retrieved successfully for the education institution", postResponses));
+    }
+
+
+    @PutMapping("/store/accept/{postId}")
+    public void acceptPost(@PathVariable long postId, Authentication auth) {
+        postService.acceptPost(postId, auth);
+    }
+
+
+    @PutMapping("/store/reject/{postId}")
+    public void rejectPost(@PathVariable long postId, Authentication auth) {
+        postService.rejectPost(postId, auth);
     }
 
     @GetMapping("/user/{userId}")

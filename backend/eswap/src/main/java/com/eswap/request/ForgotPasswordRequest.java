@@ -20,4 +20,12 @@ public class ForgotPasswordRequest {
             message = "Password must contain at least one uppercase letter, one number, and one special character"
     )
     private String newPassword;
+
+    @Override
+    public String toString() {
+        return "ForgotPasswordRequest{" +
+                "token='" + token + '\'' +
+                ", newPassword='" + newPassword + '\'' +
+                '}';
+    }
 }

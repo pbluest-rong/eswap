@@ -120,7 +120,6 @@ class _ChatListState extends State<ChatList> {
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackBar(context, 'Error loading chats: ${e.toString()}');
     }
   }
 
@@ -146,7 +145,6 @@ class _ChatListState extends State<ChatList> {
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(context, 'Error loading more chats: ${e.toString()}');
     }
   }
 

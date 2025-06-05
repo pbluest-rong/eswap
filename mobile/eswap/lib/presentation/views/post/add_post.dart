@@ -9,7 +9,6 @@ import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/presentation/components/pick_media.dart';
 import 'package:eswap/presentation/components/quantity_selector.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
-import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/category_brand_service.dart';
@@ -19,7 +18,10 @@ import 'package:provider/provider.dart';
 import 'package:searchfield/searchfield.dart';
 
 class AddPostPage extends StatefulWidget {
-  const AddPostPage({super.key});
+  bool isStore = false;
+  int? postIdToEdit;
+
+  AddPostPage({super.key, required this.isStore, this.postIdToEdit});
 
   @override
   State<AddPostPage> createState() => _AddPostPageState();
@@ -62,6 +64,30 @@ class _AddPostPageState extends State<AddPostPage> {
       final postService = PostService();
       postService.addPost(
           addPostProvider.toJson(), addPostProvider.getMediaFiles()!);
+
+      Navigator.pop(context);
+      Provider.of<UserSessionProvider>(context, listen: false)
+          .deleteAddPostName();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã xảy ra lỗi khi tải thương hiệu, vui lòng thử lại.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToStore() async {
+    try {
+      final addPostProvider =
+          Provider.of<AddPostProvider>(context, listen: false);
+      final postService = PostService();
+      postService.addPost(
+          addPostProvider.toJson(), addPostProvider.getMediaFiles()!);
+      Navigator.pop(context);
+      Provider.of<UserSessionProvider>(context, listen: false)
+          .deleteAddPostName();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -89,37 +115,38 @@ class _AddPostPageState extends State<AddPostPage> {
         title: Consumer<AddPostProvider>(builder: (context, provider, child) {
           return Column(
             children: [
-              Text("add_post".tr(),
+              Text(widget.isStore ? "Gửi yêu cầu" : "add_post".tr(),
                   style: TextStyle(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.fade),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    provider.privacy == "PUBLIC"
-                        ? Icons.public
-                        : Icons.person_sharp,
-                    size: 20,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
+              if (!widget.isStore)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
                       provider.privacy == "PUBLIC"
-                          ? "privacy_public".tr()
-                          : "privacy_follower".tr(),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.fade),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () => provider.togglePrivacy(),
-                    child: Icon(Icons.sync_alt, size: 20),
-                  )
-                ],
-              ),
+                          ? Icons.public
+                          : Icons.person_sharp,
+                      size: 20,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                        provider.privacy == "PUBLIC"
+                            ? "privacy_public".tr()
+                            : "privacy_follower".tr(),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.fade),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => provider.togglePrivacy(),
+                      child: Icon(Icons.sync_alt, size: 20),
+                    )
+                  ],
+                ),
             ],
           );
         }),
@@ -148,16 +175,12 @@ class _AddPostPageState extends State<AddPostPage> {
                         Provider.of<UserSessionProvider>(context, listen: false)
                             .updateAddPostName(name);
                       }
-                      _addPost();
-                      Navigator.pop(context);
-                      Provider.of<UserSessionProvider>(context, listen: false)
-                          .deleteAddPostName();
-                      print("deleteAddPostName ${Provider.of<UserSessionProvider>(context, listen: false).addPostName}");
+                      widget.isStore ? _addToStore() : _addPost();
                     }
                   }
                 },
                 child: Text(
-                  'Đăng',
+                  widget.isStore ? 'Gửi' : 'Đăng',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Provider.of<AddPostProvider>(context, listen: true)
@@ -176,6 +199,10 @@ class _AddPostPageState extends State<AddPostPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (Provider.of<AddPostProvider>(context, listen: false)
+                        .storeId !=
+                    null)
+                  _buildStoreNameWidget(context, textTheme),
                 _buildCategoryWidget(context, textTheme),
                 _buildMediaSection(true), // Images section
                 _buildMediaSection(false), // Videos section
@@ -468,6 +495,39 @@ class _AddPostPageState extends State<AddPostPage> {
           );
         },
       ),
+    );
+  }
+
+  _buildStoreNameWidget(BuildContext context, TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Store",
+          style: textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+        ),
+        TextField(
+          controller: TextEditingController(
+            text:
+                "${Provider.of<AddPostProvider>(context, listen: false).storeName}",
+          ),
+          readOnly: true,
+          scrollPhysics: const ClampingScrollPhysics(),
+          decoration: InputDecoration(
+            disabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade400, width: 1.0),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF1F4FF),
+            isDense: true,
+            contentPadding: const EdgeInsets.all(12),
+          ),
+          style: TextStyle(color: Colors.black),
+          maxLines: 1,
+          scrollPadding: EdgeInsets.zero,
+        )
+      ],
     );
   }
 

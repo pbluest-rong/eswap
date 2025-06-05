@@ -7,6 +7,7 @@ public enum AppErrorCode {
     MEDIA_NOT_FOUND("MEDIA_NOT_FOUND", "error.media.not_found"),
     USER_EXISTS("USER_EXISTS", "error.user.exists"),
     USER_INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "error.auth.invalid_credentials"),
+    USER_PW_INVALID_CREDENTIALS("USER_PW_INVALID_CREDENTIALS", "error.auth.pw_invalid_credentials"),
     USER_LOCKED("USER_LOCKED", "error.user.locked"),
     AUTH_INVALID_CODE("AUTH_INVALID_CODE", "error.auth.invalid_code"),
     AUTH_FORBIDDEN("AUTH_FORBIDDEN", "error.auth.forbidden"),
@@ -20,7 +21,9 @@ public enum AppErrorCode {
     LIKE_NOT_FOUND("LIKE_NOT_FOUND", "error.post.like_not_found"),
     CHAT_NOT_FOUND("CHAT_NOT_FOUND", "error.chat.not_found"),
     ORDER_NOT_FOUND("ORDER_NOT_FOUND", "error.order.not_found"),
-    ORDER_EXISTS("ORDER_EXISTS", "error.order.exists"),;
+    ORDER_EXISTS("ORDER_EXISTS", "error.order.exists"),
+    DEPOSIT_LIMIT_EXCEEDED("DEPOSIT_LIMIT_EXCEEDED", "error.order.limit_exceeded"),
+    WITHDRAWAL_REQUEST_LIMIT_EXCEEDED("WITHDRAWAL_LIMIT_EXCEEDED", "error.balance.request_limit_exceeded");
     private final String code;
     private final String messageKey;
 

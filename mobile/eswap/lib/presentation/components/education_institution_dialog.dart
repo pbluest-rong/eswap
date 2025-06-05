@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:searchfield/searchfield.dart';
 
 class InstitutionSelectionDialog extends StatefulWidget {
-  const InstitutionSelectionDialog({
-    super.key,
-  });
+  bool? isNationwide;
+
+  InstitutionSelectionDialog({super.key, this.isNationwide = false});
 
   @override
   State<InstitutionSelectionDialog> createState() =>
@@ -113,44 +113,45 @@ class _InstitutionSelectionDialogState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Nationwide checkbox
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      isNationwide = !isNationwide;
-                      if (isNationwide) {
-                        provinceController.clear();
-                        institutionController.clear();
-                        selectedProvinceId = null;
-                        selectedProvinceName = null;
-                        selectedInstitutionType = null;
-                      }
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: isNationwide,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              isNationwide = value!;
-                              if (isNationwide) {
-                                provinceController.clear();
-                                institutionController.clear();
-                                selectedProvinceId = null;
-                                selectedProvinceName = null;
-                                selectedInstitutionType = null;
-                              }
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        Text("nationwide".tr()),
-                      ],
+                if (isNationwide)
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        isNationwide = !isNationwide;
+                        if (isNationwide) {
+                          provinceController.clear();
+                          institutionController.clear();
+                          selectedProvinceId = null;
+                          selectedProvinceName = null;
+                          selectedInstitutionType = null;
+                        }
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: isNationwide,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                isNationwide = value!;
+                                if (isNationwide) {
+                                  provinceController.clear();
+                                  institutionController.clear();
+                                  selectedProvinceId = null;
+                                  selectedProvinceName = null;
+                                  selectedInstitutionType = null;
+                                }
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          Text("nationwide".tr()),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 16),
 

@@ -10,6 +10,7 @@ class NotificationModel {
   final int? postId;
   final String createdAt;
   String? avatarUrl;
+  String? orderId;
 
   NotificationModel(
       {required this.id,
@@ -22,7 +23,8 @@ class NotificationModel {
       required this.read,
       this.postId,
       required this.createdAt,
-      this.avatarUrl});
+      this.avatarUrl,
+      this.orderId});
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
@@ -36,6 +38,7 @@ class NotificationModel {
         postId: json['postId'],
         createdAt: json['createdAt'],
         read: json['read'],
-        avatarUrl: json['avatarUrl']);
+        avatarUrl: json['avatarUrl'],
+        orderId: json['orderId']);
   }
 }

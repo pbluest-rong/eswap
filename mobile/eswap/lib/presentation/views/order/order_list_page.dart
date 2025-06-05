@@ -1,11 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/main.dart';
 import 'package:eswap/model/order.dart';
 import 'package:eswap/presentation/components/order_item.dart';
-import 'package:eswap/presentation/provider/order_counter_provider.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
 import 'package:eswap/presentation/views/order/order_search_page.dart';
 import 'package:eswap/service/order_service.dart';
+import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,12 +44,18 @@ class _OrderListPageState extends State<OrderListPage> {
     "Đã hủy",
     "Đã hoàn thành"
   ];
-  List<Order> _allOrders = [];
   int _currentPage = 0;
   final int _pageSize = 10;
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    orderStatusChoice = widget.orderStatus;
+    _setupWebSocket();
+  }
 
   @override
   void didChangeDependencies() {
@@ -59,19 +69,61 @@ class _OrderListPageState extends State<OrderListPage> {
     super.dispose();
   }
 
+  bool _initialized = false;
+
   Future<void> _loadInitialOrders() async {
-    if (_isLoading) return;
+    if (_isLoading || _initialized) return;
+
     setState(() {
       _isLoading = true;
-      _allOrders = [];
       _currentPage = 0;
       _hasMore = true;
+      _initialized = true;
     });
     try {
       final ordersPage = await _orderService.fetchOrders(widget.isSellOrders,
           orderStatusChoice, _currentPage, _pageSize, context);
+
+      if (widget.isSellOrders) {
+        if (orderStatusChoice == 0) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(true, OrderStatus.PENDING, ordersPage.content);
+        } else if (orderStatusChoice == 1) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(true, OrderStatus.SELLER_ACCEPTS, ordersPage.content);
+        } else if (orderStatusChoice == 2) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(true, OrderStatus.DEPOSITED, ordersPage.content);
+        } else if (orderStatusChoice == 3) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(true, OrderStatus.CANCELLED, ordersPage.content);
+        } else if (orderStatusChoice == 4) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(true, OrderStatus.COMPLETED, ordersPage.content);
+        }
+      } else {
+        if (orderStatusChoice == 0) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(false, OrderStatus.PENDING, ordersPage.content);
+        } else if (orderStatusChoice == 1) {
+          Provider.of<OrderProvider>(context, listen: false).initOrders(
+              false, OrderStatus.SELLER_ACCEPTS, ordersPage.content);
+        } else if (orderStatusChoice == 2) {
+          Provider.of<OrderProvider>(context, listen: false).initOrders(
+              false, OrderStatus.AWAITING_DEPOSIT, ordersPage.content);
+        } else if (orderStatusChoice == 3) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(false, OrderStatus.DEPOSITED, ordersPage.content);
+        } else if (orderStatusChoice == 4) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(false, OrderStatus.CANCELLED, ordersPage.content);
+        } else if (orderStatusChoice == 5) {
+          Provider.of<OrderProvider>(context, listen: false)
+              .initOrders(false, OrderStatus.COMPLETED, ordersPage.content);
+        }
+      }
+
       setState(() {
-        _allOrders = ordersPage.content;
         _hasMore = !ordersPage.last;
         _isLoading = false;
       });
@@ -93,9 +145,11 @@ class _OrderListPageState extends State<OrderListPage> {
       final ordersPage = await _orderService.fetchOrders(widget.isSellOrders,
           orderStatusChoice, _currentPage + 1, _pageSize, context);
 
+      Provider.of<OrderProvider>(context, listen: false)
+          .addMoreOrders(ordersPage.content);
+
       setState(() {
         _currentPage++;
-        _allOrders.addAll(ordersPage.content);
         _hasMore = !ordersPage.last;
         _isLoadingMore = false;
       });
@@ -106,15 +160,17 @@ class _OrderListPageState extends State<OrderListPage> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    orderStatusChoice = widget.orderStatus;
+  void _setupWebSocket() async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    await WebSocketService.getInstance()
+        .then((ws) => ws.initializeWithProvider(orderProvider));
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    List<Order> allOrders =
+        Provider.of<OrderProvider>(context, listen: true).orders;
 
     return Scaffold(
       appBar: AppBar(
@@ -163,9 +219,9 @@ class _OrderListPageState extends State<OrderListPage> {
             ),
           ),
           Expanded(
-              child: _isLoading && _allOrders.isEmpty
+              child: _isLoading && allOrders.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : _allOrders.isEmpty
+                  : allOrders.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -184,49 +240,55 @@ class _OrderListPageState extends State<OrderListPage> {
                           ),
                         )
                       : ListView.builder(
-                          itemCount: _allOrders.length + (_hasMore ? 1 : 0),
+                          itemCount: allOrders.length + (_hasMore ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index < _allOrders.length) {
+                            if (index < allOrders.length) {
                               return Column(
                                 key: PageStorageKey(
-                                    'order_${_allOrders[index].id}'),
-                                children: [OrderItem(order: _allOrders[index])],
-                              );
-                            } else {
-                              return Column(
+                                    'order_${allOrders[index].id}'),
                                 children: [
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(50),
-                                        ),
-                                        backgroundColor: Colors.white10,
-                                      ),
-                                      onPressed: () {
-                                        _isLoadingMore
-                                            ? null
-                                            : _loadMoreOrders();
-                                      },
-                                      child: _isLoadingMore
-                                          ? const CircularProgressIndicator()
-                                          : Text(
-                                              "show_more".tr(),
-                                              style: textTheme.titleSmall!
-                                                  .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                            ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 30,
-                                  )
+                                  OrderItem(
+                                      key: ValueKey(allOrders[index].id),
+                                      order: allOrders[index])
                                 ],
                               );
+                            } else {
+                              if (!_initialized) {
+                                return Column(
+                                  children: [
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 48,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(50),
+                                          ),
+                                          backgroundColor: Colors.white10,
+                                        ),
+                                        onPressed: () {
+                                          _isLoadingMore
+                                              ? null
+                                              : _loadMoreOrders();
+                                        },
+                                        child: _isLoadingMore
+                                            ? const CircularProgressIndicator()
+                                            : Text(
+                                                "show_more".tr(),
+                                                style: textTheme.titleSmall!
+                                                    .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                              ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 30,
+                                    )
+                                  ],
+                                );
+                              }
                             }
                           },
                         ))
@@ -240,7 +302,7 @@ class _OrderListPageState extends State<OrderListPage> {
     final statusList = isSellOrders ? sellChoice : buyChoice;
     int number = 0;
 
-    final provider = Provider.of<OrderCounterProvider>(context, listen: true);
+    final provider = Provider.of<OrderProvider>(context, listen: true);
 
     if (isSellOrders) {
       switch (orderStatus) {
@@ -286,10 +348,9 @@ class _OrderListPageState extends State<OrderListPage> {
     return Builder(
       builder: (contextButton) => TextButton(
         onPressed: () {
-          setState(() {
-            orderStatusChoice = orderStatus;
-            _loadInitialOrders();
-          });
+          _initialized = false;
+          orderStatusChoice = orderStatus;
+          _loadInitialOrders();
 
           Scrollable.ensureVisible(
             contextButton,

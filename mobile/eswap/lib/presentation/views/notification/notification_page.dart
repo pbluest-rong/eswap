@@ -52,8 +52,6 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackBar(
-          context, 'Error loading notifications: ${e.toString()}');
     }
   }
 
@@ -78,8 +76,6 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(
-          context, 'Error loading more notifications: ${e.toString()}');
     }
   }
 

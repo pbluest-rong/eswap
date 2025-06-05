@@ -19,12 +19,6 @@ public class ChangeInfoRequest {
     private String lastname;
     @NotNull(message = "Date of birth is mandatory")
     private LocalDate dob;
-    @NotNull(message = "Gender is mandatory")
     private Boolean gender;
     private String address;
-    // +81 90 1234 5678
-    // +1 202 555 0125
-    // +84901234567
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
-    private String phoneNumber;
 }

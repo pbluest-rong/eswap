@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:eswap/main.dart';
 import 'package:eswap/model/order.dart';
+import 'package:eswap/presentation/views/order/detail_order_item.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,39 +25,68 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
   String? _errorMessage;
-  StreamSubscription<String>? depositOrderStream;
+  StreamSubscription<String>? orderStream;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _setupWebSocket();
   }
 
   @override
   void dispose() {
-    depositOrderStream?.cancel();
+    orderStream?.cancel();
     super.dispose();
   }
 
   void _setupWebSocket() async {
     WebSocketService.getInstance().then((ws) {
-      depositOrderStream = ws.depositOrderStream.listen((data) {
+      orderStream = ws.orderStream.listen((data) {
         if (!mounted) return;
         final order = Order.fromJson(json.decode(data));
+
+        Provider.of<OrderProvider>(context, listen: false).addOrder(order);
+
         if (order.id == widget.orderCreation.order.id) {
-          AppAlert.show(
+          if (order.status == OrderStatus.DEPOSITED.name) {
+            AppAlert.show(
               context: context,
-              title: "Đặt cọc thành công",
-              buttonLayout: AlertButtonLayout.single,
+              title: 'Đặt cọc thành công',
+              buttonLayout: AlertButtonLayout.dual,
               actions: [
                 AlertAction(
-                    text: "OK",
+                    text: 'Quay lại',
+                    handler: () {
+                      Navigator.pop(context);
+                    }),
+                AlertAction(
+                    text: 'Xem chi tiết',
                     handler: () {
                       Navigator.pop(context);
                       Navigator.pop(context);
-                    })
-              ]);
+                      navigatorKey.currentState?.push(
+                        MaterialPageRoute(
+                            builder: (_) => DetailOrderItem(
+                                  orderId: order.id,
+                                )),
+                      );
+                    }),
+              ],
+            );
+          } else {
+            AppAlert.show(
+                context: context,
+                title: "Vui lòng thử lại sau",
+                buttonLayout: AlertButtonLayout.single,
+                actions: [
+                  AlertAction(
+                      text: "OK",
+                      handler: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      })
+                ]);
+          }
         }
       });
     });

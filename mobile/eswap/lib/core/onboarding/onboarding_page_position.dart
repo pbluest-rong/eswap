@@ -6,11 +6,11 @@ extension OnboardingPagePosition on OnBoardingPagePosition {
   String onboardingPageImage() {
     switch (this) {
       case OnBoardingPagePosition.page1:
-        return "assets/images/onboarding_1.png";
+        return "assets/images/onboarding_1.jpg";
       case OnBoardingPagePosition.page2:
-        return "assets/images/onboarding_2.png";
+        return "assets/images/onboarding_2.jpg";
       case OnBoardingPagePosition.page3:
-        return "assets/images/onboarding_3.png";
+        return "assets/images/onboarding_3.jpg";
     }
   }
 

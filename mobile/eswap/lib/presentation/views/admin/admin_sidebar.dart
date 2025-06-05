@@ -1,3 +1,4 @@
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:flutter/material.dart';
 
 class AdminSidebar extends StatelessWidget {
@@ -14,7 +15,24 @@ class AdminSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildHeader(context),
+        FutureBuilder<UserSession?>(
+          future: UserSession.load(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              );
+            } else if (snapshot.hasError || !snapshot.hasData) {
+              return const ListTile(
+                title: Text("Không thể tải thông tin người dùng"),
+              );
+            } else {
+              final userSession = snapshot.data!;
+              return _buildHeader(context, userSession);
+            }
+          },
+        ),
         const SizedBox(height: 10),
         const Divider(height: 1),
         Expanded(
@@ -42,18 +60,18 @@ class AdminSidebar extends StatelessWidget {
                 _buildMenuItem(
                   context,
                   index: 3,
-                  icon: Icons.report,
-                  title: 'Báo cáo',
+                  icon: Icons.currency_exchange,
+                  title: 'Giải ngân',
                 ),
+                // _buildMenuItem(
+                //   context,
+                //   index: 4,
+                //   icon: Icons.report,
+                //   title: 'Xử lý báo cáo',
+                // ),
                 _buildMenuItem(
                   context,
                   index: 4,
-                  icon: Icons.manage_history,
-                  title: 'Lịch sử hệ thống',
-                ),
-                _buildMenuItem(
-                  context,
-                  index: 5,
                   icon: Icons.settings,
                   title: 'Cài đặt',
                 ),
@@ -66,7 +84,7 @@ class AdminSidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, UserSession userSession) {
     return Container(
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -90,13 +108,13 @@ class AdminSidebar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Ba Phung Le',
+                "${userSession.firstName} ${userSession.lastName}",
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               Text(
-                'admin@example.com',
+                userSession.username,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],

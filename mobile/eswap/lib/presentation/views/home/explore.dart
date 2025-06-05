@@ -116,7 +116,6 @@ class _ExplorePageState extends State<ExplorePage>
         setState(() {
           _isLoading = false;
         });
-        showErrorSnackBar(context, 'Error loading posts: ${e.toString()}');
       }
     }
   }
@@ -128,7 +127,8 @@ class _ExplorePageState extends State<ExplorePage>
       setState(() {
         _firstSearchUsers = [];
       });
-      final pageUsers = await _userService.fetchSearchUser(kw, 0, 3, context);
+      final pageUsers =
+          await _userService.fetchSearchUser(kw, 0, 3, null, context);
       setState(() {
         _firstSearchUsers = pageUsers.content;
       });
@@ -228,7 +228,6 @@ class _ExplorePageState extends State<ExplorePage>
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 
@@ -267,8 +266,10 @@ class _ExplorePageState extends State<ExplorePage>
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         barrierColor: Colors.transparent,
-        builder: (context) =>
-            EnhancedDraggableSheet(child: InstitutionSelectionDialog()));
+        builder: (context) => EnhancedDraggableSheet(
+                child: InstitutionSelectionDialog(
+              isNationwide: true,
+            )));
     if (result != null) {
       final isNationwide = result['isNationwide'] as bool;
       bool isReset = false;
@@ -672,9 +673,8 @@ class _ExplorePageState extends State<ExplorePage>
                     Text(
                       "filter_store".tr(),
                       style: textTheme.titleSmall!.copyWith(
-                        color: _isOnlyStore ? AppColors.lightSecondary : null,
-                        fontWeight: FontWeight.bold
-                      ),
+                          color: _isOnlyStore ? AppColors.lightSecondary : null,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -725,7 +725,6 @@ class _ExplorePageState extends State<ExplorePage>
                               SearchUserList(keyword: kw))).then((value) {
                     _loadInitialPosts();
                   });
-                  ;
                 }
               },
               child: Text(

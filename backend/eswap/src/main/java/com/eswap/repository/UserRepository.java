@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -35,4 +36,9 @@ public interface UserRepository extends JpaRepository<User, Long>, UserRepositor
 
     @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
     Page<User> getUsers(Pageable pageable);
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.role.name=com.eswap.common.constants.RoleType.STORE
+            """)
+    List<User> getStores();
 }

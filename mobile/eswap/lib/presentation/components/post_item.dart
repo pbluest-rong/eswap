@@ -10,7 +10,6 @@ import 'package:eswap/presentation/components/user_item.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
-import 'package:eswap/service/chat_service.dart';
 import 'package:eswap/service/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper_view/flutter_swiper_view.dart';
@@ -21,12 +20,15 @@ class PostItem extends StatefulWidget {
   final Post post;
   final bool isGridView;
   final bool isStandalone;
+  final bool editEnable;
 
-  PostItem(
-      {super.key,
-      required this.post,
-      this.isGridView = false,
-      this.isStandalone = false});
+  PostItem({
+    super.key,
+    required this.post,
+    this.isGridView = false,
+    this.isStandalone = false,
+    this.editEnable = false,
+  });
 
   @override
   State<PostItem> createState() => _PostItemState();
@@ -83,7 +85,14 @@ class _PostItemState extends State<PostItem> {
           onTap: () {
             navigatorKey.currentState?.push(
               MaterialPageRoute(
-                  builder: (_) => StandalonePost(postId: _post.id)),
+                  builder: (_) => StandalonePost(
+                        postId: _post.id,
+                        editEnable: widget.editEnable,
+                        customerId: _post.customerId,
+                        customerFirstname: _post.customerFirstname,
+                        customerLastname: _post.customerLastname,
+                        customerAvtUrl: _post.customerAvtUrl,
+                      )),
             );
           },
           child: _buildPostItemHorizontal(_post, context));
@@ -151,7 +160,6 @@ class _PostItemState extends State<PostItem> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
               ],
             ),
           ),

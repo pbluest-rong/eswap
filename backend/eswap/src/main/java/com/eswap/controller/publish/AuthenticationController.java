@@ -2,12 +2,15 @@ package com.eswap.controller.publish;
 
 import com.eswap.common.ApiResponse;
 import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.constants.FollowStatus;
 import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.common.security.JwtService;
+import com.eswap.model.Follow;
 import com.eswap.repository.UserRepository;
 import com.eswap.request.*;
 import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.OTPResponse;
+import com.eswap.response.UserResponse;
 import com.eswap.service.OTPService;
 import com.eswap.model.User;
 import com.eswap.service.AuthenticationService;
@@ -33,6 +36,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final OTPService otpService;
     private final UserRepository userRepository;
+
     @PostMapping("/require-activate")
     public ResponseEntity<ApiResponse> requireActivateEmail(
             @RequestParam
@@ -41,6 +45,12 @@ public class AuthenticationController {
         return ResponseEntity.ok(new ApiResponse(true, "Activation email sent successfully.", otpResponse));
     }
 
+    @GetMapping("/stores")
+    public ResponseEntity<ApiResponse> getStore() {
+        List<User> stores = userRepository.getStores();
+        List<UserResponse> usersResponse = stores.stream().map(u -> UserResponse.mapperToUserResponse(u, null, false, false)).toList();
+        return ResponseEntity.ok(new ApiResponse(true, "Store list retrieved successfully.", usersResponse));
+    }
 
     @PostMapping("/register-email")
     public ResponseEntity<ApiResponse> register(@RequestBody @Valid ResgistrationRequest request) {
@@ -80,8 +90,9 @@ public class AuthenticationController {
     }
 
     @PostMapping("/verify-forgotpw")
-    public ResponseEntity<ApiResponse> verifyForgotPw(@RequestBody VerifyForgotPassword verifyForgotPassword) {
-        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(verifyForgotPassword.getEmailPhoneNumber(), verifyForgotPassword.getOtp());
+    public ResponseEntity<ApiResponse> verifyForgotPw(@RequestHeader(value = "Authorization", required = false) String token,
+                                                      @RequestBody VerifyForgotPassword verifyForgotPassword) {
+        AuthenticationResponse authenticationResponse = authenticationService.verifyForgotPw(token, verifyForgotPassword.getEmailPhoneNumber(), verifyForgotPassword.getOtp());
         return ResponseEntity.ok(new ApiResponse(true, "OTP verified successfully.", authenticationResponse));
     }
 

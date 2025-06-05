@@ -4,10 +4,12 @@ import 'package:eswap/model/post_media_model.dart';
 
 class Post {
   final int userId;
+  final String role;
   final String firstname;
   final String lastname;
   final String? avtUrl;
   String? followStatus;
+  bool waitingAcceptFollow;
 
   final int id;
   final int educationInstitutionId;
@@ -21,15 +23,21 @@ class Post {
   final int sold;
   final String status;
   final String privacy;
-  final String availableTime;
   final String condition;
   final String createdAt;
   final List<PostMedia> media;
   int likesCount;
   bool liked;
 
+  int? customerId;
+  String? customerFirstname;
+  String? customerLastname;
+  String? customerAvtUrl;
+
   Post(
       {required this.userId,
+      required this.waitingAcceptFollow,
+      required this.role,
       required this.firstname,
       required this.lastname,
       required this.avtUrl,
@@ -46,17 +54,22 @@ class Post {
       required this.sold,
       required this.status,
       required this.privacy,
-      required this.availableTime,
       required this.condition,
       required this.createdAt,
       required this.media,
       required this.likesCount,
-      required this.liked
-      });
+      required this.liked,
+      this.customerId,
+      this.customerFirstname,
+      this.customerLastname,
+      this.customerAvtUrl});
 
   factory Post.fromJson(Map<String, dynamic> json) {
+    print(json);
     return Post(
       userId: json['userId'],
+      waitingAcceptFollow: json['waitingAcceptFollow'],
+      role: json['role'],
       firstname: json['firstname'],
       lastname: json['lastname'],
       avtUrl: json['avtUrl'],
@@ -75,7 +88,6 @@ class Post {
       sold: json['sold'],
       status: json['status'],
       privacy: json['privacy'],
-      availableTime: json['availableTime'],
       condition: json['condition'],
       createdAt: json['createdAt'],
       media: (json['media'] as List<dynamic>)
@@ -83,6 +95,10 @@ class Post {
           .toList(),
       likesCount: json['likesCount'],
       liked: json['liked'],
+      customerId: json['customerId'],
+      customerFirstname: json['customerFirstname'],
+      customerLastname: json['customerLastname'],
+      customerAvtUrl: json['customerAvtUrl'],
     );
   }
 }

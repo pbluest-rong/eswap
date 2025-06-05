@@ -31,8 +31,8 @@ public class EducationInstitution {
     @JsonIgnore
     private InstitutionType institutionType;
 
-    @OneToMany(mappedBy = "educationInstitution", fetch = FetchType.LAZY,
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH, CascadeType.REFRESH})
-    @JsonIgnore
-    private List<User> users;
+//    @OneToMany(mappedBy = "educationInstitution", fetch = FetchType.LAZY,
+//            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH, CascadeType.REFRESH})
+//    @JsonIgnore
+//    private List<User> users;
 }

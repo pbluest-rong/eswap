@@ -53,7 +53,7 @@ class _SignUpEmailPhoneNumberPageState
       if (response.statusCode == 200 && response.data["success"] == true) {
         final bool isExist = response.data["data"]["isExist"];
         if (isExist) {
-          showErrorDialog(
+          showNotificationDialog(
               context,
               "error_exist".tr(args: [
                 provider.isPhoneNumber ? "phone_number".tr() : "email".tr()
@@ -67,10 +67,10 @@ class _SignUpEmailPhoneNumberPageState
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
+        showNotificationDialog(
             context, e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
+        showNotificationDialog(context, "network_error".tr());
       }
     } finally {
       LoadingOverlay.hide();

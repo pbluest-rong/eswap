@@ -1,7 +1,6 @@
 package com.eswap.websocket;
 
 import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.exception.InvalidCredentialsException;
 import com.eswap.common.exception.InvalidTokenException;
 import com.eswap.common.security.JwtService;
 import lombok.RequiredArgsConstructor;

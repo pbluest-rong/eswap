@@ -8,6 +8,7 @@ import 'package:eswap/presentation/components/follow_button.dart';
 import 'package:eswap/presentation/components/pick_media.dart';
 import 'package:eswap/presentation/components/post_item.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/search/search_user_list.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/post_service.dart';
 import 'package:eswap/service/user_service.dart';
@@ -16,8 +17,9 @@ import 'package:shimmer/shimmer.dart';
 
 class DetailUserPage extends StatefulWidget {
   final int userId;
+  bool isAdmin;
 
-  const DetailUserPage({super.key, required this.userId});
+  DetailUserPage({super.key, required this.userId, this.isAdmin = false});
 
   @override
   State<DetailUserPage> createState() => _DetailUserPageState();
@@ -261,8 +263,8 @@ class _DetailUserPageState extends State<DetailUserPage> {
               child: _buildUserInfo(_user!),
             ),
           ),
-          _buildPostsSection(),
-          _buildPostGrid(),
+          if (!widget.isAdmin) _buildPostsSection(),
+          if (!widget.isAdmin) _buildPostGrid(),
           if (_hasMore && _allPosts.isNotEmpty) _buildShowMoreButtonSliver(),
         ],
       ),
@@ -463,8 +465,38 @@ class _DetailUserPageState extends State<DetailUserPage> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem(user.postCount.toString(), 'posts'.tr()),
-        _buildStatItem(user.followerCount.toString(), 'followers'.tr()),
-        _buildStatItem(user.followingCount.toString(), 'following'.tr()),
+        GestureDetector(
+            onTap: () {
+              if (_isMe) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SearchUserList(
+                              keyword: null,
+                              isGetFollowersOrFollowing: true,
+                            ))).then((value) {
+                  _loadInitialPosts();
+                });
+              }
+            },
+            child: _buildStatItem(
+                user.followerCount.toString(), 'followers'.tr())),
+        GestureDetector(
+            onTap: () {
+              if (_isMe) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SearchUserList(
+                              keyword: null,
+                              isGetFollowersOrFollowing: false,
+                            ))).then((value) {
+                  _loadInitialPosts();
+                });
+              }
+            },
+            child: _buildStatItem(
+                user.followingCount.toString(), 'following'.tr())),
       ],
     );
   }
@@ -490,49 +522,57 @@ class _DetailUserPageState extends State<DetailUserPage> {
     );
   }
 
-  Widget _buildActionButtons(UserInfomation user) {
-    if (_isMe) {
-      return Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => _navigateToEditProfile(),
-              child: Text('edit_profile'.tr()),
-            ),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton(
-            onPressed: () => _shareProfile(),
-            child: Text('share'.tr()),
-          ),
-        ],
+  _buildActionButtons(UserInfomation user) {
+    // if (_isMe) {
+    //   return Row(
+    //     children: [
+    //       Expanded(
+    //         child: OutlinedButton(
+    //           onPressed: () => _navigateToEditProfile(),
+    //           child: Text('edit_profile'.tr()),
+    //         ),
+    //       ),
+    //       const SizedBox(width: 8),
+    //       OutlinedButton(
+    //         onPressed: () => _shareProfile(),
+    //         child: Text('share'.tr()),
+    //       ),
+    //     ],
+    //   );
+    // }
+    if (!_isMe && !widget.isAdmin) {
+      return FollowButton(
+        followStatus: FollowStatus.fromString(user.followStatus!),
+        waitingAcceptFollow: user.waitingAcceptFollow,
+        otherUserId: user.id,
+        bigSize: true,
       );
     }
-
-    return FollowButton(
-      followStatus: FollowStatus.fromString(user.followStatus!),
-      otherUserId: user.id,
-      bigSize: true,
-    );
   }
 
   Widget _buildUserDetails(UserInfomation user) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (user.educationInstitutionName != null)
+        if (user.role == 'USER' && user.educationInstitutionName != null)
           _buildDetailRow(
             Icons.location_on_outlined,
             'location'.tr(),
             user.educationInstitutionName!,
           ),
-        _buildDetailRow(
-          Icons.calendar_month,
-          'joined'.tr(),
-          DateFormat('dd/MM/yyyy')
-              .format(DateTime.parse(user.createdAt!).toLocal()),
-        ),
-        if (user.gender != null)
+        if (user.role == 'STORE' && user.address != null)
+          Text(
+            user.address!,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        if (user.role == 'USER' && user.createdAt! != null)
+          _buildDetailRow(
+            Icons.calendar_month,
+            'joined'.tr(),
+            DateFormat('dd/MM/yyyy')
+                .format(DateTime.parse(user.createdAt!).toLocal()),
+          ),
+        if (user.role == 'USER' && user.gender != null)
           _buildDetailRow(
             user.gender! ? Icons.male : Icons.female,
             'gender'.tr(),
@@ -545,11 +585,12 @@ class _DetailUserPageState extends State<DetailUserPage> {
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
         children: [
           Icon(icon, size: 20, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text('$label: '),
+          Text('$label:'),
           Text(
             value,
             style: const TextStyle(fontWeight: FontWeight.w500),

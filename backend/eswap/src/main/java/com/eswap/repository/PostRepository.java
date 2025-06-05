@@ -67,7 +67,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
                 SELECT p FROM Post p
                             WHERE p.status!=com.eswap.common.constants.PostStatus.DELETED
-                              AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
+                              AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.STORE)
                               AND p.user != :user
                                AND p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                AND (p.user in(
@@ -114,7 +114,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                         WHERE p.educationInstitution = :educationInstitution 
                                     AND p.user != :user
                                     AND p.status!=com.eswap.common.constants.PostStatus.DELETED
-                                    AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
+                                    AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.STORE)
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                         OR p.user in(
@@ -204,7 +204,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                         WHERE p.educationInstitution.province = :province 
                                     AND p.user != :user
                                     AND p.status!=com.eswap.common.constants.PostStatus.DELETED
-                                    AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.SHOP)
+                                    AND (:isOnlyShop = false OR p.user.role.name = com.eswap.common.constants.RoleType.STORE)
                                     AND p.status=com.eswap.common.constants.PostStatus.PUBLISHED
                                     AND (p.privacy=com.eswap.common.constants.Privacy.PUBLIC
                                         OR p.user in(
@@ -287,4 +287,41 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("word5") String word5,
             Pageable pageable
     );
+
+
+    @Query("""
+            SELECT p FROM Post p
+                        WHERE p.user = :store
+                           AND p.status = com.eswap.common.constants.PostStatus.PENDING
+            """)
+    Page<Post> getPendingPosts(@Param("store") User store, Pageable pageable);
+
+    @Query("""
+            SELECT p FROM Post p
+                        WHERE p.user = :store
+                           AND p.status = com.eswap.common.constants.PostStatus.PUBLISHED
+            """)
+    Page<Post> getAcceptedPosts(@Param("store") User store, Pageable pageable);
+
+    @Query("""
+            SELECT p FROM Post p
+                        WHERE p.user = :store
+                           AND p.status = com.eswap.common.constants.PostStatus.REJECTED
+            """)
+    Page<Post> getRejectedPosts(@Param("store") User store, Pageable pageable);
+
+
+    @Query("""
+            SELECT p FROM Post p
+                WHERE p.storeCustomer.id = :customerId
+            """)
+    Page<Post> getStorePostsForCustomer(@Param("customerId") long customerId, Pageable pageable);
+
+    @Query("""
+            SELECT p FROM Post p
+                        WHERE p.id = :postId
+                        AND p.user = :store
+                        AND p.status = com.eswap.common.constants.PostStatus.PENDING
+            """)
+    Optional<Post> findPendingPostByIdAndStore(@Param("postId") long postId,@Param("store") User store);
 }

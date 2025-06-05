@@ -68,7 +68,7 @@ class OnboardingChildPage extends StatelessWidget {
       onBoardingPagePosition.onboardingPageImage(),
       height: 250,
       width: double.infinity,
-      fit: BoxFit.contain,
+      fit: BoxFit.fitHeight,
     );
   }
 

@@ -6,6 +6,7 @@ import com.eswap.model.*;
 import com.eswap.repository.*;
 import com.eswap.response.AuthenticationResponse;
 import com.eswap.response.FollowResponse;
+import com.eswap.response.UserBalanceResponse;
 import com.eswap.response.UserResponse;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
@@ -30,15 +31,17 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final BlockRepository blockRepository;
     private final FollowRepository followRepository;
     private final NotificationService notificationService;
     private final PostRepository postRepository;
     private final UploadService uploadService;
-
+    private final EducationInstitutionRepository educationInstitutionRepository;
 
     public AuthenticationResponse getLoginInfo(Authentication auth) {
         User user = (User) auth.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         String educationInstitutionName = user.getEducationInstitution().getName();
         return AuthenticationResponse.builder()
                 .userId(user.getId())
@@ -51,35 +54,30 @@ public class UserService {
      * 1. khóa tài khoản
      *
      * @param connectedUser
-     * @param userEmail
      */
-    public void lockedUserByAdmin(Authentication connectedUser, String userEmail) {
+    public void lockedUserByAdmin(Authentication connectedUser, long id) {
         User admin = (User) connectedUser.getPrincipal();
 
         if (!RoleType.ADMIN.equals(admin.getRole().getName())) {
             throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
 
-        User targetUser = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
-
+        User targetUser = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", id));
         targetUser.setAccountLocked(true);
         userRepository.save(targetUser);
     }
 
     /**
      * 2. Mở khóa tài khoản
-     *
-     * @param connectedUser
-     * @param userEmail
      */
-    public void unLockedUserByAdmin(Authentication connectedUser, String userEmail) {
+    public void unLockedUserByAdmin(Authentication connectedUser, long id) {
         User admin = (User) connectedUser.getPrincipal();
 
         if (!RoleType.ADMIN.equals(admin.getRole().getName())) {
             throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
         }
 
-        User targetUser = userRepository.findByEmail(userEmail).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "email", userEmail));
+        User targetUser = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", id));
 
         targetUser.setAccountLocked(false);
         userRepository.save(targetUser);
@@ -92,6 +90,9 @@ public class UserService {
      */
     public void enableAccount(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         user.setEnabled(true);
         userRepository.save(user);
     }
@@ -103,6 +104,9 @@ public class UserService {
      */
     public void disableAccount(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         user.setEnabled(false);
         userRepository.save(user);
     }
@@ -112,6 +116,9 @@ public class UserService {
      */
     public void changePassword(Authentication connectedUser, ChangePasswordRequest request) {
 //        User user = (User) connectedUser.getPrincipal();
+//        if (!user.isEnabled() || user.isAccountLocked()) {
+//            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+//        }
 //        if (user.isEnabled() && user.isAccountNonLocked()) {
 //            Optional<OTP> optionalToken = tokenRepository.findByUserEmail(user.getEmail());
 //            if (optionalToken.isPresent() &&
@@ -129,8 +136,11 @@ public class UserService {
     /**
      * 6. Thay đổi thông tin: Tên, ngày sinh, địa chỉ, số điện thoại, giới tính
      */
-    public User changeInformation(Authentication connectedUser, ChangeInfoRequest request) {
+    public UserResponse changeInformation(Authentication connectedUser, ChangeInfoRequest request) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         if (user.isEnabled() && user.isAccountNonLocked()) {
             if (user.getFirstName() != request.getFirstname()) user.setFirstName(request.getFirstname());
             if (user.getLastName() != request.getLastname()) user.setLastName(request.getLastname());
@@ -138,9 +148,8 @@ public class UserService {
             if (user.getGender() != request.getGender()) user.setGender(request.getGender());
             if (user.getAddress() == null || user.getAddress() != request.getAddress())
                 user.setAddress(request.getAddress());
-            if (user.getPhoneNumber() == null || user.getPhoneNumber() != request.getPhoneNumber())
-                user.setPhoneNumber(request.getPhoneNumber());
-            return userRepository.save(user);
+            user = userRepository.save(user);
+            return UserResponse.mapperToUserResponse(user, null, true, false);
         } else {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
@@ -151,6 +160,9 @@ public class UserService {
      */
     public User changeEmail(Authentication connectedUser, ChangeEmailRequest request) {
 //        User user = (User) connectedUser.getPrincipal();
+//        if (!user.isEnabled() || user.isAccountLocked()) {
+//            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+//        }
 //        if (user.isEnabled() && user.isAccountNonLocked()) {
 //            if (user.getEmail() == request.getNewEmail() || userRepository.existsByEmail(request.getNewEmail())) {
 //                throw new AlreadyExistsException(AppErrorCode.USER_EXISTS, "email", request.getNewEmail());
@@ -169,56 +181,13 @@ public class UserService {
     }
 
     /**
-     * 8. Chặn người khác
-     *
-     * @param connectedUser
-     * @param blockedId
-     */
-    public void blockUser(Authentication connectedUser, long blockedId) {
-        User blocker = (User) connectedUser.getPrincipal();
-        User blocked = userRepository.findById(blockedId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", blockedId));
-
-        if (blocker.isEnabled() && blocker.isAccountNonLocked()) {
-            if (!blockRepository.existsByBlockerAndBlocked(blocker, blocked)) {
-                blockRepository.save(Block.builder().blocker(blocker).blocked(blocked).build());
-            }
-        }
-    }
-
-    /**
-     * 9. Bỏ chặn người khác
-     *
-     * @param connectedUser
-     * @param blockedId
-     */
-    public void unblockUser(Authentication connectedUser, long blockedId) {
-        User blocker = (User) connectedUser.getPrincipal();
-        User blocked = userRepository.findById(blockedId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", blockedId));
-
-        if (blocker.isEnabled() && blocker.isAccountNonLocked()) {
-            if (blockRepository.existsByBlockerAndBlocked(blocker, blocked)) {
-                blockRepository.deleteByBlockerAndBlocked(blocker, blocked);
-            }
-        }
-    }
-
-    /**
-     * 10. Kiểm tra có chặn người dùng khác
-     *
-     * @param blockerId
-     * @param blockedId
-     * @return
-     */
-    public boolean isBlocked(long blockerId, long blockedId) {
-        return blockRepository.existsByBlockerIdAndBlockedId(blockerId, blockedId);
-    }
-
-    /**
      * 11. Follow người khác
      */
     public FollowResponse follow(Authentication connectedUser, long followeeUserId) {
         User user = (User) connectedUser.getPrincipal();
-
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         if (!user.isEnabled() || user.isAccountLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
@@ -231,14 +200,17 @@ public class UserService {
         Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), followeeUser.getId());
 
         FollowStatus followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
-        if (followStatus == FollowStatus.FOLLOWED || followStatus == FollowStatus.WAITING) {
+        if (followStatus == FollowStatus.FOLLOWED) {
             throw new AlreadyExistsException(AppErrorCode.FOLLOW_USER_FOLLOWED);
         } else {
             Follow newFollow = Follow.builder().follower(user).followee(followeeUser).waitConfirm(followeeUser.isRequireFollowApproval() ? true : false).build();
 
             newFollow = followRepository.save(newFollow);
 
-            notificationService.createAndPushNotification(newFollow.getFollower().getId(), RecipientType.INDIVIDUAL, NotificationCategory.NEW_FOLLOW, NotificationType.INFORM, newFollow.isWaitConfirm() ? newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " gửi yêu cầu theo dõi bạn" : newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " đã theo dõi bạn", "", null, newFollow.getFollowee().getId());
+            notificationService.createAndPushNotification(newFollow.getFollower().getId(), RecipientType.INDIVIDUAL,
+                    newFollow.isWaitConfirm() ? NotificationCategory.NEW_REQUEST_FOLLOW : NotificationCategory.NEW_FOLLOW,
+                    NotificationType.INFORM,
+                    newFollow.isWaitConfirm() ? newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " gửi yêu cầu theo dõi bạn" : newFollow.getFollower().getFirstName() + " " + newFollow.getFollower().getLastName() + " đã theo dõi bạn", "", null, null, newFollow.getFollowee().getId());
 
             return FollowResponse.builder().id(newFollow.getId()).status(newFollow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED).build();
         }
@@ -250,7 +222,6 @@ public class UserService {
     @Transactional
     public void unfollow(Authentication connectedUser, long followeeUserId) {
         User user = (User) connectedUser.getPrincipal();
-
         if (!user.isEnabled() || user.isAccountLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
@@ -265,9 +236,11 @@ public class UserService {
     /**
      * 14. Confirm follow request
      */
-    public FollowResponse confirmFollow(Authentication connectedUser, long requestFollowUserId) {
+    public FollowResponse acceptFollow(Authentication connectedUser, long requestFollowUserId) {
         User user = (User) connectedUser.getPrincipal();
-
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         if (!user.isEnabled() || !user.isAccountNonLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
@@ -275,9 +248,10 @@ public class UserService {
 
         Follow follow = followRepository.findByFollowerAndFollowee(requestFollowUser, user).orElseThrow(() -> new IllegalStateException("Người này chưa theo dõi bạn mà :))"));
 
-        follow.setWaitConfirm(false);
-
-        followRepository.save(follow);
+        if (follow.isWaitConfirm()) {
+            follow.setWaitConfirm(false);
+            followRepository.save(follow);
+        }
 
         return FollowResponse.builder().id(follow.getId()).status(follow.isWaitConfirm() ? FollowStatus.WAITING : FollowStatus.FOLLOWED).build();
 
@@ -288,6 +262,9 @@ public class UserService {
      */
     public void enableRequireFollowApproval(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         user.setRequireFollowApproval(true);
         userRepository.save(user);
     }
@@ -297,8 +274,28 @@ public class UserService {
      */
     public void disableRequireFollowApproval(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         user.setRequireFollowApproval(true);
         userRepository.save(user);
+    }
+
+
+    public void removeFollow(Authentication connectedUser, long followerUserId) {
+        User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+
+        User followerUser = userRepository.findById(followerUserId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", followerUserId));
+
+        Follow follow = followRepository.findByFollowerAndFollowee(followerUser, user).orElseThrow(() -> new IllegalStateException("Người này không theo dõi bạn!"));
+
+        followRepository.delete(follow);
     }
 
     /**
@@ -306,6 +303,9 @@ public class UserService {
      */
     public String updateAvatar(Authentication connectedUser, MultipartFile file) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         String newAvatarUrl = uploadService.upload(file);
         user.setAvatarUrl(newAvatarUrl);
         user.setLastModified(OffsetDateTime.now());
@@ -315,11 +315,16 @@ public class UserService {
 
     public void deleteAvatar(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         String oldAvatarUrl = user.getAvatarUrl();
-        user.setAvatarUrl(null);
-        user.setLastModified(OffsetDateTime.now());
-        userRepository.save(user);
-        uploadService.deleteByUrl(oldAvatarUrl);
+        if(oldAvatarUrl!=null){
+            user.setAvatarUrl(null);
+            user.setLastModified(OffsetDateTime.now());
+            userRepository.save(user);
+            uploadService.deleteByUrl(oldAvatarUrl);
+        }
     }
 
     public List<User> getFollowers(long userId) {
@@ -327,11 +332,10 @@ public class UserService {
         return followser;
     }
 
-    public PageResponse<UserResponse> findUser(Authentication auth, String keyword, int page, int size) {
+    public PageResponse<UserResponse> findUser(Authentication auth, String keyword, Boolean isGetFollowersOrFollowing, int page, int size) {
         User user = (User) auth.getPrincipal();
-
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> users = userRepository.searchUsersWithPriority(user, keyword, pageable);
+        Page<User> users = userRepository.searchUsersWithPriority(user, keyword, isGetFollowersOrFollowing, pageable);
 
         List<UserResponse> usersResponse = users.stream().map(u -> {
             FollowStatus followStatus;
@@ -342,7 +346,10 @@ public class UserService {
                 followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
             }
 
-            return UserResponse.mapperToUserResponse(u, followStatus, u.getId() == user.getId());
+            Follow followMe = followRepository.getByFollowerIdAndFolloweeId(u.getId(), user.getId());
+            boolean waitingAcceptFollow = followMe != null && followMe.isWaitConfirm();
+
+            return UserResponse.mapperToUserResponse(u, followStatus, u.getId() == user.getId(), waitingAcceptFollow);
         }).collect(Collectors.toList());
         return new PageResponse<>(usersResponse, users.getNumber(), users.getSize(), (int) users.getTotalElements(), users.getTotalPages(), users.isFirst(), users.isLast());
 
@@ -358,20 +365,64 @@ public class UserService {
             Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), findUser.getId());
             followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : ((follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED);
         }
+        Follow followMe = followRepository.getByFollowerIdAndFolloweeId(findUser.getId(), user.getId());
+        boolean waitingAcceptFollow = followMe != null && followMe.isWaitConfirm();
 
         int postCount = postRepository.countPostsByUser(findUser);
-        int followerCount = followRepository.countByFollowee(user);
-        int followeeCount = followRepository.countByFollower(user);
-        UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(), findUser.getCreatedAt().toString(), findUser.getId() == user.getId());
+        int followerCount = followRepository.countFollower(findUser);
+        int followeeCount = followRepository.countFollowee(findUser);
+
+        UserResponse userResponse = UserResponse.mapperToUserResponse(findUser, followStatus, postCount, followerCount, followeeCount, findUser.getGender(),
+                findUser.getCreatedAt().toString(), findUser.getId() == user.getId(), waitingAcceptFollow);
         return userResponse;
     }
 
-    public PageResponse<UserResponse> getUsersForAdmin(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> users = keyword != null ? userRepository.getUsersWithKeyword(keyword, pageable)
-                : userRepository.getUsers(pageable);
+    public PageResponse<UserResponse> getUsersForAdmin(Authentication auth, String keyword, int page, int size) {
+        User user = (User) auth.getPrincipal();
 
-        List<UserResponse> usersResponse = users.stream().map(u -> UserResponse.mapperToUserResponse(u, FollowStatus.UNFOLLOWED, false)).collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userRepository.searchUsersWithPriority(user, keyword, null, pageable);
+
+        List<UserResponse> usersResponse = users.stream().map(u -> UserResponse.mapperToUserResponse(u, null, u.getId() == user.getId(), false)).collect(Collectors.toList());
         return new PageResponse<>(usersResponse, users.getNumber(), users.getSize(), (int) users.getTotalElements(), users.getTotalPages(), users.isFirst(), users.isLast());
+    }
+
+    public UserResponse changeUsername(Authentication auth, String username) {
+        boolean isUsernameExists = userRepository.existsByUsername(username);
+        if (isUsernameExists) {
+            throw new AlreadyExistsException(AppErrorCode.USER_EXISTS, "username", username);
+        }
+        User user = (User) auth.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        user.setUsername(username);
+        user.setLastModified(OffsetDateTime.now());
+        user = userRepository.save(user);
+        return UserResponse.mapperToUserResponse(user, null, true, false);
+    }
+
+    public UserResponse changeName(Authentication auth, String firstName, String lastName) {
+        User user = (User) auth.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setLastModified(OffsetDateTime.now());
+        user = userRepository.save(user);
+        return UserResponse.mapperToUserResponse(user, null, true, false);
+    }
+
+    public UserResponse changeEducationInstitution(Authentication auth, long educationInstitutionId) {
+        EducationInstitution eduInstitution = educationInstitutionRepository.findById(educationInstitutionId).orElseThrow(() -> new IllegalArgumentException("EDUCATION INSTITUTION ID was not initialized"));
+        User user = (User) auth.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        user.setEducationInstitution(eduInstitution);
+        user.setLastModified(OffsetDateTime.now());
+        user = userRepository.save(user);
+        return UserResponse.mapperToUserResponse(user, null, true, false);
     }
 }

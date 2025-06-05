@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -85,6 +86,7 @@ public class AuthenticationService {
                                 .accountLocked(false)
                                 .enabled(true)
                                 .role(userRole)
+                                .createdAt(OffsetDateTime.now())
                                 .build();
                         ;
                         otpRepository.deleteByUsernameEmailPhoneNumber(request.getEmailPhoneNumber());
@@ -188,27 +190,34 @@ public class AuthenticationService {
     /**
      * 4 verify forgot password
      */
-    public AuthenticationResponse verifyForgotPw(String emailPhoneNumber, String otp) {
+    @Transactional
+    public AuthenticationResponse verifyForgotPw(String token, String emailPhoneNumber, String otp) {
         String username;
-        if (User.isValidEmail(emailPhoneNumber)) {
-            System.out.println("email: " + emailPhoneNumber);
+        if (User.isValidPhoneNumber(emailPhoneNumber)) {
+            try {
+                // Lấy ID Token từ header
+                String idToken = token.replace("Bearer ", "");
+                // Xác thực ID Token với Firebase
+                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+                User user = userRepository.findByPhoneNumber(emailPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailPhoneNumber", emailPhoneNumber));
+                username = user.getUsername();
+                String tokenJwt = jwtService.generateTemporaryToken(username);
+                return AuthenticationResponse.builder().accessToken(tokenJwt).build();
+            } catch (Exception e) {
+                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
+            }
+        } else {
             User user = userRepository.findByEmail(emailPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailPhoneNumber", emailPhoneNumber));
             username = user.getUsername();
-        } else if (User.isValidPhoneNumber(emailPhoneNumber)) {
-            System.out.println("phone number: " + emailPhoneNumber);
-            User user = userRepository.findByPhoneNumber(emailPhoneNumber).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "emailPhoneNumber", emailPhoneNumber));
-            username = user.getUsername();
-        } else
-            username = emailPhoneNumber;
-
-        Optional<OTP> optionalOTP = otpRepository.findByUsernameEmailPhoneNumber(emailPhoneNumber);
-        if (optionalOTP.isPresent() &&
-                optionalOTP.get().getExpiresAt().isAfter(LocalDateTime.now()) && otp.equals(optionalOTP.get().getOtp())) {
-            otpRepository.deleteByUsernameEmailPhoneNumber(emailPhoneNumber);
-            String token = jwtService.generateTemporaryToken(username);
-            return AuthenticationResponse.builder().accessToken(token).build();
-        } else {
-            throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
+            Optional<OTP> optionalOTP = otpRepository.findByUsernameEmailPhoneNumber(emailPhoneNumber);
+            if (optionalOTP.isPresent() &&
+                    optionalOTP.get().getExpiresAt().isAfter(LocalDateTime.now()) && otp.equals(optionalOTP.get().getOtp())) {
+                otpRepository.deleteByUsernameEmailPhoneNumber(emailPhoneNumber);
+                String tokenJwt = jwtService.generateTemporaryToken(username);
+                return AuthenticationResponse.builder().accessToken(tokenJwt).build();
+            } else {
+                throw new CodeInvalidException(AppErrorCode.AUTH_INVALID_CODE);
+            }
         }
     }
 
@@ -250,5 +259,4 @@ public class AuthenticationService {
         }
         throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_EXPRIED);
     }
-
 }

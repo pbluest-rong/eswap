@@ -56,7 +56,7 @@ public class MomoService implements PaymentService {
         long amount = order.getDepositAmount().longValue();
         String rawSignature = String.format(
                 "accessKey=%s&amount=%s&extraData=%s&ipnUrl=%s&orderId=%s&orderInfo=%s&partnerCode=%s&redirectUrl=%s&requestId=%s&requestType=%s",
-                ACCESS_KEY, amount, extraDataSafe, IPN_URL, order.getId(), orderInfo, PARTNER_CODE, REDIRECT_URL, requestId, REQUEST_TYPE
+                ACCESS_KEY, amount, extraDataSafe, IPN_URL, order.getPaymentTransactionId(), orderInfo, PARTNER_CODE, REDIRECT_URL, requestId, REQUEST_TYPE
         );
         String prettySignature = "";
         try {
@@ -74,7 +74,7 @@ public class MomoService implements PaymentService {
                 .requestType(REQUEST_TYPE)
                 .ipnUrl(IPN_URL)
                 .redirectUrl(REDIRECT_URL)
-                .orderId(order.getId())
+                .orderId(order.getPaymentTransactionId())
                 .orderInfo(orderInfo)
                 .requestId(requestId)
                 .extraData(extraData)

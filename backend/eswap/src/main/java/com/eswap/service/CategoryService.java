@@ -47,14 +47,6 @@ public class CategoryService {
                 .map(this::convertToResponse);
     }
 
-    public void saveCategory(Category category) {
-        categoryRepository.save(category);
-    }
-
-    public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
-    }
-
     public Set<Long> getAllCategoryIds(List<Long> selectedCategoryIds) {
         Set<Long> allCategoryIds = new HashSet<>();
 

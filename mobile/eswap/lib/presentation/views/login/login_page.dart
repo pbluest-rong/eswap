@@ -33,11 +33,18 @@ class _LoginPageState extends State<LoginPage> {
 
       final dio = Dio();
       String url = ApiEndpoints.login_url;
+
       try {
+        String usernameEmailPhoneNumber = emailController.text;
+        final RegExp phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+        if (phoneRegex.hasMatch(emailController.text)) {
+          usernameEmailPhoneNumber =
+              "+84${emailController.text.startsWith('0') ? emailController.text.substring(1) : emailController.text}";
+        }
         final response = await dio.post(
           url,
           data: {
-            "usernameEmailPhoneNumber": emailController.text,
+            "usernameEmailPhoneNumber": usernameEmailPhoneNumber,
             "password": passwordController.text,
           },
           options: Options(headers: {
@@ -64,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                 fcmToken: fcmToken,
                 username: response.data["data"]["username"],
                 avatarUrl: response.data["data"]["avatarUrl"]);
-            userSession.save();
+            await userSession.save();
 
             int unreadNotificationNumber =
                 response.data["data"]["unreadNotificationNumber"];
@@ -111,14 +118,14 @@ class _LoginPageState extends State<LoginPage> {
             }
           }
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       } on DioException catch (e) {
         if (e.response != null) {
-          showErrorDialog(
+          showNotificationDialog(
               context, e.response?.data["message"] ?? "general_error".tr());
         } else {
-          showErrorDialog(context, "network_error".tr());
+          showNotificationDialog(context, "network_error".tr());
         }
       } finally {
         LoadingOverlay.hide();
@@ -161,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   TextField(
                     decoration: InputDecoration(
-                      labelText: "email".tr(),
+                      labelText: "Email, số điện thoại ${"or".tr()} username",
                     ),
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,

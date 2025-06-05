@@ -8,13 +8,16 @@ import 'package:eswap/presentation/views/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_reset_page.dart';
 import 'package:eswap/presentation/widgets/loading_overlay.dart';
 import 'package:eswap/presentation/views/signup/signup_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class VerifyEmailPage extends StatefulWidget {
-  const VerifyEmailPage({super.key});
+  bool isAccountSettingScreen;
+
+  VerifyEmailPage({super.key, this.isAccountSettingScreen = false});
 
   @override
   State<VerifyEmailPage> createState() => _VerifyEmailPageState();
@@ -123,82 +126,163 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     final url = ApiEndpoints.requireForgotPw_url;
     final emailPhoneNumber =
         Provider.of<ForgotPwProvider>(context, listen: false).emailPhoneNumber;
+    final forgotProvider =
+        Provider.of<ForgotPwProvider>(context, listen: false);
 
     try {
-      final response = await dio.post(
-        url,
-        queryParameters: {"emailPhoneNumber": emailPhoneNumber},
-        options: Options(headers: {
-          "Content-Type": "application/json",
-          "Accept-Language": context.locale.languageCode,
-        }),
-      );
-      if (response.statusCode == 200 && response.data["success"] == true) {
-        final minutes = response.data["data"]["minutes"];
-        Provider.of<ForgotPwProvider>(context, listen: false)
-            .updateOTPMinutes(minutes);
-        setState(() {
-          remainingSeconds = minutes * 60;
-          startCountdown();
-        });
+      if (forgotProvider.isPhoneNumber) {
+        await FirebaseAuth.instance.verifyPhoneNumber(
+          phoneNumber: emailPhoneNumber,
+          timeout: const Duration(seconds: 120),
+          forceResendingToken: forgotProvider.resendToken,
+          // Thêm dòng này
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            if (!mounted) return;
+            LoadingOverlay.hide();
+            UserCredential userCredential =
+                await FirebaseAuth.instance.signInWithCredential(credential);
+            String? idToken = await userCredential.user!.getIdToken();
+            forgotProvider.updateFirebaseToken(idToken!);
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            if (!mounted) return;
+            LoadingOverlay.hide();
+            showNotificationDialog(context, e.message ?? "Lỗi xác thực");
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            if (!mounted) return;
+            LoadingOverlay.hide();
+            forgotProvider.updateSavedVerificationId(verificationId);
+            forgotProvider.updateResendToken(resendToken);
+            forgotProvider.updateOTPMinutes(2);
+            setState(() {
+              remainingSeconds = 2 * 60;
+              startCountdown();
+            });
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {
+            if (!mounted) return;
+            LoadingOverlay.hide();
+          },
+        );
       } else {
-        showErrorDialog(context, response.data["message"]);
+        final response = await dio.post(
+          url,
+          queryParameters: {"emailPhoneNumber": emailPhoneNumber},
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": context.locale.languageCode,
+          }),
+        );
+        if (response.statusCode == 200 && response.data["success"] == true) {
+          final minutes = response.data["data"]["minutes"];
+          Provider.of<ForgotPwProvider>(context, listen: false)
+              .updateOTPMinutes(minutes);
+          setState(() {
+            remainingSeconds = minutes * 60;
+            startCountdown();
+          });
+        } else {
+          showNotificationDialog(context, response.data["message"]);
+        }
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
+        showNotificationDialog(
             context, e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
+        showNotificationDialog(context, "network_error".tr());
       }
     }
   }
 
   Future<void> verifyForgotPw() async {
-    final otp = getOtpCode();
-    if (otp.isEmpty) {
-      showErrorDialog(context, "alert_null_value".tr(args: ["OTP"]));
-      return;
-    }
-
     if (!mounted) return;
     LoadingOverlay.show(context);
 
+    final otp = getOtpCode();
+    if (otp.isEmpty) {
+      showNotificationDialog(context, "alert_null_value".tr(args: ["OTP"]));
+      return;
+    }
+
     final dio = Dio();
-    final url = ApiEndpoints.verifyForgotpw_url;
-
+    final forgotProvider =
+        Provider.of<ForgotPwProvider>(context, listen: false);
+    final emailPhoneNumber =
+        Provider.of<ForgotPwProvider>(context, listen: false).emailPhoneNumber;
     try {
-      final emailPhoneNumber =
-          Provider.of<ForgotPwProvider>(context, listen: false)
-              .emailPhoneNumber;
-
-      final response = await dio.post(
-        url,
-        data: {"emailPhoneNumber": emailPhoneNumber, "otp": otp},
-        options: Options(headers: {
-          "Content-Type": "application/json",
-          "Accept-Language": context.locale.languageCode,
-        }),
-      );
-      if (response.statusCode == 200 && response.data["success"] == true) {
-        if (mounted) {
-          final token = response.data["data"]["accessToken"];
-          Provider.of<ForgotPwProvider>(context, listen: false)
-              .updateToken(token);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ResetPasswordPage()),
-          );
+      if (forgotProvider.isPhoneNumber) {
+        final url = ApiEndpoints.verifyForgotpw_url;
+        final verificationId =
+            Provider.of<ForgotPwProvider>(context, listen: false)
+                .savedVerificationId;
+        final credential = PhoneAuthProvider.credential(
+          verificationId: verificationId!,
+          smsCode: getOtpCode(),
+        );
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+        String? idToken = await userCredential.user!.getIdToken();
+        Provider.of<ForgotPwProvider>(context, listen: false)
+            .updateFirebaseToken(idToken!);
+        final response = await dio.post(
+          url,
+          data: {"emailPhoneNumber": emailPhoneNumber, "otp": otp},
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $idToken',
+            },
+          ),
+        );
+        if (response.statusCode == 200 && response.data["success"] == true) {
+          if (mounted) {
+            final token = response.data["data"]["accessToken"];
+            Provider.of<ForgotPwProvider>(context, listen: false)
+                .updateToken(token);
+            print(token);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => ResetPasswordPage(
+                        isAccountSettingScreen: widget.isAccountSettingScreen,
+                      )),
+            );
+          }
+        } else {
+          showNotificationDialog(context, response.data["message"]);
         }
       } else {
-        showErrorDialog(context, response.data["message"]);
+        final url = ApiEndpoints.verifyForgotpw_url;
+        final response = await dio.post(
+          url,
+          data: {"emailPhoneNumber": emailPhoneNumber, "otp": otp},
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": context.locale.languageCode,
+          }),
+        );
+        if (response.statusCode == 200 && response.data["success"] == true) {
+          if (mounted) {
+            final token = response.data["data"]["accessToken"];
+            Provider.of<ForgotPwProvider>(context, listen: false)
+                .updateToken(token);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ResetPasswordPage()),
+            );
+          }
+        } else {
+          showNotificationDialog(context, response.data["message"]);
+        }
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
+        showNotificationDialog(
             context, e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
+        showNotificationDialog(context, "network_error".tr());
       }
     } finally {
       LoadingOverlay.hide();

@@ -18,25 +18,48 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
     private EntityManager entityManager;
 
     @Override
-    public Page<User> searchUsersWithPriority(User currentUser, String keyword, Pageable pageable) {
+    public Page<User> searchUsersWithPriority(User currentUser, String keyword, Boolean isGetFollowersOrFollowing, Pageable pageable) {
         String baseQuery = """
-        FROM User u
-        LEFT JOIN Follow f1 ON f1.follower = :currentUser AND f1.followee = u
-        LEFT JOIN Follow f2 ON f2.follower = u AND f2.followee = :currentUser
-        WHERE u.username = :keyword
-           OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-           OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    """;
+                    FROM User u
+                    LEFT JOIN Follow f1 ON f1.follower = :currentUser AND f1.followee = u
+                    LEFT JOIN Follow f2 ON f2.follower = u AND f2.followee = :currentUser
+                    WHERE  u.role.name != com.eswap.common.constants.RoleType.ADMIN
+                         AND (u.username = :keyword
+                         OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                         OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                       
+                """;
 
-        String selectQuery = "SELECT u " + baseQuery + """
-        ORDER BY
-          CASE WHEN u.username = :keyword THEN 1 ELSE 0 END DESC,
-          CASE WHEN f1.id IS NOT NULL OR f2.id IS NOT NULL THEN 1 ELSE 0 END DESC,
-          u.firstName ASC
-    """;
+        // Xử lý điều kiện tìm kiếm keyword
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            baseQuery += " AND (u.username = :keyword " +
+                    "OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))";
+        }
+//        // Thêm điều kiện lọc theo follower/following
+        if (isGetFollowersOrFollowing != null) {
+            if (isGetFollowersOrFollowing) {
+                baseQuery += " AND EXISTS (SELECT 1 FROM Follow f WHERE f.followee = :currentUser AND f.follower = u)";
+            } else {
+                baseQuery += " AND EXISTS (SELECT 1 FROM Follow f WHERE f.follower = :currentUser AND f.followee = u)";
+            }
+        }
+
+        String selectQuery = "SELECT u " + baseQuery.toString() + """
+                ORDER BY
+                  CASE WHEN :keyword IS NOT NULL AND u.username = :keyword THEN 1 ELSE 0 END DESC,
+                  CASE WHEN EXISTS (SELECT 1 FROM Follow f WHERE (f.follower = :currentUser AND f.followee = u) OR 
+                                                               (f.follower = u AND f.followee = :currentUser)) 
+                       THEN 1 ELSE 0 END DESC,
+                  u.firstName ASC
+                """;
 
         TypedQuery<User> query = entityManager.createQuery(selectQuery, User.class);
-        query.setParameter("keyword", keyword);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            query.setParameter("keyword", keyword);
+        } else {
+            query.setParameter("keyword", "");
+        }
         query.setParameter("currentUser", currentUser);
         query.setFirstResult((int) pageable.getOffset());
         query.setMaxResults(pageable.getPageSize());
@@ -45,7 +68,11 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
         // Đếm total
         String countQueryStr = "SELECT COUNT(u) " + baseQuery;
         TypedQuery<Long> countQuery = entityManager.createQuery(countQueryStr, Long.class);
-        countQuery.setParameter("keyword", keyword);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            countQuery.setParameter("keyword", keyword);
+        } else {
+            countQuery.setParameter("keyword", "");
+        }
         countQuery.setParameter("currentUser", currentUser);
         Long total = countQuery.getSingleResult();
 

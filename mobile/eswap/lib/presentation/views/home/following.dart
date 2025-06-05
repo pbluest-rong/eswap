@@ -96,7 +96,6 @@ class _FollowingPageState extends State<FollowingPage>
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackBar(context, 'Error loading posts: ${e.toString()}');
     }
   }
 
@@ -121,7 +120,6 @@ class _FollowingPageState extends State<FollowingPage>
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 

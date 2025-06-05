@@ -5,7 +5,6 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 class LoadingOverlay {
   static OverlayEntry? _overlayEntry;
 
-  /// Hiển thị loading overlay (CẦN `context`)
   static void show(BuildContext context) {
     if (_overlayEntry != null) return;
 
@@ -17,7 +16,7 @@ class LoadingOverlay {
         children: [
           ModalBarrier(
             color: Colors.black.withOpacity(0.5),
-            dismissible: false, // Ngăn chặn người dùng thao tác
+            dismissible: false,
           ),
           Center(
             child: LoadingAnimationWidget.newtonCradle(
@@ -32,7 +31,6 @@ class LoadingOverlay {
     overlay.insert(_overlayEntry!);
   }
 
-  /// Ẩn loading overlay
   static void hide() {
     _overlayEntry?.remove();
     _overlayEntry = null;

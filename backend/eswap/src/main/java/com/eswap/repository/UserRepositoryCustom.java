@@ -7,5 +7,5 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface UserRepositoryCustom {
-    Page<User> searchUsersWithPriority(User currentUser, String keyword, Pageable pageable);
+    Page<User> searchUsersWithPriority(User currentUser, String keyword,Boolean isGetFollowersOrFollowing, Pageable pageable);
 }

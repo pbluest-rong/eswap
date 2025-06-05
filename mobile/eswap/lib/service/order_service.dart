@@ -3,7 +3,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/model/order.dart';
 import 'package:eswap/model/page_response.dart';
-import 'package:eswap/presentation/provider/order_counter_provider.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/auth_interceptor.dart';
@@ -39,20 +38,19 @@ class OrderService {
         final orderCreation = OrderCreation.fromJson(responseData);
         return orderCreation;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception("Failed to create order");
       }
-    } on DioException catch (e) {
-      if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
-        throw Exception("Failed to create order: ${e.toString()}");
-      } else {
-        showErrorDialog(context, "network_error".tr());
-        throw Exception("Failed to create order: ${e.toString()}");
-      }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
+      if (e is DioException) {
+        if (e.response != null) {
+          showNotificationDialog(
+              context, "Bạn đã tạo đơn hàng trước đó");
+        } else {
+          showNotificationDialog(context, "network_error".tr());
+        }
+      }else{
+        showNotificationDialog(context, "general_error".tr());
+      }
       throw Exception("Failed to create order: ${e.toString()}");
     }
   }
@@ -77,11 +75,11 @@ class OrderService {
     }
   }
 
-  Future<CreatePayment> depositByBuyer(
+  Future<OrderCreation> depositByBuyer(
       String orderId, String paymentType, BuildContext context) async {
     try {
       final userSession = await UserSession.load();
-      final response = await dio.post("${ApiEndpoints.orders_url}/deposit",
+      final response = await dio.put("${ApiEndpoints.orders_url}/deposit",
           queryParameters: {'orderId': orderId, 'paymentType': paymentType},
           options: Options(headers: {
             "Content-Type": "application/json",
@@ -90,13 +88,17 @@ class OrderService {
           }));
       if (response.statusCode == 200) {
         final responseData = response.data['data'];
-        final createPayment = CreatePayment.fromJson(responseData);
-        return createPayment;
+        final responseObject = OrderCreation.fromJson(responseData);
+        return responseObject;
       } else {
+        AppAlert.show(
+            context: context,
+            title: response.data['data']["message"] ?? "general_error".tr(),
+            actions: [AlertAction(text: "OK")]);
         throw Exception(response.data["message"] ?? "Failed to deposit order");
       }
     } catch (e) {
-      throw Exception("Failed to deposit order: ${e.toString()}");
+      throw Exception(e.toString());
     }
   }
 
@@ -105,7 +107,7 @@ class OrderService {
     try {
       final userSession = await UserSession.load();
       final response =
-          await dio.post("${ApiEndpoints.orders_url}/accept-no-deposit",
+          await dio.put("${ApiEndpoints.orders_url}/accept-no-deposit",
               queryParameters: {'orderId': orderId},
               options: Options(headers: {
                 "Content-Type": "application/json",
@@ -130,7 +132,7 @@ class OrderService {
       String orderId, String cancelReasonContent, BuildContext context) async {
     try {
       final userSession = await UserSession.load();
-      final response = await dio.post("${ApiEndpoints.orders_url}/cancel",
+      final response = await dio.put("${ApiEndpoints.orders_url}/cancel",
           queryParameters: {
             'orderId': orderId,
             'cancelReasonContent': cancelReasonContent
@@ -155,7 +157,7 @@ class OrderService {
   Future<Order> completeOrder(String orderId, BuildContext context) async {
     try {
       final userSession = await UserSession.load();
-      final response = await dio.post("${ApiEndpoints.orders_url}/complete",
+      final response = await dio.put("${ApiEndpoints.orders_url}/complete",
           queryParameters: {
             'orderId': orderId,
           },
@@ -244,20 +246,15 @@ class OrderService {
         );
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -282,20 +279,40 @@ class OrderService {
         );
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<Order> fetchById(String orderId, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      final response = await dio.get("${ApiEndpoints.orders_url}/$orderId",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+      if (response.statusCode == 200) {
+        final order = Order.fromJson(response.data['data']);
+        return order;
+      } else {
+        throw Exception(response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
       throw Exception("general_error".tr());
     }
   }

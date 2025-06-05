@@ -1,6 +1,5 @@
 package com.eswap.model;
 
-import com.eswap.common.constants.AvailableTime;
 import com.eswap.common.constants.Condition;
 import com.eswap.common.constants.PostStatus;
 import com.eswap.common.constants.Privacy;
@@ -10,7 +9,6 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,18 +49,13 @@ public class Post {
 
     private int quantity;
 
-    private int sold;// sold == quantity => hết hàng
+    private int sold;
 
     @Enumerated(EnumType.STRING)
     private PostStatus status;
 
     @Enumerated(EnumType.STRING)
     private Privacy privacy;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "available_time")
-    private AvailableTime availableTime;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "item_condition ")
     private Condition condition;
@@ -77,4 +70,8 @@ public class Post {
     private String address;
 
     private String phoneNumber;
+
+    @ManyToOne
+    @JoinColumn(name = "store_customer_id")
+    private User storeCustomer;
 }

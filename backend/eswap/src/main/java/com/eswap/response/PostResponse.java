@@ -23,6 +23,7 @@ public class PostResponse {
     private String lastname;
     private String avtUrl;
     private FollowStatus followStatus;
+    private boolean waitingAcceptFollow;
 
     //post
     private long id;
@@ -44,10 +45,16 @@ public class PostResponse {
     private List<PostMedia> media;
     private int likesCount;
     private boolean liked;
+    private String role;
 
+    // Customer
+    private Long customerId;
+    private String customerFirstname;
+    private String customerLastname;
+    private String customerAvtUrl;
 
     public static PostResponse mapperToResponse(Post post, String firstname, String lastname, String avtUrl,
-                                                int likesCount, boolean liked, FollowStatus followStatus) {
+                                                int likesCount, boolean liked, FollowStatus followStatus, boolean waitingAcceptFollow) {
         return PostResponse.builder()
                 .userId(post.getUser().getId())
                 .firstname(firstname)
@@ -65,33 +72,14 @@ public class PostResponse {
                 .sold(post.getSold())
                 .status(post.getStatus())
                 .privacy(post.getPrivacy())
-                .availableTime(post.getAvailableTime().calculateExpirationTime(post.getCreatedAt()))
                 .condition(post.getCondition())
                 .createdAt(post.getCreatedAt())
                 .media(post.getMedia())
                 .likesCount(likesCount)
                 .liked(liked)
                 .followStatus(followStatus)
+                .waitingAcceptFollow(waitingAcceptFollow)
+                .role(post.getUser().getRole().getName())
                 .build();
-    }
-
-    @Override
-    public String toString() {
-        return "PostResponse{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", brand=" + brand +
-                ", originalPrice=" + originalPrice +
-                ", salePrice=" + salePrice +
-                ", quantity=" + quantity +
-                ", sold=" + sold +
-                ", status=" + status +
-                ", privacy=" + privacy +
-                ", availableTime=" + availableTime +
-                ", createdAt=" + createdAt +
-                ", media=" + media +
-                ", userId=" + userId +
-                '}';
     }
 }

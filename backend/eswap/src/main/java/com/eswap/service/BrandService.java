@@ -20,12 +20,4 @@ public class BrandService {
     public Optional<Brand> getBrandById(Long id) {
         return brandRepository.findById(id);
     }
-
-    public Brand saveBrand(Brand brand) {
-        return brandRepository.save(brand);
-    }
-
-    public void deleteBrand(Long id) {
-        brandRepository.deleteById(id);
-    }
 }

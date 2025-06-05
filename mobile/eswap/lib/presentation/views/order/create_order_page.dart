@@ -1,7 +1,7 @@
-import 'package:easy_localization/easy_localization.dart';
-import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/main.dart';
 import 'package:eswap/model/order.dart';
+import 'package:eswap/presentation/views/order/detail_order_item.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
 import 'package:eswap/presentation/views/order/payment_momo_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
@@ -9,6 +9,7 @@ import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/presentation/widgets/switch_button.dart';
 import 'package:eswap/service/order_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CreateOrder extends StatefulWidget {
   final int userId;
@@ -91,7 +92,7 @@ class _CreateOrderState extends State<CreateOrder> {
                           children: [
                             TextSpan(
                                 text:
-                                    "Để đảm bảo giao dịch an toàn và tránh tình trạng huỷ đơn hàng không lý do, bạn cần đặt cọc một khoản là "),
+                                    "Để đảm bảo giao dịch an toàn khi mua, bạn cần đặt cọc một khoản là "),
                             TextSpan(
                               text: "${depositAmount.toStringAsFixed(0)} VND",
                               style: TextStyle(
@@ -102,7 +103,7 @@ class _CreateOrderState extends State<CreateOrder> {
                             ),
                             TextSpan(
                                 text:
-                                    ". Khoản đặt cọc này sẽ được hoàn lại khi bạn hủy yêu cầu hoặc bị huỷ do người bán."),
+                                    ". Khoản đặt cọc này sẽ được hoàn lại trong trường hợp đơn hàng bị huỷ do người bán."),
                           ],
                         ),
                       ),
@@ -192,6 +193,10 @@ class _CreateOrderState extends State<CreateOrder> {
                           quantity: widget.purchaseQuantity,
                           paymentType: "momo",
                           context: context);
+
+                  Provider.of<OrderProvider>(context, listen: false)
+                      .addOrder(orderCreation.order);
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -210,10 +215,15 @@ class _CreateOrderState extends State<CreateOrder> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await orderService.createOrderByBuyer(
-                      postId: widget.postId,
-                      quantity: widget.purchaseQuantity,
-                      context: context);
+                  OrderCreation orderCreation =
+                      await orderService.createOrderByBuyer(
+                          postId: widget.postId,
+                          quantity: widget.purchaseQuantity,
+                          context: context);
+
+                  Provider.of<OrderProvider>(context, listen: false)
+                      .addOrder(orderCreation.order);
+
                   AppAlert.show(
                     context: context,
                     title: 'Tạo đơn hàng thành công',
@@ -224,7 +234,16 @@ class _CreateOrderState extends State<CreateOrder> {
                           handler: () {
                             Navigator.pop(context);
                           }),
-                      AlertAction(text: 'Xem chi tiết', handler: () {}),
+                      AlertAction(
+                          text: 'Xem chi tiết',
+                          handler: () {
+                            navigatorKey.currentState?.push(
+                              MaterialPageRoute(
+                                  builder: (_) => DetailOrderItem(
+                                        orderId: orderCreation.order.id,
+                                      )),
+                            );
+                          }),
                     ],
                   );
                 },

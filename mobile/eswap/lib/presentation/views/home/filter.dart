@@ -246,7 +246,7 @@ class _FilterDialogState extends State<FilterDialog> {
     double? max = double.tryParse(maxPriceController.text);
 
     if (min != null && max != null && min > max) {
-      showErrorDialog(context, "error_max_price".tr());
+      showNotificationDialog(context, "error_max_price".tr());
       maxPriceController.text = '';
     } else {
       Provider.of<SearchFilterSortProvider>(context, listen: false)

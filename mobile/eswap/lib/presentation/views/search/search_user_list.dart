@@ -10,9 +10,11 @@ import 'package:flutter/material.dart';
 
 class SearchUserList extends StatefulWidget {
   static const String route = '/search-user';
-  String keyword;
+  String? keyword;
+  bool? isGetFollowersOrFollowing;
 
-  SearchUserList({super.key, required this.keyword});
+  SearchUserList(
+      {super.key, required this.keyword, this.isGetFollowersOrFollowing});
 
   @override
   State<SearchUserList> createState() => _SearchUserListState();
@@ -28,7 +30,7 @@ class _SearchUserListState extends State<SearchUserList>
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  late String _keyword;
+  late String? _keyword;
   late final TextEditingController _searchController = TextEditingController();
 
   void _scrollToTop(isReLoad) {
@@ -54,7 +56,7 @@ class _SearchUserListState extends State<SearchUserList>
   void initState() {
     super.initState();
     _keyword = widget.keyword;
-    _searchController.text = _keyword;
+    if (_keyword != null) _searchController.text = _keyword!;
   }
 
   @override
@@ -86,6 +88,7 @@ class _SearchUserListState extends State<SearchUserList>
         _keyword,
         _currentPage,
         _pageSize,
+        widget.isGetFollowersOrFollowing,
         context,
       );
 
@@ -98,7 +101,6 @@ class _SearchUserListState extends State<SearchUserList>
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackBar(context, 'Error loading users: ${e.toString()}');
     }
   }
 
@@ -111,7 +113,11 @@ class _SearchUserListState extends State<SearchUserList>
 
     try {
       final postpage = await _userService.fetchSearchUser(
-          _keyword, _currentPage + 1, _pageSize, context);
+          _keyword,
+          _currentPage + 1,
+          _pageSize,
+          widget.isGetFollowersOrFollowing,
+          context);
 
       setState(() {
         _currentPage++;
@@ -123,7 +129,6 @@ class _SearchUserListState extends State<SearchUserList>
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 
@@ -205,7 +210,61 @@ class _SearchUserListState extends State<SearchUserList>
                           child: Column(
                             key: PageStorageKey('user_${_allUsers[index].id}'),
                             children: [
-                              UserItemForList(user: _allUsers[index]),
+                              Stack(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: UserItemForList(user: _allUsers[index]),
+                                  ),
+                                  if (widget.isGetFollowersOrFollowing != null &&
+                                      widget.isGetFollowersOrFollowing == true)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          String title = "Xóa người theo dõi?";
+                                          String description = "Bạn có chắc chắn muốn xóa người theo dõi này?";
+                                          AppAlert.show(
+                                            context: context,
+                                            title: title,
+                                            description: description,
+                                            buttonLayout: AlertButtonLayout.dual,
+                                            actions: [
+                                              AlertAction(
+                                                text: "cancel".tr(),
+                                                handler: () {},
+                                              ),
+                                              AlertAction(
+                                                text: "confirm".tr(),
+                                                handler: () async {
+                                                  final userService = UserService();
+                                                  await userService.removeFollower(_allUsers[index].id, context);
+                                                  setState(() {
+                                                    _allUsers.removeAt(index);
+                                                  });
+                                                },
+                                                isDestructive: true
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.5),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              )
                             ],
                           ),
                         );

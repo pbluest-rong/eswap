@@ -2,8 +2,11 @@ import 'package:eswap/main.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/notification_model.dart';
 import 'package:eswap/model/post_model.dart';
+import 'package:eswap/presentation/components/order_item.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
+import 'package:eswap/presentation/views/order/detail_order_item.dart';
+import 'package:eswap/presentation/views/order/order_management_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/service/notification_service.dart';
 import 'package:eswap/service/post_service.dart';
@@ -45,13 +48,16 @@ class _NotificationItemState extends State<NotificationItem> {
 
   Widget _buildNotificationItem(NotificationModel notification) {
     NotificationCategory? category =
-    notificationCategoryFromString(notification.category);
+        notificationCategoryFromString(notification.category);
 
     if (category != null) {
       switch (category) {
         case NotificationCategory.NEW_FOLLOW:
           return _isReadForNotification(
-              notification, _buildFollowNotification(notification));
+              notification, _buildFollowNotification(notification, true));
+        case NotificationCategory.NEW_REQUEST_FOLLOW:
+          return _isReadForNotification(
+              notification, _buildFollowNotification(notification, false));
         case NotificationCategory.NEW_LIKE:
           return _isReadForNotification(
               notification, _buildLikeNotification(notification));
@@ -62,17 +68,20 @@ class _NotificationItemState extends State<NotificationItem> {
           return _isReadForNotification(
               notification, _buildSystemNotification(notification));
         case NotificationCategory.NEW_MESSAGE:
-          return _isReadForNotification(
-              notification, Text(notification.category));
+          return _isReadForNotification(notification, Text(notification.type));
+        case NotificationCategory.ORDER:
+          return _buildOrderNotification(notification);
         default:
-          return Container();
+          return Container(
+            child: Text("${notification.type}"),
+          );
       }
     }
     return Container();
   }
 
-  Widget _isReadForNotification(NotificationModel notification,
-      Widget notificationWidget) {
+  Widget _isReadForNotification(
+      NotificationModel notification, Widget notificationWidget) {
     if (notification.read) {
       return notificationWidget;
     } else {
@@ -96,13 +105,11 @@ class _NotificationItemState extends State<NotificationItem> {
           if (!notification.read) {
             _notificationService.markAsRead(notification.id);
             int unreadNotificationNumber =
-                Provider
-                    .of<UserSessionProvider>(context, listen: false)
+                Provider.of<UserSessionProvider>(context, listen: false)
                     .unreadNotificationNumber;
             if (unreadNotificationNumber > 0) {
               Provider.of<UserSessionProvider>(context, listen: false)
-                  .updateUnreadNotificationNumber(
-                  unreadNotificationNumber - 1);
+                  .updateUnreadNotificationNumber(unreadNotificationNumber - 1);
             }
           }
           setState(() {
@@ -118,7 +125,8 @@ class _NotificationItemState extends State<NotificationItem> {
     );
   }
 
-  Widget _buildFollowNotification(NotificationModel notification) {
+  Widget _buildFollowNotification(
+      NotificationModel notification, bool isFollowed) {
     return _wrapNotification(
       notification: notification,
       onTap: () {
@@ -138,8 +146,7 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                    '${notification.senderFirstName} ${notification
-                        .senderLastName}',
+                        '${notification.senderFirstName} ${notification.senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -147,16 +154,17 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    DetailUserPage(
-                                        userId: notification.senderId!)),
+                                builder: (_) => DetailUserPage(
+                                    userId: notification.senderId!)),
                           );
                         }
                       },
                   ),
-                  const TextSpan(
-                    text: ' đã follow bạn',
-                    style: TextStyle(color: Colors.black),
+                  TextSpan(
+                    text: isFollowed
+                        ? ' đã theo dõi bạn'
+                        : ' đã gửi yêu cầu theo dõi bạn',
+                    style: const TextStyle(color: Colors.black),
                   ),
                 ],
               ),
@@ -187,8 +195,7 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                    '${notification.senderFirstName} ${notification
-                        .senderLastName}',
+                        '${notification.senderFirstName} ${notification.senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -196,9 +203,8 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    DetailUserPage(
-                                        userId: notification.senderId!)),
+                                builder: (_) => DetailUserPage(
+                                    userId: notification.senderId!)),
                           );
                         }
                       },
@@ -236,8 +242,7 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                    '${notification.senderFirstName} ${notification
-                        .senderLastName}',
+                        '${notification.senderFirstName} ${notification.senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -245,15 +250,51 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    DetailUserPage(
-                                        userId: notification.senderId!)),
+                                builder: (_) => DetailUserPage(
+                                    userId: notification.senderId!)),
                           );
                         }
                       },
                   ),
                   const TextSpan(
                     text: ' đã đăng một bài viết mới',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderNotification(NotificationModel notification) {
+    return _wrapNotification(
+      notification: notification,
+      onTap: () {
+        if (notification.orderId != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+                builder: (_) =>
+                    DetailOrderItem(orderId: notification.orderId!)),
+          );
+        }
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 20,
+            child: Icon(Icons.shopping_bag_outlined),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    text: "Đơn hàng của bạn đã cập nhật",
                     style: TextStyle(color: Colors.black),
                   ),
                 ],
@@ -282,8 +323,7 @@ class _NotificationItemState extends State<NotificationItem> {
                 children: [
                   TextSpan(
                     text:
-                    '${notification.senderFirstName} ${notification
-                        .senderLastName}',
+                        '${notification.senderFirstName} ${notification.senderLastName}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.black),
                     recognizer: TapGestureRecognizer()
@@ -291,9 +331,8 @@ class _NotificationItemState extends State<NotificationItem> {
                         if (notification.senderId != null) {
                           navigatorKey.currentState?.push(
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    DetailUserPage(
-                                        userId: notification.senderId!)),
+                                builder: (_) => DetailUserPage(
+                                    userId: notification.senderId!)),
                           );
                         }
                       },

@@ -8,18 +8,28 @@ import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/model/page_response.dart';
 import 'package:eswap/model/user_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 
 class UserService {
   final dio = Dio();
 
   Future<PageResponse<UserInfomation>> fetchSearchUser(
-      String keyword, int page, int size, BuildContext context) async {
+      String? keyword,
+      int page,
+      int size,
+      bool? isGetFollowersOrFollowing,
+      BuildContext context) async {
     try {
       final userSession = await UserSession.load();
       final languageCode = Localizations.localeOf(context).languageCode;
       final response = await dio.get(ApiEndpoints.search_url,
-          queryParameters: {'page': page, 'size': size, 'keyword': keyword},
+          queryParameters: {
+            'page': page,
+            'size': size,
+            if (keyword != null) 'keyword': keyword,
+            'isGetFollowersOrFollowing': isGetFollowersOrFollowing
+          },
           options: Options(headers: {
             "Content-Type": "application/json",
             "Accept-Language": languageCode,
@@ -36,20 +46,15 @@ class UserService {
           throw Exception("no_result_found".tr());
         }
       } else {
-        showErrorDialog(context, response.data['message']);
         throw Exception(response.data['message']);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -73,11 +78,7 @@ class UserService {
       return FollowStatus.fromString(response.data['data']['status']);
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
-      } else {
-        showErrorDialog(context, "network_error".tr());
-      }
+      } else {}
     }
     return null;
   }
@@ -99,11 +100,49 @@ class UserService {
           .catchError((error) => print("follow error"));
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
-      } else {
-        showErrorDialog(context, "network_error".tr());
-      }
+      } else {}
+    }
+  }
+
+  Future<void> acceptFollow(int followerUserId, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      await dio
+          .put(
+            "${ApiEndpoints.accept_follow_url}/$followerUserId",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": context.locale.languageCode,
+                "Authorization": "Bearer ${userSession!.accessToken}"
+              },
+            ),
+          )
+          .catchError((error) => print("accept follow error"));
+    } on DioException catch (e) {
+      if (e.response != null) {
+      } else {}
+    }
+  }
+
+  Future<void> removeFollower(int followerUserId, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      await dio
+          .post(
+            "${ApiEndpoints.remove_follower_url}/$followerUserId",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": context.locale.languageCode,
+                "Authorization": "Bearer ${userSession!.accessToken}"
+              },
+            ),
+          )
+          .catchError((error) => print("follow error"));
+    } on DioException catch (e) {
+      if (e.response != null) {
+      } else {}
     }
   }
 
@@ -182,6 +221,160 @@ class UserService {
       );
     } catch (e) {
       throw Exception("Failed to load post: ${e.toString()}");
+    }
+  }
+
+  Future<List<UserInfomation>> fetchStores(BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      final response = await dio.get(
+        ApiEndpoints.get_stores_url,
+        options: Options(headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${userSession!.accessToken}",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data['data'];
+        if (responseData == null) {
+          throw Exception("Store data not found in response");
+        }
+
+        List<UserInfomation> stores = (responseData as List)
+            .map((storeJson) => UserInfomation.fromJson(storeJson))
+            .toList();
+
+        return stores;
+      } else {
+        throw Exception(response.data["message"] ?? "Failed to load stores");
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data["message"] ?? "Network error occurred");
+    } catch (e) {
+      throw Exception("Failed to load stores: ${e.toString()}");
+    }
+  }
+
+  Future<UserInfomation> changeInfo({
+    required String firstname,
+    required String lastname,
+    required bool? gender,
+    required String? address,
+    required BuildContext context,
+  }) async {
+    try {
+      final userSession = await UserSession.load();
+      final response = await dio.put(
+        ApiEndpoints.change_info_url,
+        data: {
+          'firstname': firstname,
+          'lastname': lastname,
+          'gender': gender,
+          'address': address,
+        },
+        options: Options(
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": context.locale.languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data['data'];
+        return UserInfomation.fromJson(responseData);
+      } else {
+        throw Exception(
+            response.data['message'] ?? "Failed to update information");
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data["message"] ?? "general_error".tr());
+    } catch (e) {
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<void> lockUserByAdmin(int id, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      await dio
+          .put(
+            "${ApiEndpoints.admin_url}/users/lock-user/$id",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": context.locale.languageCode,
+                "Authorization": "Bearer ${userSession!.accessToken}"
+              },
+            ),
+          )
+          .catchError((error) => print("follow error"));
+    } on DioException catch (e) {
+      if (e.response != null) {
+      } else {}
+    }
+  }
+
+  Future<void> unlockUserByAdmin(int id, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      await dio
+          .put(
+            "${ApiEndpoints.admin_url}/users/unlock-user/$id",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": context.locale.languageCode,
+                "Authorization": "Bearer ${userSession!.accessToken}"
+              },
+            ),
+          )
+          .catchError((error) => print("follow error"));
+    } on DioException catch (e) {
+      if (e.response != null) {
+      } else {}
+    }
+  }
+
+  Future<PageResponse<UserInfomation>> fetchUsersByAdmin(
+      String? keyword, int page, int size, BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      final languageCode = Localizations.localeOf(context).languageCode;
+      final response = await dio.get("${ApiEndpoints.admin_url}/users",
+          queryParameters: {
+            'page': page,
+            'size': size,
+            if (keyword != null) 'keyword': keyword,
+          },
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+
+      if (response.statusCode == 200) {
+        if (response.data['data'] != null) {
+          final responseData = response.data['data'];
+          final pageResponse = PageResponse<UserInfomation>.fromJson(
+              responseData, (json) => UserInfomation.fromJson(json));
+          return pageResponse;
+        } else {
+          throw Exception("no_result_found".tr());
+        }
+      } else {
+        throw Exception(response.data['message']);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
     }
   }
 }

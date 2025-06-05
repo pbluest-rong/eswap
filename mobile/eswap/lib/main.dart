@@ -1,19 +1,17 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/theme/theme.dart';
-import 'package:eswap/presentation/provider/order_counter_provider.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
-import 'package:eswap/presentation/views/admin/admin_page.dart';
 import 'package:eswap/presentation/views/chat/chat_provider.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
-import 'package:eswap/presentation/views/chat/chat_page.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_provider.dart';
 import 'package:eswap/presentation/views/home/explore.dart';
 import 'package:eswap/presentation/views/home/following.dart';
+import 'package:eswap/presentation/views/home/store_page.dart';
 import 'package:eswap/presentation/views/init_page.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/views/signup/signup_provider.dart';
-import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +45,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AddPostProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => UserSessionProvider()),
-        ChangeNotifierProvider(create: (_) => OrderCounterProvider())
+        ChangeNotifierProvider(create: (_) => OrderProvider())
       ],
       child: MyApp(),
     ),
@@ -90,6 +88,7 @@ class _MyAppState extends State<MyApp> {
           NotificationPage.route: (context) => const NotificationPage(),
           FollowingPage.route: (context) => const FollowingPage(),
           ExplorePage.route: (context) => const ExplorePage(),
+          StorePostsPage.route: (context) => const StorePostsPage(),
           ChatList.route: (context) => const ChatList(),
         },
         debugShowCheckedModeBanner: false,

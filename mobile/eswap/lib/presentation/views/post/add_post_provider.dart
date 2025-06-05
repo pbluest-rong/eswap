@@ -16,6 +16,14 @@ class AddPostProvider extends ChangeNotifier {
   String? phoneNumber;
   List<String>? images = [];
   List<String>? videos = [];
+  int? storeId;
+  String? storeName;
+
+  void updateStore(int storeId, String storeName) {
+    this.storeId = storeId;
+    this.storeName = storeName;
+    notifyListeners();
+  }
 
   void updateCategory(int categoryId, String categoryName) {
     this.categoryId = categoryId;
@@ -153,7 +161,8 @@ class AddPostProvider extends ChangeNotifier {
       "privacy": privacy,
       "condition": condition?.name,
       "address": address,
-      "phoneNumber": phoneNumber
+      "phoneNumber": phoneNumber,
+      "storeId" : storeId
     };
   }
 

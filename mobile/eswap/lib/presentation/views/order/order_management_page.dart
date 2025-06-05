@@ -1,18 +1,23 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/main.dart';
-import 'package:eswap/model/page_response.dart';
+import 'package:eswap/model/enum_model.dart';
+import 'package:eswap/model/order.dart';
 import 'package:eswap/model/post_model.dart';
-import 'package:eswap/model/user_model.dart';
 import 'package:eswap/presentation/components/post_item.dart';
-import 'package:eswap/presentation/components/user_item.dart';
-import 'package:eswap/presentation/provider/order_counter_provider.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/account/account_page.dart';
+import 'package:eswap/presentation/views/balance/balance_page.dart';
+import 'package:eswap/presentation/views/home/store_page.dart';
 import 'package:eswap/presentation/views/order/order_list_page.dart';
+import 'package:eswap/presentation/views/order/order_provider.dart';
 import 'package:eswap/presentation/views/setting/settings_page.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/order_service.dart';
 import 'package:eswap/service/post_service.dart';
+import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -44,6 +49,13 @@ class _OrderManagementPageState extends State<OrderManagementPage>
     super.initState();
     _scrollController.addListener(_scrollListener);
     _loadInitialData();
+    _setupWebSocket();
+  }
+
+  void _setupWebSocket() async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    await WebSocketService.getInstance()
+        .then((ws) => ws.initializeWithProvider(orderProvider));
   }
 
   @override
@@ -89,7 +101,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
     try {
       final jsonData = await _orderService.getOrderCounters();
 
-      Provider.of<OrderCounterProvider>(context, listen: false)
+      Provider.of<OrderProvider>(context, listen: false)
           .updateFromJson(jsonData);
     } catch (e) {
       e.toString();
@@ -117,15 +129,41 @@ class _OrderManagementPageState extends State<OrderManagementPage>
                         _userSession!.firstName,
                         _userSession!.lastName,
                         _userSession!.avatarUrl,
-                        _userSession!.educationInstitutionName),
+                        _userSession!.educationInstitutionName,
+                        _userSession!.role),
                   ),
                 ),
               ),
             SliverToBoxAdapter(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                margin: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
                 child: Column(
                   children: [
+                    if (_userSession!.role == 'USER')
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, StorePostsPage.route);
+                        },
+                        child: Container(
+                          color: AppColors.lightBackground,
+                          child: Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Row(
+                              children: [
+                                Text('Eswap Store, bạn đã sử dụng chưa?',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold)),
+                                Spacer(),
+                                Icon(Icons.store_mall_directory_outlined),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    SizedBox(
+                      height: 8,
+                    ),
                     _buildBuyOrderListWidget(),
                     Container(
                       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -133,26 +171,30 @@ class _OrderManagementPageState extends State<OrderManagementPage>
                     ),
                     _buildSaleOrderListWidget(),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(width: 40, height: 2, color: Colors.black45),
-                        SizedBox(
-                          width: 4,
-                        ),
-                        Text(
-                          "Có thể bạn cũng thích",
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black45),
-                        ),
-                        SizedBox(
-                          width: 4,
-                        ),
-                        Container(width: 40, height: 2, color: Colors.black45),
-                      ],
-                    ),
+                    if (_userSession!.role == 'STORE') _buildPostFilterTabs(),
+                    if (_userSession!.role != 'STORE')
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                              width: 40, height: 2, color: Colors.black45),
+                          SizedBox(
+                            width: 4,
+                          ),
+                          Text(
+                            "Có thể bạn cũng thích",
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black45),
+                          ),
+                          SizedBox(
+                            width: 4,
+                          ),
+                          Container(
+                              width: 40, height: 2, color: Colors.black45),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -174,7 +216,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
   }
 
   Widget _buildInfo(int userId, String firstName, String lastName,
-      String? avatarUrl, String educationInstitutionName) {
+      String? avatarUrl, String educationInstitutionName, String role) {
     return GestureDetector(
       onTap: () {
         navigatorKey.currentState?.push(
@@ -203,13 +245,27 @@ class _OrderManagementPageState extends State<OrderManagementPage>
                       fontSize: 16,
                       color: Colors.white),
                 ),
-                Text(
-                  educationInstitutionName,
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
-                ),
+                if (role == 'USER')
+                  Text(
+                    educationInstitutionName,
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                  ),
               ],
             ),
           ),
+          GestureDetector(
+              onTap: () {
+                navigatorKey.currentState?.push(
+                  MaterialPageRoute(builder: (_) => BalancePage()),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(2.0),
+                child: Icon(
+                  Icons.currency_exchange,
+                  color: Colors.white,
+                ),
+              )),
           GestureDetector(
               onTap: () {
                 navigatorKey.currentState?.push(
@@ -222,7 +278,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
                   Icons.settings,
                   color: Colors.white,
                 ),
-              ))
+              )),
         ],
       ),
     );
@@ -272,7 +328,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.hourglass_top_outlined,
                   "Chờ xác nhận",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .buyerPendingOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -285,7 +341,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.check_circle_outline,
                   "Đã xác nhận",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .buyerAcceptedOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -298,7 +354,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.payments_outlined,
                   "Đợi đặt cọc",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .buyerAwaitingDepositNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -311,7 +367,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.account_balance_wallet_outlined,
                   "Đã đặt cọc",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .buyerDepositedOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -372,7 +428,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.mark_email_unread_outlined,
                   "Cần xác nhận",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .sellerPendingOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -385,7 +441,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.verified_outlined,
                   "Đã xác nhận",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .sellerAcceptedOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -398,7 +454,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.account_balance_wallet_outlined,
                   "Đã đặt cọc",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .sellerDepositedOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -411,7 +467,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               _buildOrderChoiceIcon(
                   Icons.done_all_sharp,
                   "Đã hoàn thành",
-                  Provider.of<OrderCounterProvider>(context, listen: true)
+                  Provider.of<OrderProvider>(context, listen: true)
                       .sellerCompletedOrderNumber, () {
                 navigatorKey.currentState?.push(
                   MaterialPageRoute(
@@ -425,6 +481,75 @@ class _OrderManagementPageState extends State<OrderManagementPage>
           ),
         )
       ],
+    );
+  }
+
+  PostStatus _postStatus = PostStatus.PENDING;
+
+  Widget _buildPostFilterTabs() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.lightBackground,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _postStatus = PostStatus.PENDING;
+                });
+                _loadInitialPosts();
+              },
+              child: Text(
+                "Chờ xử lý",
+                style: TextStyle(
+                  color: _postStatus == PostStatus.PENDING
+                      ? AppColors.lightPrimary
+                      : AppColors.lightText,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _postStatus = PostStatus.PUBLISHED;
+                });
+                _loadInitialPosts();
+              },
+              child: Text(
+                "Đã chấp nhận",
+                style: TextStyle(
+                  color: _postStatus == PostStatus.PUBLISHED
+                      ? AppColors.lightPrimary
+                      : AppColors.lightText,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _postStatus = PostStatus.REJECTED;
+                });
+                _loadInitialPosts();
+              },
+              child: Text(
+                "Đã từ chối",
+                style: TextStyle(
+                  color: _postStatus == PostStatus.REJECTED
+                      ? AppColors.lightPrimary
+                      : AppColors.lightText,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -508,6 +633,7 @@ class _OrderManagementPageState extends State<OrderManagementPage>
               key: ValueKey('post_${_allPosts[index].id}_$index'),
               post: _allPosts[index],
               isGridView: true,
+              editEnable: (_userSession!.role == 'STORE') ? true : false,
             );
           }
           return null;
@@ -527,12 +653,18 @@ class _OrderManagementPageState extends State<OrderManagementPage>
     });
 
     try {
-      final postPage = await _postService.fetchRecommendPosts(
-        _currentPage,
-        _pageSize,
-        context,
-      );
-
+      final postPage = (_userSession!.role == 'STORE')
+          ? await _postService.fetchPostsOnlyStore(
+              _postStatus,
+              _currentPage,
+              _pageSize,
+              context,
+            )
+          : await _postService.fetchRecommendPosts(
+              _currentPage,
+              _pageSize,
+              context,
+            );
       setState(() {
         _allPosts = postPage.content;
         _hasMore = !postPage.last;
@@ -542,7 +674,6 @@ class _OrderManagementPageState extends State<OrderManagementPage>
       setState(() {
         _isLoadingPosts = false;
       });
-      // TODO: Handle error
     }
   }
 

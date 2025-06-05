@@ -41,7 +41,7 @@ public class EmailService {
                     <div style="font-size: 24px; font-weight: bold; color: #4CAF50; padding: 10px 0;">%s</div>
                     <p><b>Lưu ý:</b> Mã xác thực chỉ có hiệu lực trong vòng <span style="color: red;">%d phút</span> và chỉ sử dụng được <span style="color: red;">1 lần</span>.</p>
                     <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
-                    <p>Trân trọng,<br/>Đội ngũ StudentSwap</p>
+                    <p>Trân trọng,<br/>Đội ngũ ESwap</p>
                 </div>
             </div>
             """.formatted(code, minutes);

@@ -46,7 +46,7 @@
   "signup_question_5_phone_desc": "Please provide an phone number where we can contact you. This will remain private and won't be shown on your profile",
   "signup_question_6": "Set password",
   "signup_verify_title": "Verify your {}",
-  "signup_verify_desc_head": "We sent you a 4 digit code to verify your {}",
+  "signup_verify_desc_head": "We sent you a 6 digit code to verify your {}",
   "signup_verify_desc_tail": "Enter in the field below",
   "resend": "Resend",
   "resend_question": "Didn't get the code?",
@@ -71,6 +71,7 @@
   "search_institution": "Search institution",
   "registration_age_limit": "You must be {} years or older to register",
   "error_exist": " {} already exists",
+  "error_not_found": "{} not found",
   "name_only_letters": "Name can only contain letters",
   "invalid_email": "Invalid email format",
   "phone_number": "Phone number",
@@ -123,5 +124,6 @@
   "location": "Location",
   "joined": "Joined",
   "available": "Available",
-  "sold": "Sold"
+  "sold": "Sold",
+  "complete": "Complete"
 }

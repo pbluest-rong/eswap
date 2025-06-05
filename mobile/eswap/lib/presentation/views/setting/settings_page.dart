@@ -1,55 +1,100 @@
+import 'package:eswap/core/theme/theme.dart';
+import 'package:eswap/model/user_model.dart';
+import 'package:eswap/presentation/components/bottom_sheet.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/setting/account_setting.dart';
+import 'package:eswap/presentation/views/welcome/welcome_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
+import 'package:eswap/service/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  bool isAppBar;
+
+  SettingsPage({super.key, this.isAppBar = true});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = false;
-  bool _darkModeEnabled = true;
   String _selectedLanguage = 'Tiếng Việt';
+  UserSession? userSession;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadUserSession();
+  }
+
+  Future<void> _loadUserSession() async {
+    final session = await UserSession.load();
+    if (mounted) {
+      setState(() {
+        userSession = session;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final _themeManager = ThemeManager();
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text('Cài đặt'),
-        centerTitle: true,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-      ),
+      appBar: (widget.isAppBar ?? false)
+          ? AppBar(
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back_ios),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              title: const Text('Cài đặt'),
+              centerTitle: true,
+              elevation: 0,
+              systemOverlayStyle: SystemUiOverlayStyle.dark,
+            )
+          : null,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionHeader('TÀI KHOẢN'),
-          _buildSwitchSetting(
-            title: 'Thông báo',
-            value: _notificationsEnabled,
-            onChanged: (value) => setState(() => _notificationsEnabled = value),
-          ),
           _buildListTileSetting(
             title: 'Thông tin tài khoản',
             icon: Icons.person_outline,
-            onTap: () => _navigateToAccountInfo(),
+            onTap: () {
+              _navigateToAccountInfo();
+            },
           ),
           const SizedBox(height: 24),
           _buildSectionHeader('GIAO DIỆN'),
-          _buildSwitchSetting(
-            title: 'Chế độ tối',
-            value: _darkModeEnabled,
-            onChanged: (value) => setState(() => _darkModeEnabled = value),
+          PopupMenuButton<ThemeMode>(
+            offset: const Offset(150, 0),
+            itemBuilder: (context) => [
+              _buildPopupItem(
+                  ThemeMode.system, "Theo thiết bị", Icons.phone_android),
+              _buildPopupItem(ThemeMode.light, "Sáng", Icons.wb_sunny),
+              _buildPopupItem(ThemeMode.dark, "Tối", Icons.nights_stay),
+            ],
+            onSelected: (ThemeMode mode) {
+              _themeManager.setThemeMode(mode);
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            color: Theme.of(context).cardColor,
+            elevation: 5,
+            child: ListTile(
+              leading: isDark ? Icon(Icons.nights_stay) : Icon(Icons.wb_sunny),
+              title: Text("Giao diện"),
+              trailing: const Icon(Icons.chevron_right),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+            ),
           ),
+          const SizedBox(height: 24),
           _buildDropdownSetting(
             title: 'Ngôn ngữ',
             value: _selectedLanguage,
@@ -90,6 +135,32 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  String _getThemeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return "Sáng";
+      case ThemeMode.dark:
+        return "Tối";
+      case ThemeMode.system:
+      default:
+        return "Theo thiết bị";
+    }
+  }
+
+  PopupMenuItem<ThemeMode> _buildPopupItem(
+      ThemeMode mode, String text, IconData icon) {
+    return PopupMenuItem(
+      value: mode,
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          SizedBox(width: 10),
+          Text(text),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -101,19 +172,6 @@ class _SettingsPageState extends State<SettingsPage> {
           color: Theme.of(context).colorScheme.primary,
         ),
       ),
-    );
-  }
-
-  Widget _buildSwitchSetting({
-    required String title,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return SwitchListTile(
-      title: Text(title),
-      value: value,
-      onChanged: onChanged,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
     );
   }
 
@@ -200,9 +258,23 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Các hàm xử lý sự kiện
-  void _navigateToAccountInfo() {
-    // TODO: Điều hướng đến trang thông tin tài khoản
+  void _navigateToAccountInfo() async {
+    UserInfomation user =
+        await UserService().fetchUserById(userSession!.userId, context);
+    await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.transparent,
+        builder: (context) => EnhancedDraggableSheet(
+                child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: AccountSetting(
+                user: user,
+              ),
+            )));
   }
 
   void _rateApp() {
@@ -231,7 +303,19 @@ class _SettingsPageState extends State<SettingsPage> {
         title: "Bạn có chắc chắn muốn đăng xuất?",
         actions: [
           AlertAction(text: "Hủy"),
-          AlertAction(text: "Đăng xuất", isDestructive: true, handler: () {})
+          AlertAction(
+              text: "Đăng xuất",
+              isDestructive: true,
+              handler: () async {
+                UserSession.clear();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          WelcomePage(isFirstTimeInstallApp: false)),
+                  (Route<dynamic> route) => false,
+                );
+              })
         ]);
   }
 }

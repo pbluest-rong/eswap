@@ -59,6 +59,10 @@ public class Order {
     private CancelReason cancelReason;
     @Column(name = "cancel_reason_content")
     private String cancelReasonContent;
+    @Column(name = "number_deposit_payments")
+    private int numberDepositPayments;
+    @Column(name = "payment_transaction_id")
+    private String paymentTransactionId;
 
     public enum CancelReason {
         BUYER_CANCELLED,

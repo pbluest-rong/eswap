@@ -35,7 +35,7 @@ public class SecurityConfig {
                                 "/v3/api-docs.yaml",
                                 "/orders/momo/ipn-handler"
                         ).permitAll()
-                        .requestMatchers("/admin/**").hasRole(RoleType.ADMIN)
+                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated())
 
 

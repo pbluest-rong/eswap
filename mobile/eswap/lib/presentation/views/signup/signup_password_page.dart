@@ -49,13 +49,13 @@ class _SignupPasswordPageState extends State<SignupPasswordPage> {
                 .updateFirebaseToken(idToken!);
           },
           verificationFailed: (FirebaseAuthException e) {
-            showErrorDialog(context, e.message ?? "Lỗi xác thực");
+            showNotificationDialog(context, e.message ?? "Lỗi xác thực");
           },
           codeSent: (String verificationId, int? resendToken) {
             Provider.of<SignupProvider>(context, listen: false)
                 .updateSavedVerificationId(verificationId);
             Provider.of<SignupProvider>(context, listen: false)
-                .updateResendToken(resendToken); // Thêm dòng này
+                .updateResendToken(resendToken);
             Provider.of<SignupProvider>(context, listen: false).updateOTPMinutes(2);
             Navigator.push(
               context,
@@ -91,7 +91,7 @@ class _SignupPasswordPageState extends State<SignupPasswordPage> {
             );
           }
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       }
     } on DioException catch (e) {

@@ -145,7 +145,7 @@ class _VerifyOTPPageState extends State<SignupVerifyOTPPage> {
           verificationFailed: (FirebaseAuthException e) {
             if (!mounted) return;
             LoadingOverlay.hide();
-            showErrorDialog(context, e.message ?? "Lỗi xác thực");
+            showNotificationDialog(context, e.message ?? "Lỗi xác thực");
           },
           codeSent: (String verificationId, int? resendToken) {
             if (!mounted) return;
@@ -186,7 +186,7 @@ class _VerifyOTPPageState extends State<SignupVerifyOTPPage> {
             startCountdown();
           });
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       }
     } catch (e) {
@@ -194,15 +194,15 @@ class _VerifyOTPPageState extends State<SignupVerifyOTPPage> {
       LoadingOverlay.hide();
       if (e is DioException) {
         if (e.response != null) {
-          showErrorDialog(
+          showNotificationDialog(
               context, e.response?.data["message"] ?? "general_error".tr());
         } else {
-          showErrorDialog(context, "network_error".tr());
+          showNotificationDialog(context, "network_error".tr());
         }
       } else if (e is FirebaseAuthException) {
-        showErrorDialog(context, e.message ?? "Lỗi xác thực");
+        showNotificationDialog(context, e.message ?? "Lỗi xác thực");
       } else {
-        showErrorDialog(context, "general_error".tr());
+        showNotificationDialog(context, "general_error".tr());
       }
     }
   }
@@ -248,7 +248,7 @@ class _VerifyOTPPageState extends State<SignupVerifyOTPPage> {
             );
           }
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       } else {
         final url = ApiEndpoints.register_email_url;
@@ -267,15 +267,15 @@ class _VerifyOTPPageState extends State<SignupVerifyOTPPage> {
             );
           }
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
+        showNotificationDialog(
             context, e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
+        showNotificationDialog(context, "network_error".tr());
       }
     } finally {
       LoadingOverlay.hide();

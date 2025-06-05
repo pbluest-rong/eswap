@@ -23,7 +23,6 @@ public class PostConsumer {
 
     @KafkaListener(topics = PostKafkaConfig.NEW_TOPIC, groupId = "post-group-notification")
     public void processNewPostFcm(PostResponse post) {
-        System.out.println("Kafka: new-post post-group-notification " + post);
         notificationService.createAndPushNotification(
                 post.getUserId(),
                 RecipientType.FOLLOWERS,
@@ -32,6 +31,7 @@ public class PostConsumer {
                 "Người dùng following đăng bài mới",
                 post.getFirstname() + " " + post.getLastname() + " đã đăng bài viết mới",
                 post.getId(),
+                null,
                 null
         );
     }

@@ -1,19 +1,25 @@
 import 'dart:convert';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/main.dart';
+import 'package:eswap/model/user_model.dart';
 import 'package:eswap/presentation/components/bottom_sheet.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
+import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/chat/chat_list_page.dart';
 import 'package:eswap/presentation/views/post/add_post.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
 import 'package:eswap/presentation/views/post/select_category.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
+import 'package:eswap/service/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:eswap/presentation/views/home/home_page.dart';
 import 'package:eswap/presentation/views/search/search_page.dart';
 import 'package:eswap/presentation/views/order/order_management_page.dart';
 import 'package:provider/provider.dart';
+import 'package:searchfield/searchfield.dart';
 import 'package:shimmer/shimmer.dart';
 
 class MainPage extends StatefulWidget {
@@ -36,11 +42,12 @@ class _MainPageState extends State<MainPage> {
       const SearchPage(),
       const SizedBox(),
       ChatList(),
-      const OrderManagementPage(),
+      OrderManagementPage(),
     ];
   }
 
   Future<void> showCategorySelectionSheet(BuildContext context) async {
+    final sessionUser = await UserSession.load();
     final chooseAddPostOrStore =
         await showModalBottomSheet<Map<String, dynamic>>(
             context: context,
@@ -55,20 +62,19 @@ class _MainPageState extends State<MainPage> {
                   child: AppBody(
                     child: Column(
                       children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                              onPressed: () {
-                                final result = {
-                                  'isAddPost': false,
-                                };
-                                Navigator.pop(context, result);
-                              },
-                              child: Text("Sử dụng dịch vụ Eswap Store")),
-                        ),
-                        SizedBox(
-                          height: 14,
-                        ),
+                        if (sessionUser!.role == 'USER')
+                          Container(
+                            margin: EdgeInsets.only(bottom: 14),
+                            width: double.infinity,
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  final result = {
+                                    'isAddPost': false,
+                                  };
+                                  Navigator.pop(context, result);
+                                },
+                                child: Text("Sử dụng dịch vụ Eswap Store")),
+                          ),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
@@ -114,36 +120,27 @@ class _MainPageState extends State<MainPage> {
                 .updateCategory(categoryId, categoryName);
 
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => AddPostPage()),
+              MaterialPageRoute(
+                  builder: (_) => AddPostPage(
+                        isStore: false,
+                      )),
             );
           }
         }
       } else {
+        await _loadStores();
         final result = await showModalBottomSheet<Map<String, dynamic>>(
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
             barrierColor: Colors.transparent,
             builder: (context) => EnhancedDraggableSheet(
-                child: Padding(
+                    child: Padding(
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
-                  child: CategorySelectionWidget(),
+                  child: _buildStoreChoiceWidget(),
                 )));
-
-        if (result != null) {
-          if (result != null && result['childCategory'] != null) {
-            final parentCategory = result['parentCategory'] ?? '';
-            final childCategory = result['childCategory'];
-
-            int categoryId = childCategory['id'];
-            String categoryName =
-                "${childCategory['name']} - ${parentCategory['name']}";
-
-            
-          }
-        }
       }
     }
   }
@@ -284,6 +281,112 @@ class _MainPageState extends State<MainPage> {
       child: Text(
         count,
         style: TextStyle(fontSize: 12, color: Colors.white),
+      ),
+    );
+  }
+
+  List<SearchFieldListItem<UserInfomation>> _stores = [];
+  final TextEditingController storesController = TextEditingController();
+
+  Future<void> _loadStores() async {
+    try {
+      final userService = UserService();
+      final stores = await userService.fetchStores(context);
+      setState(() {
+        _stores = stores.map((store) {
+          return SearchFieldListItem<UserInfomation>(
+            "${store.firstname} ${store.lastname}",
+            item: store,
+            child: Text("${store.firstname} ${store.lastname}"),
+          );
+        }).toList();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load institutions: $e')),
+      );
+    }
+  }
+
+  Widget _buildStoreChoiceWidget() {
+    return AppBody(
+      child: Column(
+        children: [
+          SearchField<UserInfomation>(
+            controller: storesController,
+            suggestions: _stores,
+            hint: "Chọn Store",
+            searchInputDecoration: SearchInputDecoration(
+              labelText: "Chọn Store",
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.blue, width: 2.0),
+              ),
+            ),
+            onSuggestionTap: (value) {
+              if (value.item != null) {
+                setState(() {
+                  storesController.text =
+                      "${value.item!.firstname} ${value.item!.lastname}";
+                  int storeId = value.item!.id;
+                  Provider.of<AddPostProvider>(context, listen: false)
+                      .updateStore(storeId,
+                          "${value.item!.firstname} ${value.item!.lastname} - ${value.item!.address}");
+                });
+              }
+            },
+          ),
+          SizedBox(
+            height: 14,
+          ),
+          ElevatedButton(
+              onPressed: () async {
+                if (Provider.of<AddPostProvider>(context, listen: false)
+                        .storeId !=
+                    null) {
+                  Navigator.pop(context);
+                  final result =
+                      await showModalBottomSheet<Map<String, dynamic>>(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          barrierColor: Colors.transparent,
+                          builder: (context) => EnhancedDraggableSheet(
+                                  child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom,
+                                ),
+                                child: CategorySelectionWidget(),
+                              )));
+
+                  if (result != null) {
+                    if (result != null && result['childCategory'] != null) {
+                      final parentCategory = result['parentCategory'] ?? '';
+                      final childCategory = result['childCategory'];
+
+                      int categoryId = childCategory['id'];
+                      String categoryName =
+                          "${childCategory['name']} - ${parentCategory['name']}";
+
+                      Provider.of<AddPostProvider>(context, listen: false)
+                          .updateCategory(categoryId, categoryName);
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => AddPostPage(
+                                  isStore: true,
+                                )),
+                      );
+                    }
+                  }
+                }
+              },
+              child: Text("next".tr()))
+        ],
       ),
     );
   }

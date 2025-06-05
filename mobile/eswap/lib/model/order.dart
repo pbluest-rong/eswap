@@ -29,7 +29,7 @@ class Order {
   final double totalAmount;
   final double depositAmount;
   final double remainingAmount;
-  final String status;
+  String status;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String? cancelReason;

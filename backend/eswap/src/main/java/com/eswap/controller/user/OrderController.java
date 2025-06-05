@@ -48,15 +48,10 @@ public class OrderController {
 
     // Thanh toán lại
     @PutMapping("/deposit")
-    public ResponseEntity<ApiResponse> deposit(Authentication auth, @RequestParam("orderId") String orderId) {
-        CreatePaymentResponse paymentResponse = orderService.deposit(auth, orderId);
-        return ResponseEntity.ok(new ApiResponse(true, "Create payment successful", paymentResponse));
-    }
-    // Xóa đơn hàng đang đợi thanh toán
-    @DeleteMapping("/delete")
-    public ResponseEntity<ApiResponse> deleteOrder(Authentication auth, @RequestParam("orderId") String orderId) {
-        OrderResponse order = orderService.deleteOrder(auth, orderId);
-        return ResponseEntity.ok(new ApiResponse(true, "Delete order successful", order));
+    public ResponseEntity<ApiResponse> deposit(Authentication auth, @RequestParam("orderId") String orderId,
+                                               @RequestParam(value = "paymentType", required = false, defaultValue = "momo") String paymentType) {
+        OrderCreationResponse orderCreationResponse = orderService.deposit(auth, orderId, paymentType);
+        return ResponseEntity.ok(new ApiResponse(true, "Create payment successful", orderCreationResponse));
     }
 
     @PutMapping("/accept-no-deposit")
@@ -180,5 +175,11 @@ public class OrderController {
                                                   @RequestParam(defaultValue = "10") int size) {
         PageResponse<OrderResponse> orders = orderService.findOrders(auth, keyword, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "find order successful", orders));
+    }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<ApiResponse> getOrder(Authentication auth, @PathVariable String orderId) {
+        OrderResponse response = orderService.getOrderById(auth, orderId);
+        return ResponseEntity.ok(new ApiResponse(true, "Get order successful", response));
     }
 }

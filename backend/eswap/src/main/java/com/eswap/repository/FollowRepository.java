@@ -17,11 +17,21 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     Optional<Follow> findByFollowerAndFollowee(User user, User followeeUser);
 
-    @Query("SELECT f.follower FROM Follow f WHERE f.followee.id = :userId")
+    @Query("SELECT f.follower FROM Follow f WHERE f.followee.id = :userId AND f.waitConfirm=false ")
     List<User> findFollowersByUserId(@Param("userId") long userId);
 
 
-    int countByFollowee(User user);
+    @Query("""
+             SELECT COUNT(f) FROM Follow f
+                WHERE f.waitConfirm = false
+                            AND f.followee = :user
+            """)
+    int countFollower(User user);
 
-    int countByFollower(User follower);
+    @Query("""
+             SELECT COUNT(f) FROM Follow f
+                WHERE f.waitConfirm = false
+                            AND f.follower = :user
+            """)
+    int countFollowee(User user);
 }

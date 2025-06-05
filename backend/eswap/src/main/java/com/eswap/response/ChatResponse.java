@@ -1,7 +1,5 @@
 package com.eswap.response;
 
-import com.eswap.common.constants.DealAgreementStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import java.math.BigDecimal;

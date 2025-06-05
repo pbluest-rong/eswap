@@ -1,4 +1,11 @@
+import 'package:eswap/main.dart';
+import 'package:eswap/presentation/views/admin/admin_dashboard_page.dart';
 import 'package:eswap/presentation/views/admin/admin_sidebar.dart';
+import 'package:eswap/presentation/views/admin/admin_users_page.dart';
+import 'package:eswap/presentation/views/admin/balances_page.dart';
+import 'package:eswap/presentation/views/admin/category_brand_page.dart';
+import 'package:eswap/presentation/views/setting/account_setting.dart';
+import 'package:eswap/presentation/views/setting/settings_page.dart';
 import 'package:flutter/material.dart';
 
 class AdminPage extends StatefulWidget {
@@ -13,12 +20,13 @@ class _AdminPageState extends State<AdminPage> {
   bool _showSidebar = false;
 
   final List<Widget> _pages = [
-    const Center(child: Text('Trang Dashboard')),
-    const Center(child: Text('Trang Người dùng')),
-    const Center(child: Text('Trang Danh mục và thương hiệu')),
-    const Center(child: Text('Trang Báo cáo')),
-    const Center(child: Text('Trang Lịch sử hệ thống')),
-    const Center(child: Text('Trang Cài đặt')),
+    AdminDashboardPage(),
+    AdminUsersPage(),
+    AdminCategoryBrandPage(),
+    AdminBalancePage(),
+    SettingsPage(
+      isAppBar: false,
+    ),
   ];
 
   @override
@@ -51,7 +59,9 @@ class _AdminPageState extends State<AdminPage> {
               elevation: 16,
               child: Container(
                 width: 250,
-                color: Theme.of(context).scaffoldBackgroundColor,
+                color: Theme
+                    .of(context)
+                    .scaffoldBackgroundColor,
                 child: AdminSidebar(
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
@@ -85,10 +95,6 @@ class _AdminPageState extends State<AdminPage> {
           icon: const Icon(Icons.notifications),
           onPressed: () {},
         ),
-        IconButton(
-          icon: const Icon(Icons.account_circle),
-          onPressed: () {},
-        ),
       ],
     );
   }
@@ -102,11 +108,9 @@ class _AdminPageState extends State<AdminPage> {
       case 2:
         return const Text('Quản lý danh mục và thương hiệu');
       case 3:
-        return const Text('Báo cáo');
+        return const Text('Giải ngân');
       case 4:
-        return const Text('Lịch sử hệ thống');
-      case 5:
-        return const Text('Cài đặt hệ thống');
+        return const Text('Cài đặt');
       default:
         return const Text('Admin Panel');
     }

@@ -1,4 +1,5 @@
 import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/admin/admin_page.dart';
 import 'package:eswap/presentation/views/main_page.dart';
 import 'package:flutter/material.dart';
 import 'package:eswap/presentation/views/splash/splash_page.dart';
@@ -23,11 +24,19 @@ class InitPage extends StatelessWidget {
                       isFirstTimeInstallApp: false,
                     )));
       } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainPage()),
-          (Route<dynamic> route) => false,
-        );
+        if (loadedUser.role == "ADMIN") {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => AdminPage()),
+                (Route<dynamic> route) => false,
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => MainPage()),
+                (Route<dynamic> route) => false,
+          );
+        }
       }
     } else {
       if (!context.mounted) {

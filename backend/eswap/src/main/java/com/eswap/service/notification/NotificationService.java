@@ -51,19 +51,22 @@ public class NotificationService {
             String title,
             String message,
             Long postId,
+            String orderId,
             Long recipientIdForINDIVIDUAL
     ) {
-        User senderUser = userRepository.findById(senderId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", senderId));
-
+        User senderUser = (senderId == null) ? null : userRepository.findById(senderId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", senderId));
         Notification notification = new Notification();
-        notification.setSenderId(senderId);
-        notification.setSenderRole(senderUser.getRole().getName());
+        if (senderUser != null) {
+            notification.setSenderId(senderId);
+            notification.setSenderRole(senderUser.getRole().getName());
+        }
         notification.setRecipientType(recipientType);
         notification.setCategory(category);
         notification.setType(type);
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setPostId(postId);
+        notification.setOrderId(orderId);
         notification.setRecipientId(recipientIdForINDIVIDUAL);
         if (notification.getCategory() != NotificationCategory.NEW_MESSAGE)
             notificationRepository.save(notification);
@@ -104,7 +107,7 @@ public class NotificationService {
     public void markAsRead(Long notificationId) {
         Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
         notificationOpt.ifPresent(notification -> {
-            if (notification.getCategory() == NotificationCategory.NEW_MESSAGE) {
+            if (notification.getCategory() == NotificationCategory.NEW_MESSAGE || notification.getCategory() == NotificationCategory.ORDER) {
                 notificationRepository.deleteById(notificationId);
             } else {
                 notification.setRead(true);
@@ -140,6 +143,7 @@ public class NotificationService {
                                             .postId(notification.getPostId())
                                             .createdAt(notification.getCreatedAt())
                                             .avatarUrl(avatarUrl)
+                                            .orderId(notification.getOrderId())
                                             .build();
                                 }
                         ).collect(Collectors.toList());

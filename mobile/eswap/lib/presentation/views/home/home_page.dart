@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/presentation/components/post_item.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
+import 'package:eswap/presentation/views/home/store_page.dart';
 import 'package:eswap/presentation/views/login/login_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/model/post_model.dart';
@@ -127,8 +128,6 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isEducationLoading = false;
       });
-      showErrorSnackBar(
-          context, 'Error loading education institution: ${e.toString()}');
     }
   }
 
@@ -165,7 +164,6 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isLoading = false;
       });
-      showErrorSnackBar(context, 'Error loading posts: ${e.toString()}');
     }
   }
 
@@ -190,7 +188,6 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
       setState(() {
         _isLoadingMore = false;
       });
-      showErrorSnackBar(context, 'Error loading more posts: ${e.toString()}');
     }
   }
 

@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, String> {
     List<Order> findByStatusAndCreatedAtBefore(Order.OrderStatus orderStatus, LocalDateTime localDateTime, PageRequest pageRequest);
@@ -78,4 +78,6 @@ public interface OrderRepository extends JpaRepository<Order, String> {
                 AND o.status = :status
             """)
     Integer countSellerOrdersByStatus(@Param("userId") Long userId, @Param("status") Order.OrderStatus status);
+
+    Optional<Order> findByPaymentTransactionId(String orderId);
 }

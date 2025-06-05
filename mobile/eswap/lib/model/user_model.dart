@@ -1,24 +1,13 @@
 import 'package:eswap/model/enum_model.dart';
 
-/*
-1. me
-+ id
-+ first name, lastname
-+ avt_url
-+ post_count
-+ follower_count
-+ following_count
-+ educationInstitutionName
-+ participation time
-+ gender
- */
 class UserInfomation {
   final int id;
+  bool waitingAcceptFollow;
   String? username;
   String firstname;
   String lastname;
   String? avatarUrl;
-  String educationInstitutionName;
+  String? educationInstitutionName;
   String? followStatus;
   int? postCount;
   int? followerCount;
@@ -26,9 +15,13 @@ class UserInfomation {
   bool? gender;
   String? createdAt;
   int reputationScore = 0;
+  String? address;
+  String? role;
+  bool isLocked;
 
   UserInfomation(
       {required this.id,
+      required this.waitingAcceptFollow,
       this.username,
       required this.firstname,
       required this.lastname,
@@ -40,11 +33,15 @@ class UserInfomation {
       this.followingCount,
       this.gender,
       this.createdAt,
-      this.reputationScore = 0});
+      this.reputationScore = 0,
+      this.address,
+      this.role,
+      this.isLocked = false});
 
   factory UserInfomation.fromJson(Map<String, dynamic> json) {
     return UserInfomation(
         id: json['id'],
+        waitingAcceptFollow: json['waitingAcceptFollow'],
         username: json['username'],
         firstname: json['firstname'],
         lastname: json['lastname'],
@@ -56,6 +53,9 @@ class UserInfomation {
         followingCount: json['followingCount'],
         gender: json['gender'],
         createdAt: json['createdAt'],
-        reputationScore: json['reputationScore'] ?? 0);
+        reputationScore: json['reputationScore'] ?? 0,
+        address: json['address'],
+        role: json['role'],
+        isLocked: json['locked']);
   }
 }

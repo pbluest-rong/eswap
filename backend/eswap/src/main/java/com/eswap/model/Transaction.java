@@ -17,13 +17,18 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Transaction {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    private String id;
+
+    @PrePersist
+    public void generateId() {
+        if (this.id == null || this.id.isEmpty()) {
+            this.id = "TX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id")
     private Order order;
 
     @Enumerated(EnumType.STRING)
@@ -33,35 +38,34 @@ public class Transaction {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "momo_transaction_id")
-    private String momoTransactionId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id", nullable = false)
+    @JoinColumn(name = "sender_id")
     private User sender;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "momo_transaction_id")
+    private String momoTransactionId;
+
+    private String note;
     public enum TransactionType {
-        DEPOSIT,        // Tiền đặt cọc từ người mua → hệ thống
-        REFUND,         // Hoàn tiền cọc từ hệ thống → người mua
-        FINAL_PAYMENT,  // Thanh toán 90% từ người mua → người bán
-        DEPOSIT_RELEASE // Giải ngân cọc từ hệ thống → người bán
+        DEPOSIT,
+        DEPOSIT_REFUND,
+        DEPOSIT_RELEASE_TO_SELLER,
+        WITHDRAWAL,
     }
 
     public enum TransactionStatus {
-        PENDING,    // Giao dịch đang chờ xử lý
-        SUCCESS,    // Thành công
-        FAILED      // Thất bại
+        SUCCESS,
+        FAILED
     }
 }

@@ -1,7 +1,9 @@
 package com.eswap.common.security;
 
 import com.eswap.common.constants.AppErrorCode;
+import com.eswap.common.exception.AccountLockedException;
 import com.eswap.common.exception.InvalidTokenException;
+import com.eswap.common.exception.OperationNotPermittedException;
 import com.eswap.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -59,9 +61,29 @@ public class JwtService {
                 .compact();
     }
 
+    //    public boolean isTokenValid(String token, UserDetails userDetails) {
+//        final String username = extractUserName(token);
+//        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+//    }
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUserName(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        try {
+            final String username = extractUserName(token);
+            if (!username.equals(userDetails.getUsername())) {
+                return false;
+            }
+            if (isTokenExpired(token)) {
+                return false;
+            }
+            if (!userDetails.isEnabled()) {
+                throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
+            }
+            if (!userDetails.isAccountNonLocked()) {
+                throw new AccountLockedException(AppErrorCode.USER_LOCKED);
+            }
+            return true;
+        } catch (ExpiredJwtException ex) {
+            throw new OperationNotPermittedException(AppErrorCode.AUTH_FORBIDDEN);
+        }
     }
 
     private boolean isTokenExpired(String token) {
@@ -75,7 +97,7 @@ public class JwtService {
     public String extractUserName(String token) {
         try {
             return extractClaim(token, Claims::getSubject);
-        }catch (ExpiredJwtException e){
+        } catch (ExpiredJwtException e) {
             throw new InvalidTokenException(AppErrorCode.AUTH_TOKEN_EXPRIED);
         }
     }

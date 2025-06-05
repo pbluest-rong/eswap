@@ -20,16 +20,19 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<ApiResponse> findUser(Authentication auth,
-                                                @RequestParam(name = "keyword")
+                                                @RequestParam(name = "keyword", required = false)
                                                 @Size(min = 3, message = "Keyword phải có ít nhất 3 ký tự")
                                                 @Pattern(regexp = ".*\\S.*", message = "Keyword không được chỉ chứa khoảng trắng")
                                                 String keyword,
                                                 @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+                                                @RequestParam(defaultValue = "10") int size,
+                                                @RequestParam(name = "isGetFollowersOrFollowing", required = false) Boolean isGetFollowersOrFollowing
+    ) {
 
-        PageResponse<UserResponse> usersResponse = userService.findUser(auth, keyword, page, size);
+        PageResponse<UserResponse> usersResponse = userService.findUser(auth, keyword, isGetFollowersOrFollowing, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "Find user successfully", usersResponse));
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getUser(@PathVariable int id, Authentication auth) {
         UserResponse userResponse = userService.getUserById(id, auth);

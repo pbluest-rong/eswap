@@ -6,9 +6,9 @@ import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/model/like_model.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
-import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/model/page_response.dart';
 import 'package:eswap/model/post_model.dart';
 import 'package:eswap/presentation/views/home/search_filter_sort_provider.dart';
@@ -65,20 +65,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e, stackTrace) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -114,20 +109,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e, stackTrace) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -153,20 +143,91 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<PageResponse<Post>> fetchStorePosts(
+      int page, int size, BuildContext context) async {
+    try {
+      final languageCode = Localizations.localeOf(context).languageCode;
+      final userSession = await UserSession.load();
+      final response = await dio.get("${ApiEndpoints.getExplorePosts}/store",
+          queryParameters: {'page': page, 'size': size},
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+      if (response.statusCode == 200) {
+        final responseData = response.data['data'];
+        final pageResponse = PageResponse<Post>.fromJson(
+          responseData,
+          (json) => Post.fromJson(json),
+        );
+        pageResponse.content.shuffle(Random());
+        return pageResponse;
+      } else {
+        throw Exception(response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<PageResponse<Post>> fetchPostsOnlyStore(
+      PostStatus status, int page, int size, BuildContext context) async {
+    try {
+      final languageCode = Localizations.localeOf(context).languageCode;
+      final userSession = await UserSession.load();
+      String url = "";
+      if (status == PostStatus.PENDING) {
+        url = "${ApiEndpoints.getExplorePosts}/store/pending";
+      } else if (status == PostStatus.REJECTED) {
+        url = "${ApiEndpoints.getExplorePosts}/store/rejected";
+      } else if (status == PostStatus.PUBLISHED) {
+        url = "${ApiEndpoints.getExplorePosts}/store/accepted";
+      }
+      final response = await dio.get(url,
+          queryParameters: {'page': page, 'size': size},
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+      if (response.statusCode == 200) {
+        final responseData = response.data['data'];
+        final pageResponse = PageResponse<Post>.fromJson(
+          responseData,
+          (json) => Post.fromJson(json),
+        );
+        pageResponse.content.shuffle(Random());
+        return pageResponse;
+      } else {
+        throw Exception(response.data["message"]);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
       throw Exception("general_error".tr());
     }
   }
@@ -199,20 +260,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -245,20 +301,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -292,20 +343,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -338,20 +384,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -384,20 +425,15 @@ class PostService {
         pageResponse.content.shuffle(Random());
         return pageResponse;
       } else {
-        showErrorDialog(context, response.data["message"]);
         throw Exception(response.data["message"]);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        showErrorDialog(
-            context, e.response?.data["message"] ?? "general_error".tr());
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-        showErrorDialog(context, "network_error".tr());
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      showErrorDialog(context, "general_error".tr());
       throw Exception("general_error".tr());
     }
   }
@@ -573,6 +609,75 @@ class PostService {
       throw Exception(e.response?.data["message"] ?? "Network error occurred");
     } catch (e) {
       throw Exception("Failed to load post: ${e.toString()}");
+    }
+  }
+
+  Future<void> acceptPostByStore(int postId, BuildContext context) async {
+    try {
+      final languageCode = Localizations.localeOf(context).languageCode;
+
+      final userSession = await UserSession.load();
+
+      await dio.put("${ApiEndpoints.getExplorePosts}/store/accept/$postId",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<void> rejectPostByStore(int postId, BuildContext context) async {
+    try {
+      final languageCode = Localizations.localeOf(context).languageCode;
+
+      final userSession = await UserSession.load();
+
+      await dio.put("${ApiEndpoints.getExplorePosts}/store/reject/$postId",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<void> removePost(int postId, BuildContext context) async {
+    try {
+      final languageCode = Localizations.localeOf(context).languageCode;
+
+      final userSession = await UserSession.load();
+
+      await dio.delete("${ApiEndpoints.getExplorePosts}/remove/$postId",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
     }
   }
 }

@@ -49,6 +49,9 @@ public class PostService {
     @Transactional
     public void addPost(Authentication connectedUser, AddPostRequest request, MultipartFile[] mediaFiles) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
 
         // Lấy entity liên quan từ database
         Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -59,23 +62,41 @@ public class PostService {
         if (user.getEducationInstitution() != null) {
             educationInstitution = educationInstitutionRepository.findById(user.getEducationInstitution().getId()).orElseThrow(() -> new IllegalArgumentException("Education Institution not found"));
         }
-        // Tạo mới Post
+
         Post post = new Post();
-        post.setName(request.getName());
-        post.setDescription(request.getDescription());
-        post.setUser(user);
-        post.setCategory(category);
-        post.setBrand(brand);
-        post.setEducationInstitution(educationInstitution);
-        post.setOriginalPrice(request.getOriginalPrice());
-        post.setSalePrice(request.getSalePrice());
-        post.setQuantity(request.getQuantity());
-        post.setAvailableTime(AvailableTime.THREE_MONTHS);
-        post.setStatus(PostStatus.PUBLISHED);
-        post.setPrivacy(request.getPrivacy());
-        post.setCondition(request.getCondition());
-        post.setAddress(request.getAddress());
-        post.setPhoneNumber(request.getPhoneNumber());
+        if (request.getStoreId() != null) {
+            User store = userRepository.findById(request.getStoreId()).orElseThrow(() -> new IllegalArgumentException("Store not found"));
+            post.setName(request.getName());
+            post.setDescription(request.getDescription());
+            post.setUser(store);
+            post.setCategory(category);
+            post.setBrand(brand);
+            post.setEducationInstitution(educationInstitution);
+            post.setOriginalPrice(request.getOriginalPrice());
+            post.setSalePrice(request.getSalePrice());
+            post.setQuantity(request.getQuantity());
+            post.setStatus(PostStatus.PENDING);
+            post.setPrivacy(request.getPrivacy());
+            post.setCondition(request.getCondition());
+            post.setAddress(request.getAddress());
+            post.setPhoneNumber(request.getPhoneNumber());
+            post.setStoreCustomer(user);
+        } else {
+            post.setName(request.getName());
+            post.setDescription(request.getDescription());
+            post.setUser(user);
+            post.setCategory(category);
+            post.setBrand(brand);
+            post.setEducationInstitution(educationInstitution);
+            post.setOriginalPrice(request.getOriginalPrice());
+            post.setSalePrice(request.getSalePrice());
+            post.setQuantity(request.getQuantity());
+            post.setStatus(PostStatus.PUBLISHED);
+            post.setPrivacy(request.getPrivacy());
+            post.setCondition(request.getCondition());
+            post.setAddress(request.getAddress());
+            post.setPhoneNumber(request.getPhoneNumber());
+        }
         // Lưu Post vào database
         post = postRepository.save(post);
         // upload ảnh
@@ -93,9 +114,22 @@ public class PostService {
         post.setMedia(mediaList);
         postRepository.save(post);
         // 5. Gửi thông báo tới Kafka
-        postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post,
-                user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
-                0, false, FollowStatus.FOLLOWED));
+        if (request.getStoreId() != null) {
+            notificationService.createAndPushNotification(
+                    post.getUser().getId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_NOTICE,
+                    NotificationType.INFORM,
+                    "Yêu cầu bán hàng cho store",
+                    post.getStoreCustomer().getFirstName() + " " + post.getStoreCustomer().getLastName() + " yêu cầu bán hàng",
+                    post.getId(), null,
+                    post.getUser().getId()
+            );
+        } else {
+            postProducer.sendPostCreatedEvent(PostResponse.mapperToResponse(post,
+                    user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
+                    0, false, FollowStatus.FOLLOWED, false));
+        }
     }
 
     public PageResponse<PostResponse> getSuggestedPosts(Authentication connectedUser, int page, int size, boolean isOnlyShop, SearchFilterSortRequest searchFilterSortRequest) {
@@ -265,7 +299,43 @@ public class PostService {
                 Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
                 followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
             }
-            return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
+            Follow followMe = followRepository.getByFollowerIdAndFolloweeId(post.getUser().getId(), user.getId());
+            boolean waitingAcceptFollow = followMe != null && followMe.isWaitConfirm();
+            return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus, waitingAcceptFollow);
+        }).collect(Collectors.toList());
+
+        return new PageResponse<>(
+                postResponses,
+                posts.getNumber(),
+                posts.getSize(),
+                (int) posts.getTotalElements(),
+                posts.getTotalPages(), posts.isFirst(),
+                posts.isLast());
+    }
+
+    private PageResponse<PostResponse> convertPostResponseToPageResponseForCustomer(User user, Page<Post> posts) {
+        List<PostResponse> postResponses = posts.stream().map(post -> {
+            int likeNumber = likeRepository.countByPostId(post.getId());
+            boolean liked = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
+            FollowStatus followStatus;
+            if (post.getUser().getId() == user.getId()) {
+                followStatus = null;
+            } else {
+                Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
+                followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
+            }
+            Follow followMe = followRepository.getByFollowerIdAndFolloweeId(post.getUser().getId(), user.getId());
+            boolean waitingAcceptFollow = followMe != null && followMe.isWaitConfirm();
+            PostResponse response = PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus, waitingAcceptFollow);
+
+            User customer = post.getStoreCustomer();
+            if (customer != null) {
+                response.setCustomerId(customer.getId());
+                response.setCustomerFirstname(customer.getFirstName());
+                response.setCustomerLastname(customer.getLastName());
+                response.setCustomerAvtUrl(customer.getAvatarUrl());
+            }
+            return response;
         }).collect(Collectors.toList());
 
         return new PageResponse<>(
@@ -287,6 +357,11 @@ public class PostService {
 
     public LikePostResponse likePost(long postId, Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+
         Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.POST_NOT_FOUND, postId));
         boolean isLike = likeRepository.existsByPostIdAndUserId(post.getId(), user.getId());
         if (isLike) throw new AlreadyExistsException(AppErrorCode.LIKE_POST_EXISTS);
@@ -300,9 +375,9 @@ public class PostService {
                     RecipientType.INDIVIDUAL,
                     NotificationCategory.NEW_LIKE,
                     NotificationType.INFORM,
-                    "Bài viết của bạn",
-                    "Người dùng " + user.getFirstName() + " " + user.getLastName() + " đã like bài của bạn",
-                    post.getId(),
+                    user.getFirstName() + " " + user.getLastName() + " đã like bài đăng của bạn",
+                    "Người dùng " + user.getFirstName() + " " + user.getLastName() + " đã like bài đăng của bạn",
+                    post.getId(), null,
                     post.getUser().getId()
             );
         int likesCount = likeRepository.countByPostId(postId);
@@ -311,6 +386,9 @@ public class PostService {
 
     public LikePostResponse unlikePost(long postId, Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException(
                 AppErrorCode.POST_NOT_FOUND, postId));
         Like like = likeRepository.findByPostAndUser(post, user).orElseThrow(
@@ -337,8 +415,18 @@ public class PostService {
             Follow follow = followRepository.getByFollowerIdAndFolloweeId(user.getId(), post.getUser().getId());
             followStatus = (follow == null) ? FollowStatus.UNFOLLOWED : (follow.isWaitConfirm() == true) ? FollowStatus.WAITING : FollowStatus.FOLLOWED;
         }
+        Follow followMe = followRepository.getByFollowerIdAndFolloweeId(post.getUser().getId(), user.getId());
+        boolean waitingAcceptFollow = followMe != null && followMe.isWaitConfirm();
+        PostResponse response = PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus, waitingAcceptFollow);
 
-        return PostResponse.mapperToResponse(post, post.getUser().getFirstName(), post.getUser().getLastName(), post.getUser().getAvatarUrl(), likeNumber, liked, followStatus);
+        User customer = post.getStoreCustomer();
+        if (customer != null) {
+            response.setCustomerId(customer.getId());
+            response.setCustomerFirstname(customer.getFirstName());
+            response.setCustomerLastname(customer.getLastName());
+            response.setCustomerAvtUrl(customer.getAvatarUrl());
+        }
+        return response;
     }
 
 
@@ -383,5 +471,99 @@ public class PostService {
         } catch (Exception e) {
             log.error("Failed to save recent search word for user {}: {}", userId, e.getMessage());
         }
+    }
+
+    public PageResponse<PostResponse> getStorePostsForCustomer(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.getStorePostsForCustomer(user.getId(), pageable);
+        return convertPostResponseToPageResponse(user, posts);
+    }
+
+    public PageResponse<PostResponse> getPendingPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.getPendingPosts(user, pageable);
+        return convertPostResponseToPageResponseForCustomer(user, posts);
+    }
+
+    public PageResponse<PostResponse> getAcceptedPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.getAcceptedPosts(user, pageable);
+        return convertPostResponseToPageResponseForCustomer(user, posts);
+    }
+
+    public PageResponse<PostResponse> getRejectedPosts(Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.getRejectedPosts(user, pageable);
+        return convertPostResponseToPageResponseForCustomer(user, posts);
+    }
+
+    public void acceptPost(long postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        System.out.println(postId + "-" + user.getId());
+        Post post = postRepository.findPendingPostByIdAndStore(postId, user).orElseThrow(() -> new ResourceNotFoundException(
+                AppErrorCode.POST_NOT_FOUND, postId));
+        System.out.println(postRepository.findById(postId).isEmpty());
+        post.setStatus(PostStatus.PUBLISHED);
+        post = postRepository.save(post);
+
+        User customer = post.getStoreCustomer();
+        // Thông báo với khách hàng
+        if (customer != null) {
+            notificationService.createAndPushNotification(
+                    post.getUser().getId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_POST_FOLLOWER,
+                    NotificationType.INFORM,
+                    "Store đã xác nhận yêu cầu bán hàng của bạn",
+                    post.getUser().getFirstName() + " " + post.getUser().getLastName() + " đã chấp nhận yêu cầu bán hàng của bạn.",
+                    post.getId(), null,
+                    customer.getId()
+            );
+        }
+    }
+
+
+    public void rejectPost(long postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        Post post = postRepository.findPendingPostByIdAndStore(postId, user).orElseThrow(() -> new ResourceNotFoundException(
+                AppErrorCode.POST_NOT_FOUND, postId));
+        post.setStatus(PostStatus.REJECTED);
+        post = postRepository.save(post);
+
+        // Thông báo với khách hàng
+        User customer = post.getStoreCustomer();
+        if (customer != null) {
+            notificationService.createAndPushNotification(
+                    post.getUser().getId(),
+                    RecipientType.INDIVIDUAL,
+                    NotificationCategory.NEW_POST_FOLLOWER,
+                    NotificationType.INFORM,
+                    "Store đã từ chối yêu cầu bán hàng của bạn",
+                    post.getUser().getFirstName() + " " + post.getUser().getLastName() + " đã từ chối yêu cầu bán hàng của bạn.",
+                    post.getId(), null,
+                    customer.getId()
+            );
+        }
+    }
+
+    public void removePost(long postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
+        Post post = postRepository.findByIdAndConnectedUser(postId, user).orElseThrow(() -> new ResourceNotFoundException(
+                AppErrorCode.POST_NOT_FOUND, postId));
+        post.setStatus(PostStatus.DELETED);
+        postRepository.save(post);
     }
 }

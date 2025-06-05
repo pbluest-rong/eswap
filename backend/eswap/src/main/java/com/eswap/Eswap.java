@@ -22,8 +22,8 @@ public class Eswap {
             if (roleRepository.findByName(RoleType.USER).isEmpty()) {
                 roleRepository.save(Role.builder().name(RoleType.USER).build());
             }
-            if (roleRepository.findByName(RoleType.SHOP).isEmpty()) {
-                roleRepository.save(Role.builder().name(RoleType.SHOP).build());
+            if (roleRepository.findByName(RoleType.STORE).isEmpty()) {
+                roleRepository.save(Role.builder().name(RoleType.STORE).build());
             }
             if (roleRepository.findByName(RoleType.ADMIN).isEmpty()) {
                 roleRepository.save(Role.builder().name(RoleType.ADMIN).build());

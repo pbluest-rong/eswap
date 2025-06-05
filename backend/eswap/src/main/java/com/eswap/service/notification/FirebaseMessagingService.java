@@ -20,6 +20,9 @@ public class FirebaseMessagingService {
 
     public void saveFcmToken(Authentication connectedUser, String fcmtoken) {
         User user = (User) connectedUser.getPrincipal();
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         UserFcmToken fcmToken = fcmTokenRepository.findByFcmToken(fcmtoken);
         if (fcmToken == null) {
             UserFcmToken userFcmToken = new UserFcmToken();

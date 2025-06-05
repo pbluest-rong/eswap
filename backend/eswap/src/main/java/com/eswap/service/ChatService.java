@@ -2,7 +2,6 @@ package com.eswap.service;
 
 import com.eswap.common.constants.AppErrorCode;
 import com.eswap.common.constants.ContentType;
-import com.eswap.common.constants.DealAgreementStatus;
 import com.eswap.common.constants.PageResponse;
 import com.eswap.common.exception.ResourceNotFoundException;
 import com.eswap.kafka.chat.ChatProducer;
@@ -42,7 +41,9 @@ public class ChatService {
     // sendMessage
     public void sendMessage(Authentication connectedUser, MessageRequest request, MultipartFile[] mediaFiles) {
         User user = (User) connectedUser.getPrincipal();
-
+        if (!user.isEnabled() || user.isAccountLocked()) {
+            throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
+        }
         User chatPartner = userRepository
                 .findById(request.getChatPartnerId())
                 .orElseThrow(() -> new ResourceNotFoundException(AppErrorCode.USER_NOT_FOUND, "id", request.getChatPartnerId()));

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/presentation/views/setting/settings_page.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/core/onboarding/onboarding_page_position.dart';
 import 'package:eswap/presentation/widgets/loading_overlay.dart';
@@ -12,7 +13,9 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  ResetPasswordPage({super.key});
+  bool isAccountSettingScreen;
+
+  ResetPasswordPage({super.key, this.isAccountSettingScreen = false});
 
   @override
   _ResetPasswordPageState createState() => _ResetPasswordPageState();
@@ -37,7 +40,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       try {
         final response = await dio.post(
           url,
-          data: Provider.of<ForgotPwProvider>(context, listen: false).toJsonForChangePw(),
+          data: Provider.of<ForgotPwProvider>(context, listen: false)
+              .toJsonForChangePw(),
           options: Options(headers: {
             "Content-Type": "application/json",
             "Accept-Language": context.locale.languageCode,
@@ -47,19 +51,26 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("${response.data['message']}")),
           );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginPage()),
-          );
+          if (widget.isAccountSettingScreen) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsPage()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginPage()),
+            );
+          }
         } else {
-          showErrorDialog(context, response.data["message"]);
+          showNotificationDialog(context, response.data["message"]);
         }
       } on DioException catch (e) {
         if (e.response != null) {
-          showErrorDialog(
+          showNotificationDialog(
               context, e.response?.data["message"] ?? "general_error".tr());
         } else {
-          showErrorDialog(context, "network_error".tr());
+          showNotificationDialog(context, "network_error".tr());
         }
       } finally {
         LoadingOverlay.hide();
@@ -113,7 +124,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                             onPressed: () {
                               _submitForm();
                             },
-                            child: Text("login".tr()),
+                            child: Text("submit".tr()),
                           ),
                         ),
                       ],

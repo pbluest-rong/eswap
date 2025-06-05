@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 
 class ValidationUtils {
   static String? validateEmpty(String? value) {
-    if (value!.trim().isNotEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return "alert_null_value".tr();
     }
     return null;
