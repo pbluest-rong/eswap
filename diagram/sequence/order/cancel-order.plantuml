@@ -1,0 +1,69 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor Buyer
+actor Seller
+participant "Order\nScreen" as OrderScreen
+participant "Order\nController" as OrderController
+participant "Order\nService" as OrderService
+participant "Balance\nService" as BalanceService
+participant "Notification\nService" as NotificationService
+database MySQL
+
+' Main Flow
+alt Buyer
+    Buyer -> OrderScreen: Chọn đơn hàng\ncần hủy
+else Seller
+    Seller -> OrderScreen: Chọn đơn hàng\ncần hủy
+end
+
+OrderScreen -> OrderScreen: Hiển thị ô\nnhập lý do hủy
+alt Buyer
+    Buyer -> OrderScreen: Nhập lý do\nhủy và xác nhận
+else Seller
+    Seller -> OrderScreen: Nhập lý do\nhủy và xác nhận
+end
+
+OrderScreen -> OrderController: Gọi API hủy\n(orderId, cancelReason)
+OrderController -> OrderService: Xử lý hủy\nđơn hàng
+
+OrderService -> OrderService: Kiểm tra lý do\nhủy không trống
+alt Lý do hủy trống
+    OrderService -> OrderController: Ném lỗi\n(lý do trống)
+    OrderController -> OrderScreen: Trả về lỗi
+    OrderScreen -> OrderScreen: Thông báo\n"Lý do hủy không\nđược để trống"
+else
+    OrderService -> MySQL: Tìm đơn hàng\ntheo orderId
+    OrderService -> OrderService: Kiểm tra đơn không\nCOMPLETED/DELETED
+    alt Đơn đã hoàn thành\nhoặc đã xóa
+        OrderService -> OrderController: Ném lỗi\n(không thể hủy)
+        OrderController -> OrderScreen: Trả về lỗi
+        OrderScreen -> OrderScreen: Thông báo\n"Không thể hủy đơn\nđã hoàn thành/xóa"
+    else
+        OrderService -> OrderService: Xác định trạng thái\nđơn và tác nhân
+        alt AWAITING_DEPOSIT\nvà Buyer
+            OrderService -> MySQL: Cập nhật trạng thái\nthành DELETED
+            OrderService -> Buyer: Cập nhật giao diện\nngười mua (WebSocket)
+        else DEPOSITED hoặc\nSELLER_ACCEPTS
+            OrderService -> MySQL: Hoàn trả số\nlượng bán ra
+            alt Buyer
+                OrderService -> BalanceService: Chuyển cọc\nvề người bán
+            else Seller
+                OrderService -> BalanceService: Hoàn cọc\nvề người mua
+            end
+            OrderService -> MySQL: Cập nhật trạng thái CANCELLED, lưu lý do
+            OrderService -> NotificationService: Gửi thông báo\nđến bên còn lại
+            alt Buyer
+                NotificationService -> Seller: Thông báo hủy đơn (FCM)
+            else Seller
+                NotificationService -> Buyer: Thông báo hủy đơn (FCM)
+            end
+            OrderService -> Buyer: Cập nhật giao diện người mua (WebSocket)
+            OrderService -> Seller: Cập nhật giao diện người bán (WebSocket)
+        end
+    end
+end
+@enduml

@@ -2,10 +2,7 @@ package com.eswap.controller.publish;
 
 import com.eswap.common.ApiResponse;
 import com.eswap.common.constants.AppErrorCode;
-import com.eswap.common.constants.FollowStatus;
 import com.eswap.common.exception.ResourceNotFoundException;
-import com.eswap.common.security.JwtService;
-import com.eswap.model.Follow;
 import com.eswap.repository.UserRepository;
 import com.eswap.request.*;
 import com.eswap.response.AuthenticationResponse;
@@ -20,13 +17,11 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("auth")

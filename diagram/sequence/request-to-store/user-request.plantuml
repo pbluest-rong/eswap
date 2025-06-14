@@ -1,0 +1,43 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor User
+participant "Post\nScreen" as PostScreen
+participant "Post\nController" as PostController
+participant "Post\nService" as PostService
+participant "Upload\nService" as UploadService
+participant "Notification\nService" as NotificationService
+database MySQL
+actor Store
+
+' Main Flow
+User -> PostScreen: Chọn dịch vụ\nstore
+PostScreen -> PostScreen: Hiển thị hộp thoại\nchọn store
+User -> PostScreen: Chọn store,\nnhấn "Tiếp tục"
+PostScreen -> PostScreen: Hiển thị hộp thoại\nchọn danh mục
+User -> PostScreen: Chọn danh mục,\nnhấn "Tiếp tục"
+PostScreen -> PostScreen: Hiển thị hộp thoại\ndanh mục con
+User -> PostScreen: Chọn danh mục con,\nnhấn "Tiếp tục"
+PostScreen -> PostScreen: Hiển thị form\nnhập thông tin
+User -> PostScreen: Cung cấp thông tin\nbài đăng
+PostScreen -> PostScreen: Kiểm tra thông tin\nhợp lệ
+alt Thông tin không hợp lệ
+    PostScreen -> PostScreen: Ẩn nút gửi
+else Thông tin hợp lệ
+    PostScreen -> PostScreen: Hiển thị nút gửi
+    User -> PostScreen: Nhấn nút gủi
+    PostScreen -> PostController: Gọi API
+    PostController -> PostService: Xử lý yêu cầu
+    PostService -> MySQL: Tìm Category,\nBrand, Store,\nEducationInstitution
+    PostService -> MySQL: Lưu bài đăng\nvới trạng thái PENDING,\nchủ sở hữu là Store
+    PostService -> UploadService: Upload media files
+    UploadService -> MySQL: Lưu PostMedia
+    PostService -> NotificationService: Gửi thông báo\ntới Store (FCM)
+    NotificationService -> Store: Thông báo yêu cầu\nbán hàng (FCM)
+    PostScreen -> PostScreen: Hiển thị thông báo\nthành công
+    PostScreen -> User: Chuyển về\nmàn hình trước
+end
+@enduml

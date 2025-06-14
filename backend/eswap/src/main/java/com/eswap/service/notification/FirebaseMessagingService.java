@@ -5,6 +5,7 @@ import com.eswap.model.User;
 import com.eswap.model.UserFcmToken;
 import com.eswap.repository.FcmTokenRepository;
 import com.google.firebase.messaging.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class FirebaseMessagingService {
         }
     }
 
+    @Transactional
     public void removeToken(String fcmToken) {
         fcmTokenRepository.deleteByFcmToken(fcmToken);
     }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
+import 'package:eswap/model/dashboard.dart';
 import 'package:eswap/model/enum_model.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
@@ -256,11 +257,12 @@ class UserService {
     }
   }
 
-  Future<UserInfomation> changeInfo({
+  Future<void> changeInfo({
+    required String username,
     required String firstname,
     required String lastname,
-    required bool? gender,
-    required String? address,
+    required int? educationInstitutionId,
+    required bool requireFollowApproval,
     required BuildContext context,
   }) async {
     try {
@@ -270,8 +272,9 @@ class UserService {
         data: {
           'firstname': firstname,
           'lastname': lastname,
-          'gender': gender,
-          'address': address,
+          'username': username,
+          'educationInstitutionId': educationInstitutionId,
+          'requireFollowApproval': requireFollowApproval,
         },
         options: Options(
           headers: {
@@ -284,15 +287,29 @@ class UserService {
 
       if (response.statusCode == 200) {
         final responseData = response.data['data'];
-        return UserInfomation.fromJson(responseData);
+        final userSession = await UserSession.load();
+        UserSession newUserSession = UserSession(
+            accessToken: responseData["accessToken"],
+            refreshToken: responseData["refreshToken"],
+            userId: responseData["userId"],
+            firstName: responseData["firstName"],
+            lastName: responseData["lastName"],
+            educationInstitutionId: responseData["educationInstitutionId"],
+            educationInstitutionName: responseData["educationInstitutionName"],
+            role: responseData["role"],
+            fcmToken: userSession!.fcmToken,
+            username: responseData["username"],
+            avatarUrl: responseData["avatarUrl"]);
+        await newUserSession.save();
       } else {
         throw Exception(
             response.data['message'] ?? "Failed to update information");
       }
     } on DioException catch (e) {
       throw Exception(e.response?.data["message"] ?? "general_error".tr());
-    } catch (e) {
-      throw Exception("general_error".tr());
+    } catch (e, a) {
+      print(e);
+      print(a);
     }
   }
 
@@ -361,6 +378,39 @@ class UserService {
           final pageResponse = PageResponse<UserInfomation>.fromJson(
               responseData, (json) => UserInfomation.fromJson(json));
           return pageResponse;
+        } else {
+          throw Exception("no_result_found".tr());
+        }
+      } else {
+        throw Exception(response.data['message']);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(e.response?.data["message"] ?? "general_error".tr());
+      } else {
+        throw Exception("network_error".tr());
+      }
+    } catch (e) {
+      throw Exception("general_error".tr());
+    }
+  }
+
+  Future<Dashboard> dashboard(BuildContext context) async {
+    try {
+      final userSession = await UserSession.load();
+      final languageCode = Localizations.localeOf(context).languageCode;
+      final response = await dio.get("${ApiEndpoints.admin_url}/dashboard",
+          options: Options(headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": languageCode,
+            "Authorization": "Bearer ${userSession!.accessToken}",
+          }));
+
+      if (response.statusCode == 200) {
+        if (response.data['data'] != null) {
+          final responseData = response.data['data'];
+          final dashboardResponse = Dashboard.fromJson(responseData);
+          return dashboardResponse;
         } else {
           throw Exception("no_result_found".tr());
         }

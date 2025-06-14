@@ -1,0 +1,19 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Chọn "Xác nhận" ở màn hình\nđơn hàng chờ xác nhận;
+
+|Mobile App|
+:Yêu cầu người bán\nchấp nhận đơn hàng\nkhông đặt cọc;
+|Backend|
+:Cập nhật trạng thái đơn hàng là "đã xác nhận";
+:Tăng số lượng đã bán của bài đăng;
+:Gửi thông báo đến người mua qua FCM;
+:Gửi thông tin đơn hàng đến người mua,\nngười bán (WebSocket);
+|Mobile App|
+:Cập nhật giao diện\nđơn hàng người mua,\nngười bán (WebSocket);
+stop
+@enduml

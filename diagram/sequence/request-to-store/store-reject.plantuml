@@ -1,0 +1,29 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+
+actor Store
+participant "Post\nScreen" as PostScreen
+participant "Post\nController" as PostController
+participant "Post\nService" as PostService
+participant "Notification\nService" as NotificationService
+database MySQL
+actor User
+
+' Main Flow
+Store -> PostScreen: Chọn bài đăng\n"Chờ xử lý"
+PostScreen -> Store: Hiển thị chi tiết\nbài đăng
+Store -> PostScreen: Nhấn nút\n"Từ chối"
+PostScreen -> PostController: Gọi API từ chối\n(rejectPost, postId)
+PostController -> PostService: Xử lý từ chối\nbài đăng
+PostService -> MySQL: Tìm bài đăng\nPENDING theo postId\nvà Store
+PostService -> PostService: Kiểm tra tài khoản\nkhông bị khóa
+PostService -> MySQL: Cập nhật trạng thái\nREJECTED
+PostService -> NotificationService: Gửi thông báo\ntới khách hàng
+NotificationService -> MySQL: Lưu thông báo
+NotificationService -> User: Gửi FCM\n"Yêu cầu bị từ chối"
+PostScreen -> PostScreen: Hiển thị thông báo\nthành công
+@enduml

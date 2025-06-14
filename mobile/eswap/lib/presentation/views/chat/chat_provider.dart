@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
+import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class ChatProvider extends ChangeNotifier {
   List<Chat> chats = [];
@@ -53,6 +55,14 @@ class ChatProvider extends ChangeNotifier {
     }
     setSendingMessage(false);
     notifyListeners();
+  }
+
+  void resetReadMessageNumber(Chat chat) {
+    final index = chats.indexWhere((c) => c.id == chat.id);
+    if (index != -1) {
+      chats[index].unReadMessageNumber = 0;
+      notifyListeners();
+    }
   }
 
   void markAsReadUI(int index) {

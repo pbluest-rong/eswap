@@ -91,6 +91,13 @@ class _SendMessageWidgetState extends State<SendMessageWidget> {
     });
   }
 
+  bool _isVideoMedia(String url) {
+    return url.contains('video') ||
+        url.endsWith('.mp4') ||
+        url.endsWith('.mov') ||
+        url.endsWith('.avi');
+  }
+
   Widget _buildMediaPreview() {
     if (_selectedMedia.isEmpty) return SizedBox.shrink();
 
@@ -105,12 +112,25 @@ class _SendMessageWidgetState extends State<SendMessageWidget> {
             margin: EdgeInsets.only(right: 8),
             child: Stack(
               children: [
-                Image.file(
-                  File(_selectedMedia[index]),
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                ),
+                _isVideoMedia(_selectedMedia[index])
+                    ? SizedBox(
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.lightPrimary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.play_circle),
+                        ),
+                      )
+                    : Image.file(
+                        File(_selectedMedia[index]),
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
                 Positioned(
                   top: 4,
                   right: 4,

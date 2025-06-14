@@ -1,0 +1,81 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Mở cuộc trò chuyện;
+
+|Mobile App|
+:Hiển thị cuộc trò chuyện;
+
+|Người dùng|
+:Nhấn biểu tượng mua;
+
+|Mobile App|
+:Hiển thị hộp thoại\nchọn số lượng mua;
+
+|Người dùng|
+:Chọn số lượng mua;
+
+|Mobile App|
+:Hiển thị phương thức mua\n(Đặt cọc/Không đặt cọc);
+
+|Người dùng|
+:Chọn phương thức mua;
+
+|Mobile App|
+if (Kiểm tra phương thức mua) then (Đặt cọc)
+    :Hiển thị phương thức\nthanh toán;
+    |Người dùng|
+    :Chọn phương thức\nthanh toán;
+endif
+|Mobile App|
+:Yêu cầu tạo đơn hàng;
+|Backend|
+if (Kiểm tra có đơn hàng\nđang chờ chấp nhận hoặc\nđợi đặt cọc giữa 2 bên?) then (Có)
+    |Mobile App|
+    :Hiển thị thông báo\n"Phải chờ xử lý\nđơn hàng trước đó";
+    detach
+endif
+|Backend|
+if (Kiểm tra số lượng\nmua có hợp lệ?) then (Có)
+
+else (Không)
+    |Mobile App|
+    :Hiển thị thông báo lỗi;
+    detach
+endif
+|Backend|
+if (Kiểm tra phương thức mua?) then (Đặt cọc)
+    :Lưu đơn hàng với\ntrạng thái "đợi đặt cọc";
+    :Tạo mẫu thanh toán;
+    :Gửi thông tin\nđơn hàng đến\nngười mua (WebSocket);
+    |Mobile App|
+    :Cập nhật giao diện\nđơn hàng người mua(WebSocket);
+    :Hiển thị màn hình\nthanh toán;
+    |Người dùng|
+    :Tiến hành thanh toán;
+    detach
+    
+    --> [Signal:\nThanh toán thành công]
+    |Backend|
+    :Cập nhật số lượng\nđã bán của bài đăng;
+    :Lưu giao dịch đặt cọc;
+    :Cập nhật trạng thái\nđơn hàng là "đã đặt cọc";
+    :Thông báo đến\nngười bán (FCM);
+    :Gửi thông tin đơn hàng\nđến người mua,\nngười bán (WebSocket);
+    |Mobile App|
+    :Cập nhật giao diện\nđơn hàng người mua,\nngười bán (WebSocket);
+    :Hiển thị thông báo đặt cọc thành công;
+    stop
+else (Không đặt cọc)
+    |Backend|
+    :Lưu đơn hàng với\ntrạng thái "chờ xác nhận";
+    :Thông báo đến\nngười bán(FCM);
+    :Gửi thông tin\nđơn hàng đến người mua,\nngười bán (WebSocket);
+    |Mobile App|
+    :Hiển thị thông báo tạo\nđơn hàng thành công;
+    stop
+endif
+@enduml

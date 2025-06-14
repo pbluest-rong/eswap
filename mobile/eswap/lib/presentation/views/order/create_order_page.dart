@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/main.dart';
 import 'package:eswap/model/order.dart';
 import 'package:eswap/presentation/views/order/detail_order_item.dart';
@@ -54,6 +55,7 @@ class _CreateOrderState extends State<CreateOrder> {
 
   @override
   Widget build(BuildContext context) {
+    bool? _isMomo = true;
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -186,24 +188,44 @@ class _CreateOrderState extends State<CreateOrder> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  OrderCreation orderCreation =
-                      await orderService.createOrderByBuyer(
-                          postId: widget.postId,
-                          quantity: widget.purchaseQuantity,
-                          paymentType: "momo",
-                          context: context);
+                onPressed: () {
+                  AppAlert.show(
+                      context: context,
+                      title: "Chọn phương thức thanh toán",
+                      centerWidget: RadioListTile<bool>(
+                        title: Text('Ví điện tử MOMO'),
+                        value: true,
+                        groupValue: _isMomo,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            _isMomo = value;
+                          });
+                        },
+                      ),
+                      actions: [
+                        AlertAction(text: "cancel".tr()),
+                        AlertAction(
+                            text: "confirm".tr(),
+                            handler: () async {
+                              OrderCreation orderCreation =
+                                  await orderService.createOrderByBuyer(
+                                      postId: widget.postId,
+                                      quantity: widget.purchaseQuantity,
+                                      paymentType: "momo",
+                                      context: context);
 
-                  Provider.of<OrderProvider>(context, listen: false)
-                      .addOrder(orderCreation.order);
+                              Provider.of<OrderProvider>(context, listen: false)
+                                  .addOrder(orderCreation.order);
 
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          PaymentScreen(orderCreation: orderCreation),
-                    ),
-                  );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PaymentScreen(
+                                      orderCreation: orderCreation),
+                                ),
+                              );
+                            })
+                      ]);
                 },
                 icon: Icon(Icons.qr_code),
                 label: Text("Tiến hành thanh toán đặt cọc"),

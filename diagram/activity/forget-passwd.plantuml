@@ -1,0 +1,65 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Nhấn quên mật khẩu;
+
+|Mobile App|
+:Hiển thị màn hình\nnhập email/số điện thoại;
+
+|Người dùng|
+:Nhập email/số điện thoại,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Kiểm tra email/số điện thoại;
+|Backend|
+if (Tồn tại?) then (Có)
+    |Mobile App|
+    if (Kiểm tra email/số điện thoại?) then (Số điện thoại)
+        |Mobile App|
+        :Gửi mã xác minh\nbằng FireBase;
+    else (Email)
+        |Backend|
+        if (Kiểm tra số lần gửi mã\ncó quá giới hạn\n trong ngày?) then (Có)
+        |Mobile App|
+        :Hiển thị thông báo lỗi;
+        detach
+        else (Không)
+        |Backend|
+        :Gửi mã xác thực;
+        |Mobile App|
+        :Hiển thị màn hình\nnhập mã xác minh;
+        endif
+    endif
+else (Không)
+   |Mobile App|
+   :Hiển thị thông báo lỗi;
+   detach
+endif
+|Người dùng|
+:Nhập mã xác minh,\nnhấn "Tiếp tục";
+|Mobile App|
+:Kiểm tra mã xác minh;
+|Backend|
+if (Hợp lệ?) then (Có)
+    |Backend|
+    :Tạo token tạm thời\n10 phút;
+    |Mobile App|
+    :Hiển thị màn hình\ncập nhật mật khẩu;
+    |Người dùng|
+    :Nhập mật khẩu,\nxác nhận mật khẩu,\nnhấn "Hoàn tất";
+    |Mobile App|
+    :Cập nhật mật khẩu;
+    |Backend|
+    :Cập nhật mật khẩu mới\ntrong CSDL;
+    |Mobile App|
+    :Hiển thị thông báo\ncập nhật thành công;
+    stop
+else (Không)
+   |Mobile App|
+   :Hiển thị thông báo lỗi;
+   detach
+endif
+@enduml

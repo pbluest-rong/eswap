@@ -24,6 +24,11 @@ public class NotificationController {
         return ResponseEntity.ok(new ApiResponse(true, "Token saved successfully", null));
     }
 
+    @DeleteMapping("/remove-fcm-token")
+    public void removeFcmToken(@RequestParam String fcmToken){
+        fcmService.removeToken(fcmToken);
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse> getNotifications(
             Authentication auth,

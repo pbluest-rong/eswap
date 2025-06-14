@@ -1,0 +1,17 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Store|
+start
+:Chọn "Chấp nhận"\nở màn hình \nbài đăng "chờ xử lý";
+
+|Mobile App|
+:Yêu cầu cửa hàng\nchấp nhận yêu cầu \nbán hàng;
+|Backend|
+:Cập nhật trạng thái\nbài đăng là "công khai";
+:Gửi thông báo đến\nngười dùng(FCM);
+|Mobile App|
+:Cập nhật giao diện\nbài đăng;
+stop
+@enduml

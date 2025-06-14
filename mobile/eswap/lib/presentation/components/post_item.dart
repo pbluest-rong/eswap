@@ -160,6 +160,28 @@ class _PostItemState extends State<PostItem> {
                     ),
                   ],
                 ),
+                if (post.status == PostStatus.PENDING.name ||
+                    post.status == PostStatus.REJECTED.name)
+                  Row(
+                    children: [
+                      Text(
+                        "Trạng thái: ",
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        post.status == PostStatus.PENDING.name
+                            ? "Chờ xử lý"
+                            : "Đã từ chối",
+                        style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

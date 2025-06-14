@@ -1,0 +1,69 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor User
+participant "Chat\nScreen" as ChatScreen
+participant "Chat\nController" as ChatController
+participant "Chat\nService" as ChatService
+participant "Upload\nService" as UploadService
+participant "Chat\nProducer" as ChatProducer
+participant "Chat\nConsumer" as ChatConsumer
+participant "Notification\nService" as NotificationService
+database MySQL
+
+' Main Flow
+User -> ChatScreen: Mở cuộc trò chuyện
+ChatScreen -> ChatScreen: Hiển thị cuộc trò chuyện
+User -> ChatScreen: Nhập văn bản hoặc\nchọn ảnh/video
+alt Media
+    ChatScreen -> ChatScreen: Kiểm tra số lượng\nvà dung lượng
+    alt Hợp lệ
+        ChatScreen -> ChatScreen: Hiển thị nút\nxác nhận
+        User -> ChatScreen: Nhấn xác nhận
+        ChatScreen -> ChatScreen: Hiển thị danh sách\nảnh/video
+    else Không hợp lệ
+        ChatScreen -> ChatScreen: Ẩn nút\nxác nhận
+    end
+end
+alt Xóa media
+    User -> ChatScreen: Xóa lựa chọn\nảnh/video
+    ChatScreen -> ChatScreen: Xóa media khỏi\ndanh sách tạm
+else Gửi tin nhắn
+    User -> ChatScreen: Nhấn nút gửi
+    ChatScreen -> ChatController: Gọi API gửi\n(MessageRequest, mediaFiles)
+    ChatController -> ChatService: Xử lý gửi\ntin nhắn
+    ChatService -> MySQL: Tìm chatPartner
+    ChatService -> ChatService: Kiểm tra tài khoản\nkhông bị khóa
+    ChatService -> MySQL: Đảm bảo cuộc trò chuyện\ntồn tại
+    alt Cần cập nhật bài đăng
+        ChatService -> MySQL: Tìm và cập nhật\ncurrentPost
+        ChatService -> MySQL: Lưu tin nhắn\nContentType.POST
+        ChatService -> ChatProducer: Gửi ChatResponse\nđến người gửi\n(Post message)
+        ChatProducer -> ChatConsumer: Gửi tới Kafka\nNEW_MESSAGE_TOPIC
+        ChatConsumer -> ChatScreen: Cập nhật giao diện\nngười gửi(WebSocket)
+
+        ChatService -> ChatProducer: Gửi ChatResponse\nđến người nhận\n(Post message)
+        ChatProducer -> ChatConsumer: Gửi tới Kafka\nNEW_MESSAGE_TOPIC
+        ChatConsumer -> NotificationService: Gửi thông báo\nFCM (Post message)
+        ChatConsumer -> ChatScreen: Cập nhật giao diện\nngười nhận(WebSocket)
+    end
+    alt Media
+        ChatService -> UploadService: Upload media\ntới Cloudinary
+        UploadService -> MySQL: Lưu URL media
+        ChatService -> ChatService: Nén media\nthành JSON
+    end
+    ChatService -> MySQL: Lưu tin nhắn
+    ChatService -> ChatProducer: Gửi ChatResponse\nđến người gửi(Tin nhắn)
+    ChatProducer -> ChatConsumer: Gửi tới Kafka\nNEW_MESSAGE_TOPIC
+    ChatConsumer -> ChatScreen: Cập nhật giao diện\nngười gửi (WebSocket)
+
+    ChatService -> ChatProducer: Gửi ChatResponse\nđến người nhận(Tin nhắn)
+    ChatProducer -> ChatConsumer: Gửi tới Kafka\nNEW_MESSAGE_TOPIC
+    ChatConsumer -> NotificationService: Gửi thông báo\nFCM (Tin nhắn)
+    ChatConsumer -> ChatScreen: Cập nhật giao diện\nngười nhận (WebSocket)
+    ChatScreen -> ChatScreen: Xóa tập tin\nnén (nếu có)
+end
+@enduml 

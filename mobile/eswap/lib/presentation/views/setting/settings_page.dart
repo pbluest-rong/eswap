@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/core/theme/theme.dart';
 import 'package:eswap/model/user_model.dart';
 import 'package:eswap/presentation/components/bottom_sheet.dart';
@@ -308,6 +310,23 @@ class _SettingsPageState extends State<SettingsPage> {
               isDestructive: true,
               handler: () async {
                 UserSession.clear();
+                // xoa fcm
+                String url = ApiEndpoints.removeFcmToken_url;
+                final dio = Dio();
+                dio
+                    .delete(
+                  url,
+                  queryParameters: {"fcmToken": userSession!.fcmToken},
+                  options: Options(
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer ${userSession!.accessToken}",
+                    },
+                  ),
+                )
+                    .catchError((error) {
+                  print("Lỗi khi remove FCM Token: $error");
+                });
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(

@@ -1,0 +1,75 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+
+
+actor Buyer
+actor Seller
+participant ChatScreen
+participant "Create Order Screen"
+participant "Payment Screen"
+participant "Order Controller"
+participant "Order Service"
+database MySQL
+
+' Main Flow
+Buyer -> ChatScreen: Nhấn nút biểu tượng mua
+ChatScreen -> ChatScreen: Hiển thị hộp thoại\nchọn số lượng mua
+Buyer -> ChatScreen: Chọn số lượng mua
+ChatScreen -> "Create Order Screen": Hiển thị phương thức mua\n(mặc định là đặt cọc)
+Buyer -> "Create Order Screen": Chọn phương thức mua
+"Create Order Screen" -> "Create Order Screen": Kiểm tra\nphương thức mua
+
+alt Đặt cọc
+    "Create Order Screen" -> "Create Order Screen": Hiển thị \nphương thức thanh toán
+    Buyer -> "Create Order Screen": Chọn phương thức thanh toán
+end
+
+"Create Order Screen" -> "Order Controller": Gọi API tạo đơn hàng
+"Order Controller" -> "Order Service": Gọi xử lý
+"Order Service" -> "Order Service": Kiểm tra đơn hàng\nđang chờ xử lý
+
+alt Có đơn hàng chờ
+    "Order Service" -> "Order Controller": Ném ngoại lệ
+    "Order Controller" -> "Create Order Screen": Trả về lỗi
+    "Create Order Screen" -> "Create Order Screen": Hiển thị thông báo\nphải chờ xử lý
+else
+    "Order Service" -> "Order Service": Kiểm tra số lượng\nhợp lệ
+    alt Số lượng mua không hợp lệ
+        "Order Service" -> "Order Controller": Ném ngoại lệ
+        "Order Controller" -> "Create Order Screen": Trả về lỗi
+        "Create Order Screen" -> "Create Order Screen": Hiển thị thông báo lỗi
+    else
+        "Order Service" -> "Order Service": Kiểm tra\nphương thức mua
+        alt Không đặt cọc
+            "Order Service" -> MySQL: Lưu đơn hàng với\ntrạng thái "chờ xác nhận"
+            "Order Service" -> Seller: Thông báo bằng FCM
+            "Order Service" -> Buyer: Cập nhật giao diện qua WebSocket
+            "Order Service" -> Seller: Cập nhật giao diện qua WebSocket
+        else Đặt cọc
+            "Order Service" -> MySQL: Lưu đơn hàng với\ntrạng thái "đợi đặt cọc"
+            "Order Service" -> "Create Order Screen": Tạo mẫu thanh toán
+            "Create Order Screen" -> "Payment Screen": Hiển thị màn hình\nthanh toán
+            "Order Service" -> Buyer: Cập nhật giao diện qua WebSocket
+            "Payment Screen" -> Buyer: Chuyển đến màn hình thanh toán
+            Buyer -> "Payment Screen": Tiến hành thanh toán
+            "Payment\nSignal" -> "Order Service": Thanh toán\nthành công
+            "Order Service" -> MySQL: Cập nhật số\nlượng đã bán
+            "Order Service" -> MySQL: Lưu giao\ndịch đặt cọc
+            "Order Service" -> MySQL: Cập nhật trạng\nthái "đã đặt cọc"
+            "Order Service" -> Seller: Thông báo bằng FCM
+            "Order Service" -> "Payment Screen": Thông báo thành công qua WebSocket
+            "Order Service" -> Buyer: Cập nhật giao diện qua WebSocket
+            "Order Service" -> Seller: Cập nhật giao diện qua WebSocket
+        end
+    end
+end
+
+' Alternative Flow
+alt Không thanh toán trong 24 giờ
+    "Order Service" -> MySQL: Tự động\nxóa đơn hàng
+    "Order Service" -> Buyer: Cập nhật\ngiao diện\nqua WebSocket
+    "Order Service" -> Buyer: Thông báo hủy đơn bằng FCM
+end
+@enduml

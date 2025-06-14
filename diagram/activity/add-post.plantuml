@@ -1,0 +1,59 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Chọn đăng bài;
+|Mobile App|
+:Hiển thị danh mục;
+
+|Người dùng|
+:Chọn danh mục;
+|Mobile App|
+:Hiển thị các danh mục con;
+
+|Người dùng|
+:Chọn danh mục con;
+|Mobile App|
+:Hiển thị form nhập thông tin;
+
+|Người dùng|
+label CungCapThongTin
+:Cung cấp thông tin;
+
+|Mobile App|
+if (Kiểm tra dữ\nliệu có hợp lệ?) then (Có)
+  |Mobile App|
+  :Hiển thị nút đăng;
+else
+  |Mobile App|
+  :Ẩn nút đăng;
+  |Người dùng|
+  detach
+endif
+
+|Người dùng|
+:Nhấn nút đăng;
+
+|Mobile App|
+:Nén ảnh/video;
+|Backend|
+if (Kiểm tra dữ\nliệu có hợp lệ?) then (Có)
+  :Lưu bài vào CSDL;
+  :Upload ảnh/video;
+  :Lưu ảnh/video vào CSDL;
+  :Gửi thông báo đến\nfollowers(FCM);
+  :Gửi bài đăng đến\nfollowers(WebSocket);
+  |Mobile App|
+  :Xoá file nén;
+  :Thông báo thành công;
+else
+  |Mobile App|
+  :Hiển thị lỗi;
+  ' back CungCapThongTin
+  detach
+endif
+
+stop
+@enduml

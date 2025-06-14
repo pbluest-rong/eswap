@@ -42,6 +42,9 @@ class _InstitutionSelectionDialogState
   @override
   void initState() {
     super.initState();
+    if (widget.isNationwide != null) {
+      isNationwide = widget.isNationwide!;
+    }
     _loadProvinces();
   }
 

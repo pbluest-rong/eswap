@@ -90,7 +90,7 @@ public class AccountController {
 
     @PutMapping("/change-info")
     public ResponseEntity<ApiResponse> changeInfo(Authentication authentication, @RequestBody ChangeInfoRequest request) {
-        UserResponse userResponse = userService.changeInformation(authentication, request);
+        AuthenticationResponse userResponse = userService.changeInformation(authentication, request);
         return ResponseEntity.ok(new ApiResponse(true, "Change information successfully", userResponse));
     }
 }

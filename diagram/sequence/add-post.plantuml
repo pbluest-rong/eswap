@@ -1,0 +1,45 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+
+actor User
+actor Followers
+participant "Bottom\nNavigation Bar" as NavigationBar
+participant "Post\nController" as PostController
+participant "Post\nService" as PostService
+participant "Upload\nService" as UploadService
+participant "Notification\nService" as NotificationService
+participant "Post\nProducer" as PostProducer
+database MySQL
+
+' Main Flow
+User -> NavigationBar: Chọn đăng bài
+NavigationBar-> NavigationBar: Hiển thị hộp thoại\nchọn danh mục
+User -> NavigationBar: Chọn danh mục
+NavigationBar-> NavigationBar: Hiển thị hộp thoại\ndanh mục con
+User -> NavigationBar: Chọn danh mục con
+NavigationBar-> NavigationBar: Hiển thị form\nnhập thông tin
+User -> NavigationBar: Chọn chế độ\nhiển thị
+User -> NavigationBar: Cung cấp thông tin\nbài đăng
+NavigationBar-> NavigationBar: Kiểm tra thông tin\nhợp lệ
+alt Thông tin không hợp lệ
+    NavigationBar-> NavigationBar: Ẩn nút đăng
+else Thông tin hợp lệ
+    NavigationBar-> NavigationBar: Hiển thị nút đăng
+    User -> NavigationBar: Nhấn nút đăng
+    NavigationBar-> NavigationBar: Nén ảnh/video
+    NavigationBar-> PostController: Gọi API đăng bài
+    PostController -> PostService: Xử lý đăng bài
+    PostService -> MySQL: Tìm Category,\nBrand, EducationInstitution
+    PostService -> MySQL: Lưu bài đăng
+    PostService -> UploadService: Upload media files
+    UploadService -> MySQL: Lưu PostMedia
+    PostService -> PostProducer: Gửi sự kiện\n bài đăng đã mới (Kafka)
+    PostProducer -> PostConsumer: Gửi PostResponse\ntới Kafka topic
+    PostConsumer -> NotificationService: Gửi thông báo\ntới followers (FCM)
+    PostConsumer -> Followers: Cập nhật giao diện\nfollowers (WebSocket)
+    NavigationBar-> NavigationBar: Xóa file nén
+    NavigationBar-> NavigationBar: Hiển thị thông báo\nthành công
+end
+@enduml

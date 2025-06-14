@@ -21,6 +21,7 @@ public class UploadCloudinaryServiceImpl implements UploadService {
 
     @Override
     public String upload(@NonNull MultipartFile sourceFile) {
+        System.out.println(sourceFile.getOriginalFilename());
         String resourceType = detectResourceType(sourceFile);
         try {
             String publicId = generatePublicValue(sourceFile.getOriginalFilename());
@@ -48,11 +49,13 @@ public class UploadCloudinaryServiceImpl implements UploadService {
         return "raw"; // Mặc định raw cho các loại khác
     }
 
+//    public String generatePublicValue(String originalName) {
+//        String filename = extractFileNameWithoutExtension(originalName);
+//        return UUID.randomUUID() + "_" + filename;
+//    }
     public String generatePublicValue(String originalName) {
-        String filename = extractFileNameWithoutExtension(originalName);
-        return UUID.randomUUID() + "_" + filename;
+        return UUID.randomUUID() + "_" + originalName;
     }
-
     public String extractFileNameWithoutExtension(String originalName) {
         if (originalName == null || !originalName.contains(".")) {
             return originalName;

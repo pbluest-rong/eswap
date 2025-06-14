@@ -15,9 +15,10 @@ class Category {
     return Category(
       id: json['id'],
       name: json['name'],
-      children: (json['children'] as List)
-          .map((e) => Category.fromJson(e))
-          .toList(),
+      children: (json['children'] as List<dynamic>?)
+          ?.map((e) => Category.fromJson(e))
+          .toList() ??
+          [],
       brands: (json['brands'] ?? []).map<Brand>((b) => Brand.fromJson(b)).toList(),
     );
   }

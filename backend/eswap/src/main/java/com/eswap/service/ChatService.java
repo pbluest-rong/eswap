@@ -294,12 +294,12 @@ public class ChatService {
                 .build();
     }
 
-    public PageResponse<ChatResponse> getChats(Authentication connectedUser, int page, int size) {
+    public PageResponse<ChatResponse> getChats(String keyword, Authentication connectedUser, int page, int size) {
         User user = (User) connectedUser.getPrincipal();
 
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
-        Page<Chat> chats = chatRepository.findAll(pageable);
+        Page<Chat> chats = (keyword == null && keyword.isEmpty()) ? chatRepository.getChats(user.getId(), pageable) : chatRepository.getChats(user.getId(), keyword, pageable);
         List<ChatResponse> chatResponses = chats.stream().map(
                 chat -> {
                     User chatPartner = chat.getUser1().getId() == user.getId() ? chat.getUser2() : chat.getUser1();

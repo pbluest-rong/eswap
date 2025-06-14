@@ -5,10 +5,9 @@ import com.eswap.common.constants.PageResponse;
 import com.eswap.model.Brand;
 import com.eswap.model.Category;
 import com.eswap.model.UserBalance;
-import com.eswap.response.CategoryResponse;
-import com.eswap.response.PostResponse;
-import com.eswap.response.UserBalanceResponse;
-import com.eswap.response.UserResponse;
+import com.eswap.request.AddBrandRequest;
+import com.eswap.request.AddCategoryRequest;
+import com.eswap.response.*;
 import com.eswap.service.BalanceService;
 import com.eswap.service.BrandService;
 import com.eswap.service.CategoryService;
@@ -28,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
     private final UserService userService;
     private final BalanceService balanceService;
+    private final CategoryService categoryService;
+    private final BrandService brandService;
 
     @GetMapping("/users")
     public ResponseEntity<ApiResponse> getUsers(Authentication auth,
@@ -76,5 +77,23 @@ public class AdminController {
     public ResponseEntity<ApiResponse> acceptWithdrawal(@PathVariable("userId") long userId) {
         UserBalanceResponse balanceResponse = balanceService.adminAcceptWithdrawal(userId);
         return ResponseEntity.ok(new ApiResponse(true, "Accept withdrawal for user successfully", balanceResponse));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<ApiResponse> dashboard() {
+        DashboardResponse dashboardResponse = userService.dashboard();
+        return ResponseEntity.ok(new ApiResponse(true, "dashboard", dashboardResponse));
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<ApiResponse> addCategory(@RequestBody AddCategoryRequest request) {
+        Category category = categoryService.addCategory(request);
+        return ResponseEntity.ok(new ApiResponse(true, "Category added successfully", category));
+    }
+
+    @PostMapping("/brands")
+    public ResponseEntity<ApiResponse> addBrand(@RequestBody AddBrandRequest request) {
+        Brand brand = brandService.addBrand(request);
+        return ResponseEntity.ok(new ApiResponse(true, "Brand added successfully", brand));
     }
 }

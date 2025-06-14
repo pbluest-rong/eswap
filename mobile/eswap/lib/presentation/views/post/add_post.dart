@@ -10,6 +10,7 @@ import 'package:eswap/presentation/components/pick_media.dart';
 import 'package:eswap/presentation/components/quantity_selector.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/views/post/add_post_provider.dart';
+import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
 import 'package:eswap/service/category_brand_service.dart';
 import 'package:eswap/service/post_service.dart';
@@ -65,7 +66,18 @@ class _AddPostPageState extends State<AddPostPage> {
       postService.addPost(
           addPostProvider.toJson(), addPostProvider.getMediaFiles()!);
 
-      Navigator.pop(context);
+      AppAlert.show(
+        context: context,
+        title: "Đăng bài thành công",
+        buttonLayout: AlertButtonLayout.single,
+        actions: [
+          AlertAction(
+              text: 'OK',
+              handler: () {
+                Navigator.pop(context);
+              })
+        ],
+      );
       Provider.of<UserSessionProvider>(context, listen: false)
           .deleteAddPostName();
     } catch (e) {
@@ -85,7 +97,18 @@ class _AddPostPageState extends State<AddPostPage> {
       final postService = PostService();
       postService.addPost(
           addPostProvider.toJson(), addPostProvider.getMediaFiles()!);
-      Navigator.pop(context);
+      AppAlert.show(
+        context: context,
+        title: "Gửi yêu cầu thành công",
+        buttonLayout: AlertButtonLayout.single,
+        actions: [
+          AlertAction(
+              text: 'OK',
+              handler: () {
+                Navigator.pop(context);
+              })
+        ],
+      );
       Provider.of<UserSessionProvider>(context, listen: false)
           .deleteAddPostName();
     } catch (e) {

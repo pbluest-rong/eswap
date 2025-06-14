@@ -75,6 +75,7 @@ class NotificationService {
     if (message.notification != null) {
       final prefs = await SharedPreferences.getInstance();
       bool? isChatNotify = prefs.getBool("isChatNotify");
+      print("====> $isChatNotify");
 
       if (isChatNotify == null || !isChatNotify!) {
         LocalNotifications.showSimpleNotification(

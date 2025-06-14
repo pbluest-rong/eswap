@@ -1,0 +1,49 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Chọn "Đặt cọc" ở màn hình\nđơn hàng đợi đặt cọc;
+
+|Mobile App|
+:Hiển thị phương thức\nthanh toán;
+|Người dùng|
+:Chọn phương thức\nthanh toán;
+|Mobile App|
+:Yêu cầu đặt cọc đơn hàng;
+|Backend|
+if (Kiểm tra số lượng\nmua có hợp lệ?) then (Có)
+
+else (Không)
+    |Mobile App|
+    :Hiển thị thông báo lỗi;
+    detach
+endif
+
+if (Kiểm tra số lần đặt cọc có vượt giới hạn?) then (Có)
+    |Mobile App|
+    :Hiển thị thông báo lỗi vượt quá số lần đặt cọc;
+    detach
+else
+    :Cập nhật số lần đặt cọc thêm 1;
+    :Tạo mẫu thanh toán;
+    |Mobile App|
+    :Hiển thị màn hình\nthanh toán;
+    |Người dùng|
+    :Tiến hành thanh toán;
+    detach
+    
+    --> [Signal:\nThanh toán thành công]
+    |Backend|
+    :Cập nhật số lượng\nđã bán của bài đăng;
+    :Lưu giao dịch đặt cọc;
+    :Cập nhật trạng thái\nđơn hàng là "đã đặt cọc";
+    :Gửi thông báo đặt cọc\nthành công (WebSocket);
+    :Thông báo đến\nngười bán (FCM);
+    :Gửi thông tin đơn hàng đến người mua,\nngười bán (WebSocket);
+    |Mobile App|
+    :Cập nhật giao diện\nđơn hàng người mua,\nngười bán (WebSocket);
+    stop
+endif
+@enduml

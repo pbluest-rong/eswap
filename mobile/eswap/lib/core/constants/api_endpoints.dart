@@ -1,6 +1,6 @@
 class ApiEndpoints {
   static String PROTOCOL = "http";
-  static String HOST = "192.168.1.21";
+  static String HOST = "192.168.1.2";
   static String PORT = "8080";
   static String CONTEXT_PATH = "/api/v1/";
 
@@ -22,6 +22,7 @@ class ApiEndpoints {
   static String checkExist_url = _baseUrl + "auth/check-exist";
 
   static String saveFcmToken_url = _baseUrl + "notifications/save-fcm-token";
+  static String removeFcmToken_url = _baseUrl + "notifications/remove-fcm-token";
   static String getNotifications = _baseUrl + "notifications";
   static String getUnreadNotificationNumber = _baseUrl + "notifications/count-unread";
   static String markAsReadNotification = _baseUrl + "notifications";

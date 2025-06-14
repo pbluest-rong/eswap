@@ -1,0 +1,59 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Chọn "Hủy bỏ" ở \nmàn hình đơn hàng\n chưa hoàn thành;
+
+|Mobile App|
+:Hiển thị hộp thoại\nnhập lý do hủy;
+|Người dùng|
+:Nhập lý do hủy,\n nhấn "Xác nhận";
+|Mobile App|
+if (Kiểm tra lý do\nhủy có trống?) then (Có)
+    |Mobile App|
+    :Hiển thị \nthông báo lỗi;
+    detach
+else (Không)
+    |Mobile App|
+    :Gửi yêu cầu xử lý;
+endif
+
+|Backend|
+if (Có là “hoàn thành”\nhoặc “đã xóa”?) then (Có)
+    |Mobile App|
+    :Hiển thị\nthông báo lỗi;
+    detach
+else
+|Backend|
+if (Có là trạng thái\n“đợi đặt cọc” và\ntác nhân là người mua) then (Có)
+    |Backend|
+    :Cập nhật\ntrạng thái\nlà "đã xóa";
+    :Gửi thông tin\nđơn hàng đến\nngười mua\n(WebSocket);
+    |Mobile App|
+    :Cập nhật\ngiao diện\nđơn hàng\nngười mua\n(WebSocket);
+    stop
+else (Không)
+    |Backend|
+    :Hoàn trả\nsố lượng bán ra\ncủa bài đăng;
+    if (Có là\n"đã đặt cọc" hoặc\n"đã xác nhận") then ("Có")
+        if(Người mua\nhay người bán?) then (Người mua)
+            :Chuyển cọc\nvề người bán;
+            :Gửi thông báo\nđến người bán\n(FCM);
+        else (Người bán)
+            :Hoàn cọc\nvề người mua;
+            :Gửi thông báo\nđến người mua\n(FCM);
+        endif
+        :Cập nhật trạng\ntháilà "đã hủy"\nvà lý do hủy;
+        :Gửi thông tin\nđơn hàng đến\nngười mua,\nngười bán\n(WebSocket);
+        |Mobile App|
+        :Cập nhật\ngiao diện\nđơn hàng\nngười mua,\nngười bán\n(WebSocket);
+        stop
+    else (Không)
+        |Backend|
+        :Kết thúc;
+        stop
+    endif
+endif
+@enduml

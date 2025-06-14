@@ -1,0 +1,65 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor Buyer
+actor Seller
+participant "Order\nScreen" as OrderScreen
+participant "Order\nController" as OrderController
+participant "Order\nService" as OrderService
+participant "Balance\nService" as BalanceService
+participant "Notification\nService" as NotificationService
+database MySQL
+
+' Main Flow
+alt Buyer
+    Buyer -> OrderScreen: Chọn đơn hàng\ncần hoàn thành
+else Seller
+    Seller -> OrderScreen: Chọn đơn hàng\ncần hoàn thành
+end
+
+alt Buyer
+    Buyer -> OrderScreen: Xác nhận\nhoàn thành
+else Seller
+    Seller -> OrderScreen: Xác nhận\nhoàn thành
+end
+
+OrderScreen -> OrderController: Gọi API hoàn thành\n(orderId)
+OrderController -> OrderService: Xử lý hoàn\nthành đơn hàng
+
+OrderService -> OrderService: Xác định tác nhân\n(Buyer/Seller)
+alt Buyer
+    OrderService -> MySQL: Tìm đơn hàng\ntheo orderId
+    OrderService -> OrderService: Kiểm tra đơn\nở trạng thái DEPOSITED
+    alt Đơn không phải DEPOSITED
+        OrderService -> OrderController: Ném lỗi\n(chỉ DEPOSITED\nđược hoàn thành)
+        OrderController -> OrderScreen: Trả về lỗi
+        OrderScreen -> OrderScreen: Thông báo\n"Chỉ đơn đã đặt cọc\nmới được hoàn thành"
+    else
+        OrderService -> MySQL: Cập nhật trạng thái\nthành COMPLETED
+        OrderService -> BalanceService: Chuyển tiền cọc\nvề ví người bán
+        OrderService -> MySQL: Cộng điểm uy tín\ncho người bán
+    end
+else Seller
+    OrderService -> MySQL: Tìm đơn hàng\ntheo orderId
+    OrderService -> OrderService: Kiểm tra đơn\nở trạng thái SELLER_ACCEPTS
+    alt Đơn không phải SELLER_ACCEPTS
+        OrderService -> OrderController: Ném lỗi\n(chỉ SELLER_ACCEPTS\nđược hoàn thành)
+        OrderController -> OrderScreen: Trả về lỗi
+        OrderScreen -> OrderScreen: Thông báo\n"Chỉ đơn đã xác nhận\nmới được hoàn thành"
+    else
+        OrderService -> MySQL: Cập nhật trạng thái\nthành COMPLETED
+        OrderService -> MySQL: Cộng điểm uy tín\ncho người bán
+    end
+end
+OrderService -> NotificationService: Gửi thông báo\nđến bên còn lại
+alt Buyer
+    NotificationService -> Seller: Thông báo\nhoàn thành (FCM)
+else Seller
+    NotificationService -> Buyer: Thông báo\nhoàn thành (FCM)
+end
+OrderService -> Buyer: Cập nhật giao diện\nngười mua (WebSocket)
+OrderService -> Seller: Cập nhật giao diện\nngười bán (WebSocket)
+@enduml

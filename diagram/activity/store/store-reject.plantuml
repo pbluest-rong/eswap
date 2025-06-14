@@ -1,0 +1,17 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Store|
+start
+:Chọn "Từ chối"\nở màn hình \nbài đăng "Chờ xử lý";
+
+|Mobile App|
+:Yêu cầu cửa hàng\ntừ chối yêu cầu \nbán hàng;
+|Backend|
+:Cập nhật trạng thái\nbài đăng là "Đã từ chối";
+:Gửi thông báo đến\nngười dùng(FCM);
+|Mobile App|
+:Cập nhật giao diện\nbài đăng;
+stop
+@enduml

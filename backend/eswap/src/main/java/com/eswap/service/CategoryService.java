@@ -3,6 +3,7 @@ package com.eswap.service;
 import com.eswap.model.Brand;
 import com.eswap.model.Category;
 import com.eswap.repository.CategoryRepository;
+import com.eswap.request.AddCategoryRequest;
 import com.eswap.request.GetBrandsByCategoriesRequest;
 import com.eswap.response.BrandResponse;
 import com.eswap.response.CategoryResponse;
@@ -81,5 +82,18 @@ public class CategoryService {
                 .map(brand -> new BrandResponse(brand.getId(), brand.getName()))
                 .collect(Collectors.toList());
         return responses;
+    }
+
+    public Category addCategory(AddCategoryRequest request) {
+        Category category = new Category();
+        category.setName(request.getName());
+
+        if (request.getParentCategoryId() != null) {
+            Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Parent category not found"));
+            category.setParentCategory(parentCategory);
+        }
+
+        return categoryRepository.save(category);
     }
 }

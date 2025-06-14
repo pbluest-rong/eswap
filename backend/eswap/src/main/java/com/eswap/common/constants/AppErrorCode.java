@@ -23,6 +23,7 @@ public enum AppErrorCode {
     ORDER_NOT_FOUND("ORDER_NOT_FOUND", "error.order.not_found"),
     ORDER_EXISTS("ORDER_EXISTS", "error.order.exists"),
     DEPOSIT_LIMIT_EXCEEDED("DEPOSIT_LIMIT_EXCEEDED", "error.order.limit_exceeded"),
+    WITHDRAWAL_REQUEST_MIN_BALANCE("WITHDRAWAL_REQUEST_MIN_BALANCE", "error.balance.min"),
     WITHDRAWAL_REQUEST_LIMIT_EXCEEDED("WITHDRAWAL_LIMIT_EXCEEDED", "error.balance.request_limit_exceeded");
     private final String code;
     private final String messageKey;

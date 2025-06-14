@@ -17,13 +17,20 @@ class ChatService {
   final dio = Dio();
 
   Future<PageResponse<Chat>> fetchChats(
-      int page, int size, BuildContext context) async {
+      {String? keyword,
+      required int page,
+      required int size,
+      required BuildContext context}) async {
     try {
       final languageCode = Localizations.localeOf(context).languageCode;
       final userSession = await UserSession.load();
 
       final response = await dio.get(ApiEndpoints.chats_url,
-          queryParameters: {'page': page, 'size': size},
+          queryParameters: {
+            'page': page,
+            'size': size,
+            'keyword': keyword ?? ""
+          },
           options: Options(headers: {
             "Content-Type": "application/json",
             "Accept-Language": languageCode,
@@ -40,18 +47,15 @@ class ChatService {
           throw Exception("no_result_found".tr());
         }
       } else {
-        
         throw Exception(response.data['message']);
       }
     } on DioException catch (e) {
       if (e.response != null) {
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-       
         throw Exception("network_error".tr());
       }
     } catch (e, a) {
-      
       throw Exception("general_error".tr());
     }
   }
@@ -76,19 +80,15 @@ class ChatService {
           throw Exception("no_result_found".tr());
         }
       } else {
-        
         throw Exception(response.data['message']);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-       
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      
       throw Exception("general_error".tr());
     }
   }
@@ -118,19 +118,15 @@ class ChatService {
           throw Exception("no_result_found".tr());
         }
       } else {
-        
         throw Exception(response.data['message']);
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        
         throw Exception(e.response?.data["message"] ?? "general_error".tr());
       } else {
-       
         throw Exception("network_error".tr());
       }
     } catch (e) {
-      
       throw Exception("general_error".tr());
     }
   }
@@ -140,6 +136,7 @@ class ChatService {
       List<String>? mediaFiles,
       required BuildContext context}) async {
     try {
+      print("SEND MESSAGE");
       final languageCode = Localizations.localeOf(context).languageCode;
       final userSession = await UserSession.load();
 
@@ -163,28 +160,48 @@ class ChatService {
           ),
         );
       } else {
+        print("MEDIA");
         if (mediaFiles != null && mediaFiles.isNotEmpty) {
           List<MultipartFile> mediaFileList = [];
           List<String> compressedFilePaths = [];
-          for (String filePath in mediaFiles) {
-            final tempDir = await getTemporaryDirectory();
-            final targetPath =
-                '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
 
-            final compressedFile =
-                await FlutterImageCompress.compressAndGetFile(
-              filePath,
-              targetPath,
-              quality: 70,
-            );
-            if (compressedFile != null) {
-              mediaFileList.add(
-                await MultipartFile.fromFile(
-                  compressedFile.path,
-                  filename: compressedFile.path.split('/').last,
-                ),
+          for (String filePath in mediaFiles) {
+            // Video
+            if (_isVideoMedia(filePath)) {
+              mediaFileList.add(await MultipartFile.fromFile(
+                filePath,
+                filename: filePath.split('/').last,
+              ));
+            }
+            // Image
+            else {
+              final tempDir = await getTemporaryDirectory();
+              // final targetPath =
+              //     '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
+              final originalFileName = filePath.split('/').last;
+              // Kiểm tra và giữ nguyên đuôi file hoặc thêm .jpg
+              String extension =
+                  originalFileName.toLowerCase().endsWith('.jpg') ||
+                          originalFileName.toLowerCase().endsWith('.jpeg')
+                      ? ''
+                      : '.jpg';
+              final targetPath =
+                  '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_$originalFileName$extension';
+              final compressedFile =
+                  await FlutterImageCompress.compressAndGetFile(
+                filePath,
+                targetPath,
+                quality: 70,
               );
-              compressedFilePaths.add(compressedFile.path);
+              if (compressedFile != null) {
+                mediaFileList.add(
+                  await MultipartFile.fromFile(
+                    compressedFile.path,
+                    filename: compressedFile.path.split('/').last,
+                  ),
+                );
+                compressedFilePaths.add(compressedFile.path);
+              }
             }
           }
 
@@ -212,15 +229,17 @@ class ChatService {
           }
         }
       }
-    } on DioException catch (e) {
-      if (e.response != null) {
-        
-      } else {
-       
-      }
-    } catch (e) {
-      
+    } catch (e, a) {
+      print(e);
+      print(a);
     }
+  }
+
+  bool _isVideoMedia(String url) {
+    return url.contains('video') ||
+        url.endsWith('.mp4') ||
+        url.endsWith('.mov') ||
+        url.endsWith('.avi');
   }
 
   Future<void> markAsRead(int chatPartnerId) async {

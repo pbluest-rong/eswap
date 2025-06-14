@@ -4,6 +4,8 @@ import com.eswap.common.exception.AlreadyExistsException;
 import com.eswap.common.exception.InvalidCredentialsException;
 import com.eswap.response.TransactionResponse;
 import com.eswap.response.UserBalanceResponse;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,6 +45,7 @@ public class BalanceService {
     private final TransactionRepository transactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final AuthenticationManager authenticationManager;
 
     /**
      * Lấy số dư tài khoản.
@@ -116,10 +120,18 @@ public class BalanceService {
         if (!user.isEnabled() || user.isAccountLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
-        String enReqPassword = passwordEncoder.encode(password);
-        if (!enReqPassword.equals(user.getPassword())) {
+        System.out.println(password);
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            user.getUsername(),
+                            password
+                    )
+            );
+        } catch (Exception e) {
             throw new InvalidCredentialsException(AppErrorCode.USER_PW_INVALID_CREDENTIALS);
         }
+
         UserBalance balance = balanceRepository.findById(user.getId()).orElse(null);
         if (balance == null) {
             balance = new UserBalance();
@@ -131,6 +143,9 @@ public class BalanceService {
             balance.setWithdrawDateTime(OffsetDateTime.now());
             balance = balanceRepository.save(balance);
         } else {
+            if (balance.getBalance().compareTo(new BigDecimal("50000")) < 0) {
+                throw new AlreadyExistsException(AppErrorCode.WITHDRAWAL_REQUEST_LIMIT_EXCEEDED);
+            }
             // Đang đợi xử lý
             if (balance.isWithdrawRequested())
                 throw new AlreadyExistsException(AppErrorCode.WITHDRAWAL_REQUEST_LIMIT_EXCEEDED);

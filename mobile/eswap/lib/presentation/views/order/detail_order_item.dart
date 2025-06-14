@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/main.dart';
@@ -9,6 +12,7 @@ import 'package:eswap/presentation/views/order/payment_momo_page.dart';
 import 'package:eswap/presentation/views/post/standalone_post.dart';
 import 'package:eswap/presentation/widgets/dialog.dart';
 import 'package:eswap/service/order_service.dart';
+import 'package:eswap/service/websocket.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,11 +30,30 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
   Order? order;
   bool? isSellOrder;
   final orderService = OrderService();
+  StreamSubscription<String>? orderStream;
 
   @override
   void initState() {
     super.initState();
     _fetchOrder();
+    _setupWebSocket();
+  }
+
+  void _setupWebSocket() async {
+    WebSocketService.getInstance().then((ws) {
+      orderStream = ws.orderStream.listen((data) {
+        if (!mounted) return;
+        final updatedOrder = Order.fromJson(json.decode(data));
+        Provider.of<OrderProvider>(context, listen: false)
+            .addOrder(updatedOrder);
+
+        if (updatedOrder.id == widget.orderId) {
+          setState(() {
+            order = updatedOrder;
+          });
+        }
+      });
+    });
   }
 
   Future<void> loadUserSession() async {
@@ -336,7 +359,7 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
                   MaterialPageRoute(
                       builder: (_) => DetailUserPage(
                           userId:
-                              isSellOrder! ? order!.sellerId : order!.buyerId)),
+                              isSellOrder! ? order!.buyerId : order!.sellerId)),
                 );
               },
               child: _buildInfoRow(
@@ -487,16 +510,17 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
                     AppAlert.show(
                         context: context,
                         title:
-                        "Đơn hàng đã yêu cầu thanh toán đặt cọc nhiều lần, vui lòng hủy đơn hàng",
+                            "Đơn hàng đã yêu cầu thanh toán đặt cọc nhiều lần, vui lòng hủy đơn hàng",
                         actions: [AlertAction(text: "OK")]);
                   }
                 },
               ),
             //Chỉ người bán mới hoàn thành đơn đã xác nhận
-            if (isSellOrder! && order!.status == OrderStatus.SELLER_ACCEPTS.name)
+            if (isSellOrder! &&
+                order!.status == OrderStatus.SELLER_ACCEPTS.name)
               OutlinedButton.icon(
                 label:
-                Text('Hoàn thành', style: TextStyle(color: Colors.green)),
+                    Text('Hoàn thành', style: TextStyle(color: Colors.green)),
                 style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     shape: RoundedRectangleBorder(
@@ -521,7 +545,7 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
             if (!isSellOrder! && order!.status == OrderStatus.DEPOSITED.name)
               OutlinedButton.icon(
                 label:
-                Text('Hoàn thành', style: TextStyle(color: Colors.green)),
+                    Text('Hoàn thành', style: TextStyle(color: Colors.green)),
                 style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     shape: RoundedRectangleBorder(
@@ -557,7 +581,7 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
                     side: BorderSide(color: Colors.red)),
                 onPressed: () {
                   TextEditingController _reasonController =
-                  TextEditingController();
+                      TextEditingController();
                   AppAlert.show(
                     context: context,
                     centerWidget: TextField(
@@ -581,7 +605,8 @@ class _DetailOrderItemState extends State<DetailOrderItem> {
                                   actions: [AlertAction(text: "OK")]);
                               return;
                             }
-                            orderService.cancelOrder(order!.id, reason, context);
+                            orderService.cancelOrder(
+                                order!.id, reason, context);
                             Provider.of<OrderProvider>(context, listen: false)
                                 .removeOrder(order!.id);
                           },

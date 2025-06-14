@@ -1,0 +1,39 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Nhấn "Hoàn thành" ở \nmàn hình đơn hàng\n cần hoàn thành;
+|Mobile App|
+:Yêu cầu xử lý;
+|Backend|
+if(Người mua\nhay người bán?) then (Người mua)
+    if (Có là\n"đặt cọc"?) then (Có)
+        :Cập nhật trạng\nthái là\n"đã hoàn thành";
+        :Chuyển số tiền\ncọc về ví\nngười bán;
+        :Tăng điểm\nuy tín cho\nngười bán;
+        :Gửi thông báo\nđến người bán\n(FCM);
+    else (Không)
+        |Mobile App|
+        :Hiển thị\nthông báo lỗi;
+        stop;
+    endif
+else (Người bán)
+    |Backend|
+     if (Có là\n"đã xác nhận"?) then (Có)
+        :Cập nhật trạng\nthái là\n"đã hoàn thành";
+        :Tăng điểm\nuy tín\ncho người bán;
+        :Gửi thông báo\nđến người mua\n(FCM);
+    else (Không)
+        |Mobile App|
+        :Hiển thị\nthông báo lỗi;
+        stop;
+    endif
+endif
+|Backend|
+:Gửi thông tin\nđơn hàng đến\nngười mua,\nngười bán\n(WebSocket);
+|Mobile App|
+:Cập nhật\ngiao diện\nđơn hàng\nngười mua,\nngười bán\n(WebSocket);
+stop
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+actor Seller
+actor Buyer
+participant "Order\nScreen" as OrderScreen
+participant "Order\nController" as OrderController
+participant "Order\nService" as OrderService
+participant "Notification\nService" as NotificationService
+database MySQL
+
+' Main Flow
+Seller -> OrderScreen: Chọn đơn hàng\n"chờ xác nhận"
+Seller -> OrderScreen: Nhấn nút\n"Chấp nhận"
+OrderScreen -> OrderController: Gọi API chấp nhận\n(orderId)
+OrderController -> OrderService: Xử lý chấp nhận\nđơn hàng
+OrderService -> MySQL: Tìm đơn hàng\ntheo orderId
+OrderService -> OrderService: Kiểm tra trạng thái\nPENDING
+OrderService -> MySQL: Cập nhật trạng thái\nthành SELLER_ACCEPTS
+OrderService -> MySQL: Cộng số lượng mua\nvào bài đăng
+OrderService -> NotificationService: Gửi thông báo\ntới người mua (FCM)
+OrderService -> Seller: Cập nhật giao diện\nngười mua (WebSocket)
+OrderService -> Buyer: Cập nhật giao diện\nngười bán (WebSocket)
+NotificationService -> Buyer: Thông báo\nđơn đã xác nhận
+@enduml

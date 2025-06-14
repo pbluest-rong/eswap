@@ -28,15 +28,19 @@ public class UserResponse {
     private String role;
     private boolean isLocked;
     private boolean waitingAcceptFollow;
+    private boolean requireFollowApproval;
 
     public static UserResponse mapperToUserResponse(User user, FollowStatus followStatus, boolean isConnectedUser, boolean waitingAcceptFollow) {
         return new UserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
                 user.getEducationInstitution().getName(), followStatus,
-                null, null, null, null, null, isConnectedUser, user.getReputationScore(), user.getAddress(), user.getRole().getName(), user.isAccountLocked(), waitingAcceptFollow);
+                null, null, null, null, null,
+                isConnectedUser, user.getReputationScore(), user.getAddress(), user.getRole().getName(),
+                user.isAccountLocked(), waitingAcceptFollow, user.isRequireFollowApproval());
     }
 
     public static UserResponse mapperToUserResponse(User user, FollowStatus followtSatus, Integer postCount, Integer followerCount, Integer followingCount, Boolean gender, String createdAt, boolean isConnectedUser, boolean waitingAcceptFollow) {
         return new UserResponse(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getEducationInstitution().getName(), followtSatus,
-                postCount, followerCount, followingCount, gender, createdAt, isConnectedUser, user.getReputationScore(), user.getAddress(), user.getRole().getName(), user.isAccountLocked(), waitingAcceptFollow);
+                postCount, followerCount, followingCount, gender, createdAt, isConnectedUser, user.getReputationScore(),
+                user.getAddress(), user.getRole().getName(), user.isAccountLocked(), waitingAcceptFollow, user.isRequireFollowApproval());
     }
 }

@@ -42,7 +42,6 @@ public class ChatConsumer {
         System.out.println("Kafka: new-message message-group-websocket " + chat);
         try {
             if (chat.isForMe()) {
-                System.out.println("Me => " + chat);
                 messagingTemplate.convertAndSendToUser(
                         chat.getMostRecentMessage().getFromUserUsername(),
                         "/queue/new-message",
@@ -50,7 +49,6 @@ public class ChatConsumer {
                 );
             }
             if (!chat.isForMe()) {
-                System.out.println("Not Me => " + chat);
                 messagingTemplate.convertAndSendToUser(
                         chat.getMostRecentMessage().getToUserUsername(),
                         "/queue/new-message",

@@ -545,7 +545,12 @@ class PostService {
       throw Exception("Failed to getUnreadNotificationNumber: ${e.toString()}");
     }
   }
-
+  bool _isVideoMedia(String url) {
+    return url.contains('video') ||
+        url.endsWith('.mp4') ||
+        url.endsWith('.mov') ||
+        url.endsWith('.avi');
+  }
   Future<void> addPost(
       Map<String, dynamic> postData, List<String> mediaFiles) async {
     try {
@@ -555,23 +560,33 @@ class PostService {
       List<String> compressedFilePaths = []; // Để lưu lại đường dẫn file nén
 
       for (String filePath in mediaFiles) {
-        final tempDir = await getTemporaryDirectory();
-        final targetPath =
-            '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
+        // Video
+        if (_isVideoMedia(filePath)) {
+          mediaFileList.add(await MultipartFile.fromFile(
+            filePath,
+            filename: filePath.split('/').last,
+          ));
+        }
+        // Image
+        else{
+          final tempDir = await getTemporaryDirectory();
+          final targetPath =
+              '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
 
-        final compressedFile = await FlutterImageCompress.compressAndGetFile(
-          filePath,
-          targetPath,
-          quality: 70,
-        );
-        if (compressedFile != null) {
-          mediaFileList.add(
-            await MultipartFile.fromFile(
-              compressedFile.path,
-              filename: compressedFile.path.split('/').last,
-            ),
+          final compressedFile = await FlutterImageCompress.compressAndGetFile(
+            filePath,
+            targetPath,
+            quality: 70,
           );
-          compressedFilePaths.add(compressedFile.path);
+          if (compressedFile != null) {
+            mediaFileList.add(
+              await MultipartFile.fromFile(
+                compressedFile.path,
+                filename: compressedFile.path.split('/').last,
+              ),
+            );
+            compressedFilePaths.add(compressedFile.path);
+          }
         }
       }
 

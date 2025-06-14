@@ -106,38 +106,45 @@ class _StandalonePostState extends State<StandalonePost> {
         ? Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              GestureDetector(
-                onTap: () async {
-                  Chat chat = new Chat(
-                      id: -1,
-                      chatPartnerId: widget.customerId!,
-                      chatPartnerAvatarUrl: widget.customerAvtUrl,
-                      chatPartnerFirstName: widget.customerFirstname!,
-                      chatPartnerLastName: widget.customerLastname!,
-                      educationInstitutionId: _post!.educationInstitutionId,
-                      educationInstitutionName: _post!.educationInstitutionName,
-                      currentPostId: _post!.id,
-                      currentPostName: _post!.name,
-                      currentPostSalePrice: _post!.salePrice,
-                      quantity: _post!.quantity,
-                      sold: _post!.sold,
-                      currentPostFirstMediaUrl: _post!.media.first.originalUrl,
-                      unReadMessageNumber: 0,
-                      currentPostUserId: _post!.userId);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => ChatPage(
-                                chat: chat,
-                              )));
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat_bubble_outline),
-                      Text("Liên hệ ngay")
-                    ],
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    Chat chat = new Chat(
+                        id: -1,
+                        chatPartnerId: widget.customerId!,
+                        chatPartnerAvatarUrl: widget.customerAvtUrl,
+                        chatPartnerFirstName: widget.customerFirstname!,
+                        chatPartnerLastName: widget.customerLastname!,
+                        educationInstitutionId: _post!.educationInstitutionId,
+                        educationInstitutionName:
+                            _post!.educationInstitutionName,
+                        currentPostId: _post!.id,
+                        currentPostName: _post!.name,
+                        currentPostSalePrice: _post!.salePrice,
+                        quantity: _post!.quantity,
+                        sold: _post!.sold,
+                        currentPostFirstMediaUrl:
+                            _post!.media.first.originalUrl,
+                        unReadMessageNumber: 0,
+                        currentPostUserId: _post!.userId);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ChatPage(
+                                  chat: chat,
+                                )));
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: Row(
+                      mainAxisAlignment: _editEnable
+                          ? MainAxisAlignment.start
+                          : MainAxisAlignment.end,
+                      children: [
+                        Icon(Icons.chat_bubble_outline),
+                        Text("Liên hệ ngay")
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/api_endpoints.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/model/category_brand_model.dart';
@@ -21,9 +22,19 @@ class _AdminCategoryBrandPageState extends State<AdminCategoryBrandPage> {
   bool isLoading = true;
   bool _isInitialLoad = true;
 
+  final TextEditingController _categoryNameController = TextEditingController();
+  final TextEditingController _brandNameController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _categoryNameController.dispose();
+    _brandNameController.dispose();
   }
 
   @override
@@ -70,136 +81,289 @@ class _AdminCategoryBrandPageState extends State<AdminCategoryBrandPage> {
     return data.map((json) => Category.fromJson(json)).toList();
   }
 
+  Future<void> _onRefresh() async {
+    await _loadCategories();
+    if (selectedChildCategory != null) {
+      _loadBrands(selectedChildCategory!.id);
+    }
+  }
+
+  // Thay đổi phần build thành:
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final dialogHeight = screenHeight;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: dialogHeight,
-        minWidth: double.infinity,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            // mainAxisSize: MainAxisSize.min,
-            children: [
-              if (selectedParentCategory != null)
-                Row(
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (selectedParentCategory != null)
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back_ios),
+                              onPressed: () {
+                                setState(() {
+                                  selectedChildCategory = null;
+                                  selectedParentCategory = null;
+                                });
+                              },
+                            ),
+                            Text(
+                              selectedParentCategory?.name ?? '',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                    ],
+                  )),
+            ),
+            if (isLoading)
+              SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (selectedParentCategory == null)
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 2.5,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final category = categories[index];
+                      return _buildCategoryItem(
+                        category,
+                        isSelected: selectedParentCategory?.id == category.id,
+                        onTap: () {
+                          setState(() {
+                            selectedParentCategory = category;
+                          });
+                        },
+                      );
+                    },
+                    childCount: categories.length,
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final child = selectedParentCategory!.children[index];
+                      return _buildChildCategoryItem(
+                        child,
+                        isSelected: selectedChildCategory?.id == child.id,
+                        onTap: () {
+                          setState(() {
+                            selectedChildCategory = child;
+                          });
+                          _handleCategorySelection();
+                        },
+                      );
+                    },
+                    childCount: selectedParentCategory!.children.length,
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back_ios),
-                      onPressed: () {
-                        setState(() {
-                          selectedChildCategory = null;
-                          selectedParentCategory = null;
-                        });
-                      },
-                    ),
-                    Text(
-                      selectedParentCategory?.name ?? '',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    if (selectedChildCategory != null) ...[
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _brands.map((brand) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ChoiceChip(
+                                label: Text(brand.item!.name),
+                                showCheckmark: false,
+                                selectedColor: AppColors.lightSecondary,
+                                selected: false,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          // print(selectedParentCategory?.id);
+                          // print(selectedChildCategory?.id);
+                          onPressed: _showAddBrandDialog,
+                          child: Text("Thêm thương hiệu"),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        // print(selectedParentCategory?.id);
+                        // print(selectedChildCategory?.id);
+                        onPressed: _showAddCategoryDialog,
+                        child: Text("Thêm danh mục"),
                       ),
                     ),
                   ],
                 ),
-              const SizedBox(height: 16),
-              if (isLoading)
-                Center(child: CircularProgressIndicator())
-              else if (selectedParentCategory == null)
-                _buildParentCategories()
-              else
-                _buildChildCategories(),
-              const SizedBox(height: 16),
-              if (selectedChildCategory != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 40),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _brands.map((brand) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(brand.item!.name),
-                            showCheckmark: false,
-                            selectedColor: AppColors.lightSecondary,
-                            selected: false,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                      onPressed: () {}, child: Text("Thêm thương hiệu"))),
-              const SizedBox(height: 8),
-              SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                      onPressed: () {}, child: Text("Thêm danh mục")))
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildParentCategories() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2.5, // Reduced from 3 to allow more height
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        return _buildCategoryItem(
-          category,
-          isSelected: selectedParentCategory?.id == category.id,
-          onTap: () {
-            setState(() {
-              selectedParentCategory = category;
-            });
-          },
+  Future<void> _addCategory() async {
+    if (_categoryNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter category name')),
+      );
+      return;
+    }
+
+    try {
+      final newCategory = await _categoryBrandService.createCategory(
+        context: context,
+        parentCategoryId: selectedParentCategory?.id,
+        name: _categoryNameController.text,
+      );
+
+      _loadCategories();
+
+      _categoryNameController.clear();
+      await _onRefresh();
+    } catch (e, a) {
+      print(a);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add category: $e')),
+      );
+    }
+  }
+
+  Future<void> _addBrand() async {
+    if (selectedChildCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a sub-category first')),
+      );
+      return;
+    }
+
+    if (_brandNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter brand name')),
+      );
+      return;
+    }
+
+    try {
+      final newBrand = await _categoryBrandService.createBrand(
+        context: context,
+        categoryId: selectedChildCategory!.id,
+        name: _brandNameController.text,
+      );
+
+      if (selectedChildCategory != null) {
+        _loadBrands(selectedChildCategory!.id);
+      }
+      _brandNameController.clear();
+      await _loadBrands(selectedChildCategory!.id);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add brand: $e')),
+      );
+    }
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(selectedParentCategory == null
+              ? 'Thêm danh mục chính'
+              : 'Thêm danh mục con'),
+          content: TextField(
+            controller: _categoryNameController,
+            decoration: const InputDecoration(
+              hintText: 'Tên danh mục',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('cancel'.tr()),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('confirm'.tr()),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _addCategory();
+              },
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildChildCategories() {
-    final children = selectedParentCategory?.children ?? [];
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      itemCount: children.length,
-      separatorBuilder: (context, index) => Divider(height: 1),
-      itemBuilder: (context, index) {
-        final child = children[index];
-        return _buildChildCategoryItem(
-          child,
-          isSelected: selectedChildCategory?.id == child.id,
-          onTap: () {
-            setState(() {
-              selectedChildCategory = child;
-            });
-            _handleCategorySelection();
-          },
+  Future<void> _showAddBrandDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Thêm thương hiệu'),
+          content: TextField(
+            controller: _brandNameController,
+            decoration: const InputDecoration(
+              hintText: 'Tên thương hiệu',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('cancel'.tr()),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('confirm'.tr()),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _addBrand();
+              },
+            ),
+          ],
         );
       },
     );

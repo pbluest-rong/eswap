@@ -1,0 +1,106 @@
+@startuml
+skinparam DefaultFontSize 18
+scale 1.5
+
+|Người dùng|
+start
+:Nhấn đăng ký;
+
+|Mobile App|
+:Hiển thị màn hình\nnhập họ và tên;
+
+|Người dùng|
+:Nhập họ và tên,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Hiển thị màn hình\nchọn trường học;
+
+|Người dùng|
+:Chọn tỉnh thành;
+:Chọn loại trường học;
+
+|Mobile App|
+:Lấy dữ liệu\ndanh sách trường học;
+
+|Backend|
+:Truy xuất danh sách\ntrường học;
+
+|Mobile App|
+:Hiển thị danh sách\ntrường học;
+
+|Người dùng|
+:Chọn trường học,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Hiển thị màn hình\nnhập ngày sinh;
+
+|Người dùng|
+:Nhập ngày sinh,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Hiển thị màn hình\ncung cấp giới tính;
+
+|Người dùng|
+:Cung cấp giới tính,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Hiển thị màn hình\nnhập email;
+
+fork
+   |Người dùng|
+   :Nhập email,\nnhấn "Tiếp tục";
+fork again
+   |Người dùng|
+   :Chọn đăng ký\nbằng số điện thoại;
+   |Mobile App|
+   :Hiển thị màn hình\nnhập số điện thoại;
+   |Người dùng|
+   :Nhập số điện thoại,\nnhấn "Tiếp tục";
+end fork
+
+|Mobile App|
+:Kiểm tra email/số điện thoại\ncó tồn tại?;
+
+|Backend|
+if (Tồn tại?) then (Có)
+   |Mobile App|
+   :Hiển thị thông báo lỗi;
+   detach
+else (Không)
+   |Mobile App|
+   :Hiển thị màn hình\nnhập mật khẩu;
+endif
+
+|Người dùng|
+:Nhập mật khẩu,\nxác nhận mật khẩu,\nnhấn "Tiếp tục";
+
+|Mobile App|
+:Gửi yêu cầu\ngửi mã xác minh;
+
+|Backend|
+if (Kiểm tra số lần gửi mã\ncó quá giới\nhạn trong ngày?) then (Có)
+   |Mobile App|
+   :Hiển thị thông báo lỗi;
+   detach
+else (Không)
+   |Backend|
+   :Gửi mã xác thực;
+   |Mobile App|
+   :Hiển thị màn hình\nnhập mã xác minh;
+endif
+
+|Người dùng|
+:Nhập mã xác minh;
+|Mobile App|
+:Kiểm tra mã xác minh;
+|Backend|
+if (Hợp lệ?) then (Có)
+   |Mobile App|
+   :Thông báo đăng ký\nthành công;
+else (Không)
+   |Mobile App|
+   :Hiển thị thông báo lỗi;
+   detach
+endif
+stop
+@enduml

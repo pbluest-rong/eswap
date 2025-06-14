@@ -1,0 +1,54 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam monochrome true
+skinparam ParticipantPadding 20
+
+actor Buyer
+actor Seller
+participant "Order Screen"
+participant "Payment Screen"
+participant "Order Controller"
+participant "Order Service"
+database MySQL
+
+' Main Flow
+Buyer -> "Order Screen": Nhấn nút "Đặt cọc"
+"Order Screen" -> "Order Screen": Hiển thị phương thức\nthanh toán
+
+Buyer -> "Order Screen": Chọn phương thức\nthanh toán
+"Order Screen" -> "Order Controller": Gọi API đặt cọc lại
+"Order Controller" -> "Order Service": Gọi xử lý
+
+' Kiểm tra số lượng
+"Order Service" -> "Order Service": Kiểm tra số lượng hợp lệ
+alt Số lượng không hợp lệ
+    "Order Service" -> "Order Controller": Ném ngoại lệ
+    "Order Controller" -> "Order Screen": Trả về lỗi
+    "Order Screen" -> "Order Screen": Hiển thị thông báo lỗi
+else
+    ' Kiểm tra số lần đặt cọc
+    "Order Service" -> "Order Service": Kiểm tra số lần\nđặt cọc
+    alt Vượt quá giới hạn
+        "Order Service" -> "Order Controller": Ném ngoại lệ
+        "Order Controller" -> "Order Screen": Trả về lỗi
+        "Order Screen" -> "Order Screen": Hiển thị thông báo\nvượt giới hạn
+    else
+        "Order Service" -> MySQL: Cập nhật số lần\nđặt cọc (+1)
+        "Order Service" -> "Order Screen": Tạo mẫu thanh toán
+        "Order Screen" -> "Payment Screen": Hiển thị màn hình\nthanh toán
+        
+        Buyer -> "Payment Screen": Tiến hành thanh toán
+        "Payment\nSignal" -> "Order Service": Thanh toán thành công
+        
+        ' Xử lý sau thanh toán
+        "Order Service" -> MySQL: Cập nhật số lượng\nđã bán
+        "Order Service" -> MySQL: Lưu giao dịch\nđặt cọc
+        "Order Service" -> MySQL: Cập nhật trạng thái\n"đã đặt cọc"
+        
+        "Order Service" -> Seller: Thông báo bằng FCM
+        "Order Service" -> "Payment Screen": Thông báo thành công\nqua WebSocket
+        "Order Service" -> Buyer: Cập nhật giao diện\nqua WebSocket
+        "Order Service" -> Seller: Cập nhật giao diện\nqua WebSocket
+    end
+end
+@enduml

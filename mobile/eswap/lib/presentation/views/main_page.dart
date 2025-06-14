@@ -147,8 +147,8 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount =
-        Provider.of<UserSessionProvider>(context).unreadMessageNumber;
+    int unreadCount = Provider.of<UserSessionProvider>(context, listen: true)
+        .unreadMessageNumber;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: IndexedStack(
@@ -332,9 +332,9 @@ class _MainPageState extends State<MainPage> {
                   storesController.text =
                       "${value.item!.firstname} ${value.item!.lastname}";
                   int storeId = value.item!.id;
-                  Provider.of<AddPostProvider>(context, listen: false)
-                      .updateStore(storeId,
-                          "${value.item!.firstname} ${value.item!.lastname} - ${value.item!.address}");
+                  Provider.of<AddPostProvider>(context, listen: false).updateStore(
+                      storeId,
+                      "${value.item!.firstname} ${value.item!.lastname} - ${value.item!.address}");
                 });
               }
             },

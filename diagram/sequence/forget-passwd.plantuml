@@ -1,0 +1,71 @@
+@startuml
+skinparam DefaultFontSize 16
+skinparam monochrome true
+skinparam ParticipantPadding 20
+
+actor User
+participant "UI\nRegistration" as UI
+participant FirebaseAuth
+participant "Authentication\nController" as AuthController
+participant "Authentication\nService" as AuthService
+participant "OTP\nService" as OTPService
+database MySQL
+
+' Main Flow
+User -> UI: Nhấn "Quên mật khẩu"
+UI -> UI: Hiển thị form email/số điện thoại
+User -> UI: Nhập email/số điện thoại\nNhấn "Tiếp tục"
+UI -> AuthController: Gọi API kiểm tra tồn tại
+AuthController -> AuthService: kiểm tra email/số điện thoại
+AuthService --> AuthController: Kết quả kiểm tra
+alt Email/số điện thoại không tồn tại
+    AuthController --> UI: Thông báo không tồn tại
+    UI -> UI: Yêu cầu nhập lại
+else Thông tin hợp lệ
+    UI -> UI: Kiểm tra đăng ký\nbằng email/số điện thoại
+    alt Email
+        UI -> AuthController: Gọi API gửi OTP bằng email
+        AuthController -> OTPService: sendCodeToken()
+    else
+        UI -> FirebaseAuth: verifyPhoneNumber()
+        FirebaseAuth -> UI: ID Token\n(JWT Firebase)
+    end
+
+    UI -> UI: Hiển thị form nhập OTP
+    User -> UI: Nhập mã OTP\nNhấn "Xác nhận"
+    
+    
+    UI -> AuthController: Gọi API xác minh
+    AuthController -> AuthService: xác minh
+    AuthService -> AuthService: Kiểm tra email/số điện thoại
+    alt Email
+        AuthService -> OTPService: verifyOTP()
+        OTPService --> AuthService: Xác minh OTP
+        AuthService --> AuthController: tokenJwt tạm thời 10 phút
+        AuthController --> UI: tokenJwt tạm thời
+    else
+        AuthService -> AuthService: Xác minh với Firebase
+        AuthService --> AuthController: tokenJwt tạm thời 10 phút
+        AuthController --> UI: tokenJwt tạm thời
+    end
+    UI -> UI: Chuyển đến màn hình cập nhật mật khẩu
+    User -> UI: Nhập mật khẩu,\nnhấn "Hoàn tất"
+    UI -> AuthController: gọi API cập nhật\n mật khẩu
+    AuthController -> AuthService: cập nhật mật khẩu
+    AuthService -> MySQL: Mã hóa mật khẩu và lưu
+    AuthController -> UI: thông báo thành công
+end
+
+' Alternative Flows
+group OTP không hợp lệ
+    AuthService -> AuthService: Kiểm tra OTP sai
+    AuthService --> AuthController: Thông báo lỗi
+    AuthController --> UI: Yêu cầu nhập lại OTP
+end
+
+group Quá số lần gửi OTP
+    OTPService -> OTPService: Kiểm tra số lần gửi
+    OTPService --> AuthController: Thông báo vượt giới hạn
+    AuthController --> UI: Hiển thị thông báo lỗi
+end
+@enduml

@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:eswap/core/constants/app_colors.dart';
 import 'package:eswap/model/chat_model.dart';
 import 'package:eswap/model/message_model.dart';
+import 'package:eswap/model/page_response.dart';
 import 'package:eswap/presentation/provider/user_provider.dart';
 import 'package:eswap/presentation/provider/user_session.dart';
 import 'package:eswap/presentation/views/chat/chat_provider.dart';
@@ -35,7 +36,7 @@ class _ChatListState extends State<ChatList> {
   bool _isLoading = false;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  late String _keyword;
+  String? _keyword;
   late final TextEditingController _searchController = TextEditingController();
   late int? userId;
 
@@ -78,6 +79,7 @@ class _ChatListState extends State<ChatList> {
   int? newMessageId;
 
   void _setupWebSocket() async {
+    final prefs = await SharedPreferences.getInstance();
     WebSocketService.getInstance().then((ws) {
       messagesSubscription = ws.messageStream.listen((data) {
         if (!mounted) return;
@@ -86,7 +88,8 @@ class _ChatListState extends State<ChatList> {
             newMessageId != chat.mostRecentMessage!.id) {
           newMessageId = chat.mostRecentMessage!.id;
           Provider.of<ChatProvider>(context, listen: false).addChat(chat);
-          if(userId != chat.mostRecentMessage!.fromUserId){
+
+          if (userId == chat.mostRecentMessage!.toUserId) {
             Provider.of<UserSessionProvider>(context, listen: false)
                 .plusUnreadMessageNumber(1);
           }
@@ -105,11 +108,21 @@ class _ChatListState extends State<ChatList> {
     });
 
     try {
-      final chatsPage = await _chatService.fetchChats(
-        _currentPage,
-        _pageSize,
-        context,
-      );
+      final PageResponse<Chat> chatsPage;
+      if ((_keyword == null || _keyword!.isEmpty)) {
+        chatsPage = await _chatService.fetchChats(
+          page: _currentPage,
+          size: _pageSize,
+          context: context,
+        );
+      } else {
+        chatsPage = await _chatService.fetchChats(
+          keyword: _keyword,
+          page: _currentPage,
+          size: _pageSize,
+          context: context,
+        );
+      }
       Provider.of<ChatProvider>(context, listen: false)
           .updateChats(chatsPage.content);
       setState(() {
@@ -131,8 +144,21 @@ class _ChatListState extends State<ChatList> {
     });
 
     try {
-      final chatsPage =
-          await _chatService.fetchChats(_currentPage + 1, _pageSize, context);
+      final PageResponse<Chat> chatsPage;
+      if ((_keyword == null || _keyword!.isEmpty)) {
+        chatsPage = await _chatService.fetchChats(
+          page: _currentPage + 1,
+          size: _pageSize,
+          context: context,
+        );
+      } else {
+        chatsPage = await _chatService.fetchChats(
+          keyword: _keyword,
+          page: _currentPage + 1,
+          size: _pageSize,
+          context: context,
+        );
+      }
 
       Provider.of<ChatProvider>(context, listen: false)
           .addChats(chatsPage.content);

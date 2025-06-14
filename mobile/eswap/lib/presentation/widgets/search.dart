@@ -74,7 +74,7 @@ class _AppSearchState extends State<AppSearch> {
                 focusNode: _focusNode,
                 onSubmitted: (value) {
                   final trimmed = value.trim();
-                  if (trimmed.length >= 2) {
+                  if (trimmed.isEmpty || trimmed.length >= 2) {
                     widget.onSearch(value);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(

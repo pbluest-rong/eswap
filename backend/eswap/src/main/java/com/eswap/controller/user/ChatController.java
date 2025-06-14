@@ -40,9 +40,11 @@ public class ChatController {
 
     @GetMapping
     public ResponseEntity<ApiResponse> getChats(Authentication auth,
+                                                @RequestParam(required = false) String keyword,
                                                 @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "20") int size) {
-        PageResponse<ChatResponse> chats = chatService.getChats(auth, page, size);
+                                                @RequestParam(defaultValue = "20") int size
+    ) {
+        PageResponse<ChatResponse> chats = chatService.getChats(keyword,auth, page, size);
         return ResponseEntity.ok(new ApiResponse(true, "chats", chats));
     }
 

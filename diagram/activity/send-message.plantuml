@@ -1,0 +1,67 @@
+@startuml
+skinparam DefaultFontSize 18
+skinparam ActivityBorderThickness 1
+skinparam shadowing false
+scale 1.5
+
+|Người dùng|
+start
+:Mở cuộc\ntrò chuyện;
+|Mobile App|
+:Hiển thị\ncuộc trò chuyện;
+|Người dùng|
+:Nhập văn bản hoặc\nchọn ảnh/video;
+
+|Mobile App|
+if (Có là media?) then (Có)
+  :Kiểm tra số lượng\nvà dung lượng;
+  if (Có hợp lệ?) then (Có)
+    :Hiển thị\nnút xác nhận;
+    |Người dùng|
+    :Nhấn nút xác nhận;
+    |Mobile App|
+    :Hiển thị danh sách\nảnh/video;
+  else (Không)
+    :Ẩn nút\nxác nhận;
+    detach
+  endif
+endif
+
+|Người dùng|
+:Nhấn nút gửi;
+|Mobile App|
+:Kiểm tra loại tin nhắn\n(văn bản hay media);
+if (Có là media?) then (Có)
+  :Nén media;
+endif
+|Mobile App|
+:Gửi yêu cầu\ntới Backend;
+|Backend|
+:Kiểm tra cuộc\ntrò chuyện\nđã tồn tại?;
+if (Có tồn tại?) then (Không)
+  :Tạo mới cuộc\ntrò chuyện;
+endif
+
+if (Có cần cập\nnhật bài đăng?) then (Có)
+  :Tạo và lưu\ntin nhắn loại POST;
+  :Gửi thông báo\nđến người nhận\n(FCM);
+  :Gửi tin nhắn\nđến người gửi,\nngười nhận\n(WebSocket);
+  |Mobile App|
+  :Cập nhật giao diện\nngười gửi, người nhận (WebSocket);
+  detach
+endif
+|Backend|
+if (Có là media?) then (Có)
+  :Upload media\nlên Cloudinary;
+endif
+
+:Lưu tin nhắn vào CSDL;
+:Gửi thông báo\nđến người nhận\n(FCM);
+:Gửi tin nhắn đến\nngười gửi, người nhận\n(WebSocket);
+|Mobile App|
+:Cập nhật giao diện\nngười gửi, người nhận\n(WebSocket);
+if (Có file nén?) then (Có)
+  :Xóa file nén tạm;
+endif
+stop
+@enduml

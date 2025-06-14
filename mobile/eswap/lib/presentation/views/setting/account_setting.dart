@@ -4,7 +4,7 @@ import 'package:eswap/presentation/components/bottom_sheet.dart';
 import 'package:eswap/presentation/components/education_institution_dialog.dart';
 import 'package:eswap/presentation/views/forgotpw/forgotpw_email_page.dart';
 import 'package:eswap/presentation/widgets/password_tf.dart';
-import 'package:eswap/presentation/widgets/switch_button.dart';
+import 'package:eswap/service/user_service.dart';
 import 'package:flutter/material.dart';
 
 class AccountSetting extends StatefulWidget {
@@ -23,6 +23,8 @@ class _AccountSettingState extends State<AccountSetting> {
   late final TextEditingController lastNameController;
   late final TextEditingController institutionController;
   late final TextEditingController addressController;
+  int oldWaitFollow = 0;
+  int waitFollow = 0;
 
   @override
   void initState() {
@@ -39,6 +41,11 @@ class _AccountSettingState extends State<AccountSetting> {
     lastNameController.addListener(_checkForChanges);
     institutionController.addListener(_checkForChanges);
     addressController.addListener(_checkForChanges);
+    if (widget.user.requireFollowApproval != null &&
+        widget.user.requireFollowApproval!) {
+      oldWaitFollow = 1;
+      waitFollow = 1;
+    }
   }
 
   @override
@@ -59,7 +66,8 @@ class _AccountSettingState extends State<AccountSetting> {
 
   void _checkForChanges() {
     final currentUser = widget.user;
-    final hasChanges = usernameController.text != currentUser.username ||
+    final hasChanges = waitFollow != oldWaitFollow ||
+        usernameController.text != currentUser.username ||
         firstNameController.text != currentUser.firstname ||
         lastNameController.text != currentUser.lastname ||
         institutionController.text != currentUser.educationInstitutionName ||
@@ -77,8 +85,6 @@ class _AccountSettingState extends State<AccountSetting> {
   Widget build(BuildContext context) {
     return _buildChangeInfoWidget(widget.user, context);
   }
-
-  int waitFollow = 0;
 
   Widget _buildChangeInfoWidget(UserInfomation user, BuildContext context) {
     final formKey = GlobalKey<FormState>();
@@ -111,7 +117,7 @@ class _AccountSettingState extends State<AccountSetting> {
                         setState(() {
                           waitFollow = 0;
                         });
-                        // Xử lý API nếu cần
+                        _checkForChanges();
                       },
                       title: Text(
                         "Chế độ mở",
@@ -136,6 +142,7 @@ class _AccountSettingState extends State<AccountSetting> {
                         setState(() {
                           waitFollow = 1;
                         });
+                        _checkForChanges();
                       },
                       title: Text(
                         "Chế độ kiểm duyệt",
@@ -216,26 +223,26 @@ class _AccountSettingState extends State<AccountSetting> {
               ),
               const SizedBox(height: 16),
               // Education Institution Field with Button
-              if(user.role == 'USER')
-              GestureDetector(
-                  onTap: () {
-                    _showInstitutionDialog(context);
-                  },
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: institutionController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'education_institution'.tr(),
-                        prefixIcon: const Icon(Icons.school),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+              if (user.role == 'USER')
+                GestureDetector(
+                    onTap: () {
+                      _showInstitutionDialog(context);
+                    },
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        controller: institutionController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'education_institution'.tr(),
+                          prefixIcon: const Icon(Icons.school),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
                       ),
-                    ),
-                  )),
+                    )),
               const SizedBox(height: 16),
 
               if (user.role == 'STORE')
@@ -269,10 +276,9 @@ class _AccountSettingState extends State<AccountSetting> {
                   ),
                   onPressed: _hasChanges
                       ? () {
-                          if (formKey.currentState!.validate()) {
-                            // Xử lý lưu thay đổi
-                            _saveChanges();
-                          }
+                          // if (formKey.currentState!.validate()) {
+                          _saveChanges();
+                          // }
                         }
                       : null,
                   child:
@@ -307,11 +313,20 @@ class _AccountSettingState extends State<AccountSetting> {
     );
   }
 
-  void _saveChanges() {
+  void _saveChanges() async {
+    await UserService().changeInfo(
+        username: usernameController.text,
+        firstname: firstNameController.text,
+        lastname: lastNameController.text,
+        educationInstitutionId: educationInstitutionId,
+        requireFollowApproval: waitFollow == 1 ? true : false,
+        context: context);
     setState(() {
       _hasChanges = false;
     });
   }
+
+  int? educationInstitutionId;
 
   void _showInstitutionDialog(BuildContext context) async {
     final result = await showModalBottomSheet<Map<String, Object>>(
@@ -322,10 +337,11 @@ class _AccountSettingState extends State<AccountSetting> {
         builder: (context) =>
             EnhancedDraggableSheet(child: InstitutionSelectionDialog()));
     if (result != null) {
-      final educationInstitutionId = result['educationInstitutionId'] as int;
+      educationInstitutionId = result['educationInstitutionId'] as int;
       final educationInstitutionName =
           result['educationInstitutionName'] as String;
       print("$educationInstitutionId $educationInstitutionName");
+
       if (educationInstitutionName != null) {
         setState(() {
           institutionController.text = educationInstitutionName;

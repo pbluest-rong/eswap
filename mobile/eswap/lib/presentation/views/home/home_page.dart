@@ -97,7 +97,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
   }
 
   Future<void> _loadEducationInstitution() async {
-    if (_isEducationLoading || _isEducationLoaded) return;
+    // if (_isEducationLoading || _isEducationLoaded) return;
     setState(() {
       _isEducationLoading = true;
     });
@@ -140,7 +140,7 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
 
   Future<void> _loadInitialPosts() async {
     if (_isLoading) return;
-
+    _loadEducationInstitution();
     setState(() {
       _isLoading = true;
       _allPosts = [];

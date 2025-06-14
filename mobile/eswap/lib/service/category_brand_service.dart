@@ -40,16 +40,16 @@ class CategoryBrandService {
 
   Future<Category> createCategory({
     required BuildContext context,
+    required int? parentCategoryId,
     required String name,
-    required int? parentId,
   }) async {
     try {
       final userSession = await UserSession.load();
       final response = await _dio.post(
         '${ApiEndpoints.admin_url}/categories',
         data: {
+          'parentCategoryId': parentCategoryId,
           'name': name,
-          'parentId': parentId,
         },
         options: Options(headers: {
           "Content-Type": "application/json",
@@ -57,10 +57,10 @@ class CategoryBrandService {
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.data['success'] == true) {
         return Category.fromJson(response.data['data']);
       } else {
-        throw Exception('Failed to create category');
+        throw Exception(response.data['message'] ?? 'Failed to create category');
       }
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Network error');
@@ -69,6 +69,7 @@ class CategoryBrandService {
 
   Future<Brand> createBrand({
     required BuildContext context,
+    required int categoryId,
     required String name,
   }) async {
     try {
@@ -76,6 +77,7 @@ class CategoryBrandService {
       final response = await _dio.post(
         '${ApiEndpoints.admin_url}/brands',
         data: {
+          'categoryId': categoryId,
           'name': name,
         },
         options: Options(headers: {
@@ -84,16 +86,15 @@ class CategoryBrandService {
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.data['success'] == true) {
         return Brand.fromJson(response.data['data']);
       } else {
-        throw Exception('Failed to create brand');
+        throw Exception(response.data['message'] ?? 'Failed to create brand');
       }
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Network error');
     }
   }
-
   Future<void> removeBrandFromCategory({
     required BuildContext context,
     required int categoryId,

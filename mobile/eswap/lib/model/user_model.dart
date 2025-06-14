@@ -18,6 +18,7 @@ class UserInfomation {
   String? address;
   String? role;
   bool isLocked;
+  bool? requireFollowApproval;
 
   UserInfomation(
       {required this.id,
@@ -36,7 +37,8 @@ class UserInfomation {
       this.reputationScore = 0,
       this.address,
       this.role,
-      this.isLocked = false});
+      this.isLocked = false,
+      this.requireFollowApproval});
 
   factory UserInfomation.fromJson(Map<String, dynamic> json) {
     return UserInfomation(
@@ -56,6 +58,7 @@ class UserInfomation {
         reputationScore: json['reputationScore'] ?? 0,
         address: json['address'],
         role: json['role'],
-        isLocked: json['locked']);
+        isLocked: json['locked'],
+        requireFollowApproval: json['requireFollowApproval']);
   }
 }

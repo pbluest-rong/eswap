@@ -61,6 +61,11 @@ class _ChatPageState extends State<ChatPage> {
       await _loadInitialChat();
       _setupWebSocket();
       _setIsChatNotify(true);
+      // Message notification
+      Provider.of<UserSessionProvider>(context, listen: false)
+          .minusUnreadMessageNumber(widget.chat.unReadMessageNumber);
+      Provider.of<ChatProvider>(context, listen: false)
+          .resetReadMessageNumber(widget.chat);
     });
   }
 
@@ -76,12 +81,6 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.chat.unReadMessageNumber > 0) {
-        Provider.of<UserSessionProvider>(context, listen: false)
-            .minusUnreadMessageNumber(widget.chat.unReadMessageNumber);
-      }
-    });
   }
 
   Future<void> _setIsChatNotify(bool value) async {
@@ -117,13 +116,7 @@ class _ChatPageState extends State<ChatPage> {
         _hasMore = !messagesPage.last;
         _isLoading = false;
       });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController
-              .jumpTo(_scrollController.position.maxScrollExtent + 200);
-        }
-      });
+      await _scrollDown();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -191,6 +184,16 @@ class _ChatPageState extends State<ChatPage> {
   void _handleSend() {
     Provider.of<ChatProvider>(context, listen: false).setSendingMessage(true);
     final text = _messageController.text.trim();
+    if (mediaFiles.isNotEmpty) {
+      SendMessageRequest messageRequest = SendMessageRequest(
+          chatPartnerId: widget.chat.chatPartnerId,
+          contentType: ContentType.MEDIA,
+          postId: widget.chat.currentPostId);
+      _chatService.sendMessage(
+          sendMessageRequest: messageRequest,
+          context: context,
+          mediaFiles: mediaFiles);
+    }
     if (text.isNotEmpty) {
       SendMessageRequest messageRequest = SendMessageRequest(
           chatPartnerId: widget.chat.chatPartnerId,
@@ -203,16 +206,6 @@ class _ChatPageState extends State<ChatPage> {
 
       _messageController.clear();
       FocusScope.of(context).unfocus();
-    }
-    if (mediaFiles.isNotEmpty) {
-      SendMessageRequest messageRequest = SendMessageRequest(
-          chatPartnerId: widget.chat.chatPartnerId,
-          contentType: ContentType.MEDIA,
-          postId: widget.chat.currentPostId);
-      _chatService.sendMessage(
-          sendMessageRequest: messageRequest,
-          context: context,
-          mediaFiles: mediaFiles);
     }
   }
 
@@ -230,10 +223,15 @@ class _ChatPageState extends State<ChatPage> {
             newMessageId != chat.mostRecentMessage!.id) {
           newMessageId = chat.mostRecentMessage!.id;
           Provider.of<ChatProvider>(context, listen: false).addChat(chat);
+          if (userSession != null &&
+              userSession!.userId == chat.mostRecentMessage!.toUserId) {
+            Provider.of<UserSessionProvider>(context, listen: false)
+                .minusUnreadMessageNumber(1);
+          }
           // Notify
           if (_scrollController.offset <
               _scrollController.position.maxScrollExtent - 300) {
-            if (userSession!.userId != chat.chatPartnerId) {
+            if (userSession!.userId == chat.mostRecentMessage!.toUserId) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text("Có tin nhắn mới"),
@@ -244,17 +242,26 @@ class _ChatPageState extends State<ChatPage> {
             }
           }
         }
-        _scrollDown();
+        _scrollDownWebSocket();
       });
     });
   }
 
-  void _scrollDown() {
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: Duration(seconds: 2),
-      curve: Curves.fastOutSlowIn,
-    );
+  Future<void> _scrollDownWebSocket() async {
+    await Future.delayed(Duration(seconds: 1));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  Future<void> _scrollDown() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
   }
 
   void _setupScrollListener() {
@@ -706,19 +713,30 @@ class MessageBubble extends StatelessWidget {
         return Column(children: [
           for (int i = 0; i < urlList.length; i++)
             _isVideoMedia(urlList[i])
-                ? Container(
-                    margin: (i != urlList.length - 1)
-                        ? EdgeInsets.only(bottom: 10)
-                        : null,
-                    child: Chewie(
-                      controller: ChewieController(
-                        videoPlayerController:
-                            VideoPlayerController.network(urlList[i]),
-                        autoPlay: false,
-                        looping: false,
-                        allowFullScreen: true,
-                      ),
-                    ))
+                ? OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              backgroundColor: Colors.black,
+                              iconTheme:
+                                  const IconThemeData(color: Colors.white),
+                              leading: IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.arrow_back_ios),
+                              ),
+                            ),
+                            body: Center(
+                              child: VideoPlayerWidget(
+                                  url: urlList[i], parentContext: context),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.play_circle, size: 32,))
                 : Container(
                     margin: (i != urlList.length - 1)
                         ? EdgeInsets.only(bottom: 10)
@@ -878,36 +896,69 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildVideoPlayer(String url, BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.4,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(8),
+    return VideoPlayerWidget(url: url, parentContext: context);
+  }
+}
+
+//VIDEO PLAYER WIDGET
+class VideoPlayerWidget extends StatefulWidget {
+  final String url;
+  final BuildContext parentContext;
+
+  const VideoPlayerWidget({
+    Key? key,
+    required this.url,
+    required this.parentContext,
+  }) : super(key: key);
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _videoPlayerController;
+  late ChewieController _chewieController;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoPlayerController = VideoPlayerController.network(widget.url);
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController,
+      autoPlay: true,
+      looping: true,
+      allowFullScreen: true,
+      allowMuting: true,
+      showControls: true,
+      aspectRatio: 16 / 9,
+      materialProgressColors: ChewieProgressColors(
+        playedColor: Colors.blue,
+        handleColor: Colors.blue,
+        backgroundColor: Colors.grey,
+        bufferedColor: Colors.grey[300]!,
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Icon(Icons.play_circle_fill, size: 50, color: Colors.white),
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'VIDEO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-            ),
+      errorBuilder: (context, errorMessage) {
+        return Center(
+          child: Text(
+            'Error loading video: $errorMessage',
+            style: TextStyle(color: Colors.red),
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController.dispose();
+    _chewieController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Chewie(
+      controller: _chewieController,
     );
   }
 }

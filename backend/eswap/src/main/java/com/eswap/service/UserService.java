@@ -2,12 +2,10 @@ package com.eswap.service;
 
 import com.eswap.common.constants.*;
 import com.eswap.common.exception.*;
+import com.eswap.common.security.JwtService;
 import com.eswap.model.*;
 import com.eswap.repository.*;
-import com.eswap.response.AuthenticationResponse;
-import com.eswap.response.FollowResponse;
-import com.eswap.response.UserBalanceResponse;
-import com.eswap.response.UserResponse;
+import com.eswap.response.*;
 import com.eswap.request.ChangeEmailRequest;
 import com.eswap.request.ChangeInfoRequest;
 import com.eswap.request.ChangePasswordRequest;
@@ -24,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +35,11 @@ public class UserService {
     private final PostRepository postRepository;
     private final UploadService uploadService;
     private final EducationInstitutionRepository educationInstitutionRepository;
+    private final JwtService jwtService;
+    private final NotificationRepository notificationRepository;
+    private final MessageRepository messageRepository;
+    private final OrderRepository orderRepository;
+    private final TransactionRepository transactionRepository;
 
     public AuthenticationResponse getLoginInfo(Authentication auth) {
         User user = (User) auth.getPrincipal();
@@ -136,20 +140,53 @@ public class UserService {
     /**
      * 6. Thay đổi thông tin: Tên, ngày sinh, địa chỉ, số điện thoại, giới tính
      */
-    public UserResponse changeInformation(Authentication connectedUser, ChangeInfoRequest request) {
+    public AuthenticationResponse changeInformation(Authentication connectedUser, ChangeInfoRequest request) {
         User user = (User) connectedUser.getPrincipal();
         if (!user.isEnabled() || user.isAccountLocked()) {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
         if (user.isEnabled() && user.isAccountNonLocked()) {
-            if (user.getFirstName() != request.getFirstname()) user.setFirstName(request.getFirstname());
-            if (user.getLastName() != request.getLastname()) user.setLastName(request.getLastname());
-            if (user.getDob() != request.getDob()) user.setDob(request.getDob());
-            if (user.getGender() != request.getGender()) user.setGender(request.getGender());
-            if (user.getAddress() == null || user.getAddress() != request.getAddress())
-                user.setAddress(request.getAddress());
+            //Username
+            if (user.getUsername() != request.getUsername())
+                user.setUsername(request.getUsername());
+            //Firstname
+            if (user.getFirstName() != request.getFirstname())
+                user.setFirstName(request.getFirstname());
+            //Lastname
+            if (user.getLastName() != request.getLastname())
+                user.setLastName(request.getLastname());
+            //Require follow approval
+            if (user.isRequireFollowApproval() != request.isRequireFollowApproval())
+                user.setRequireFollowApproval(request.isRequireFollowApproval());
+            // education
+            if (request.getEducationInstitutionId() != null && user.getEducationInstitution().getId() != request.getEducationInstitutionId()) {
+                EducationInstitution newEduIns = educationInstitutionRepository.findById(request.getEducationInstitutionId()).orElseThrow(
+                        () -> new ResourceNotFoundException(AppErrorCode.EDUCATION_INSTITUTION_NOT_FOUND, "id", request.getEducationInstitutionId())
+                );
+                if (user.getEducationInstitution() != newEduIns) {
+                    user.setEducationInstitution(newEduIns);
+                }
+            }
             user = userRepository.save(user);
-            return UserResponse.mapperToUserResponse(user, null, true, false);
+            var claims = new HashMap<String, Object>();
+
+            var jwtToken = jwtService.generateToken(claims, user);
+            var refreshToken = jwtService.generateRefreshToken(user);
+
+            return AuthenticationResponse.builder()
+                    .accessToken(jwtToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .avatarUrl(user.getAvatarUrl())
+                    .firstName(user.getFirstName())
+                    .lastName(user.getLastName())
+                    .role(user.getRole().getName())
+                    .educationInstitutionId(user.getEducationInstitution().getId())
+                    .educationInstitutionName(user.getEducationInstitution().getName())
+                    .unreadNotificationNumber(0)
+                    .unreadMessageNumber(0)
+                    .build();
         } else {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
@@ -319,7 +356,7 @@ public class UserService {
             throw new IllegalStateException("Tài khoản này đã vô hiệu hóa hoặc bị khóa!");
         }
         String oldAvatarUrl = user.getAvatarUrl();
-        if(oldAvatarUrl!=null){
+        if (oldAvatarUrl != null) {
             user.setAvatarUrl(null);
             user.setLastModified(OffsetDateTime.now());
             userRepository.save(user);
@@ -424,5 +461,13 @@ public class UserService {
         user.setLastModified(OffsetDateTime.now());
         user = userRepository.save(user);
         return UserResponse.mapperToUserResponse(user, null, true, false);
+    }
+
+    public DashboardResponse dashboard() {
+        long totalUsers = userRepository.count();
+        long totalPosts = postRepository.count();
+        long totalOrders = orderRepository.count();
+        long totalTransactions = transactionRepository.count();
+        return new DashboardResponse(totalUsers, totalPosts, totalOrders, totalTransactions);
     }
 }
