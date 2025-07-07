@@ -1,0 +1,4 @@
+# Ignore sensitive config files
+**/application-dev.yml
+**/firebase-service-account.json
+**/google-services.json
