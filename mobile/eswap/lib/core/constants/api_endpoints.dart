@@ -1,6 +1,6 @@
 class ApiEndpoints {
   static String PROTOCOL = "http";
-  static String HOST = "192.168.1.2";
+  static String HOST = "192.168.43.108";
   static String PORT = "8080";
   static String CONTEXT_PATH = "/api/v1/";
 
