@@ -44,18 +44,7 @@ Hệ thống được xây dựng theo mô hình **Client - Server**, gồm các
 
 ---
 
-## 🛠️ Công nghệ sử dụng
-
-| Thành phần         | Công nghệ / Công cụ                                     |
-|--------------------|---------------------------------------------------------|
-| Backend            | Java Spring Boot                                       |
-| Frontend           | Flutter                                                 |
-| Cơ sở dữ liệu      | MySQL                                                   |
-| Khác               | Docker, Firebase, Cloudinary, Momo, Ngrok, Scrcpy       |
-
----
-
-## 📱 Giao diện ứng dụng
+## 📱 Một số màn hình ứng dụng
 
 | Giới thiệu | Đăng nhập | Trang chủ |
 |---------------------|-----------|-----------|
