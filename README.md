@@ -6,15 +6,24 @@
 
 ## 📌 Tính năng nổi bật
 
-- **🔐 Tài khoản:** Đăng ký, đăng nhập, khôi phục mật khẩu, cập nhật thông tin.
-- **📝 Bài đăng:** Tạo, xem, xóa, thích/bỏ thích bài viết; tìm kiếm và lọc theo danh mục, thương hiệu, khu vực, trường học.
-- **💼 Giao dịch:** Đặt cọc, hủy, hoàn tất giao dịch để đảm bảo an toàn và minh bạch.
-- **💬 Trò chuyện:** Nhắn tin thời gian thực qua STOMP/WebSocket.
-- **🏪 Cửa hàng:** Gửi yêu cầu bán đồ cho cửa hàng; quản lý xác nhận hoặc từ chối.
-- **🔔 Thông báo:** Gửi thông báo đẩy qua Firebase Cloud Messaging (FCM).
-- **🔍 Tìm kiếm:** Hỗ trợ tìm kiếm nâng cao và lưu lịch sử để gợi ý thông minh.
-- **👥 Cộng đồng:** Theo dõi người dùng, tạo nhóm chia sẻ theo sở thích.
-- **🛠️ Quản trị:** Dashboard admin quản lý người dùng, danh mục, thương hiệu, giải ngân.
+- **🔐 Quản lý tài khoản:** Người dùng có thể đăng ký, đăng nhập, khôi phục mật khẩu, và quản lý thông tin cá nhân một cách an toàn.
+
+- **📝 Quản lý bài đăng:** Hỗ trợ tạo, xem, xóa, thích/bỏ thích bài đăng. Tính năng tìm kiếm và lọc bài đăng theo danh mục, thương hiệu, khu vực, hoặc trường học được tích hợp, giúp người dùng dễ dàng tìm kiếm món đồ phù hợp.
+
+- **💼 Quản lý giao dịch:** Hỗ trợ tạo, hủy, và hoàn thành đơn hàng, với cơ chế đặt cọc bảo vệ quyền lợi cho cả người mua và người bán. Giao dịch đặt cọc đảm bảo tính minh bạch và giảm thiểu rủi ro lừa đảo.
+
+- **💬 Trò chuyện thời gian thực:** Tính năng chat tích hợp giao thức STOMP/WebSocket cho phép người dùng trao đổi thông tin nhanh chóng, hỗ trợ giao tiếp giữa người mua, người bán, và cửa hàng.
+
+- **🏪 Hỗ trợ thu mua cho cửa hàng:** Người dùng có thể gửi yêu cầu bán đồ đến các cửa hàng, cửa hàng sẽ liên hệ sau đó xác nhận hoặc từ chối yêu cầu.
+
+- **🔔 Thông báo:** Tích hợp Firebase Cloud Messaging (FCM) để gửi thông báo đẩy giúp người dùng luôn cập nhật được thông báo tức thì.
+
+- **🔍 Tìm kiếm:** Người dùng có thể tìm kiếm các bài đăng hay người dùng một cách dễ dàng, hệ thống lưu trữ lịch sử tìm kiếm gần đây nhằm gợi ý bài đăng, nâng cao trải nghiệm người dùng.
+
+- **👥 Theo dõi và cộng đồng:** Người dùng có thể theo dõi hoặc bỏ theo dõi người dùng khác, tạo ra các cộng đồng nhỏ kết nối dựa trên sở thích và nhu cầu trao đổi.
+
+- **🛠️ Quản lý admin:** Cung cấp dashboard quản trị để quản lý tài khoản người dùng, danh mục, thương hiệu, và giải ngân tiền, đảm bảo vận hành hệ thống hiệu quả.
+
 
 ---
 
@@ -39,7 +48,7 @@ Hệ thống được xây dựng theo mô hình **Client - Server**, gồm các
 
 | Thành phần         | Công nghệ / Công cụ                                     |
 |--------------------|---------------------------------------------------------|
-| Backend            | Java, Spring Boot                                       |
+| Backend            | Java Spring Boot                                       |
 | Frontend           | Flutter                                                 |
 | Cơ sở dữ liệu      | MySQL                                                   |
 | Khác               | Docker, Firebase, Cloudinary, Momo, Ngrok, Scrcpy       |
