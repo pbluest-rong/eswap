@@ -1,65 +1,73 @@
-# Eswap - Ứng dụng trao đổi đồ dùng học sinh sinh viên.
-## Git conventions
+# Eswap – Ứng dụng trao đổi đồ dùng học sinh, sinh viên
 
-### Quy ước đặt tên nhánh git
+**Eswap** là nền tảng giúp học sinh, sinh viên tại Việt Nam kết nối để trao đổi, tặng hoặc bán đồ dùng học tập đã qua sử dụng. Ứng dụng hướng đến cộng đồng trẻ có ngân sách hạn chế, góp phần tiết kiệm chi phí, khuyến khích tái sử dụng và thúc đẩy kinh tế chia sẻ.
 
-- Viết thường (lowercase)
-- Dùng gạch nối để phân tách (hyphen-separated)
-- Chỉ sử dụng các ký tự a-z và 0-9
-- Tiền tố quy ước: `fe`, `be`, `docs`, `feature`, `bugfix`, `hotfix`, `release`
+---
 
-> ##### Ví dụ:
->    - `fe/feature/login-page`
->    - `be/feature/user`
->    - `docs/readme.md`
->    - `be/bugfix/mail`
+## 📌 Tính năng nổi bật
 
-### Quy ước về commit message
+- **🔐 Tài khoản:** Đăng ký, đăng nhập, khôi phục mật khẩu, cập nhật thông tin.
+- **📝 Bài đăng:** Tạo, xem, xóa, thích/bỏ thích bài viết; tìm kiếm và lọc theo danh mục, thương hiệu, khu vực, trường học.
+- **💼 Giao dịch:** Đặt cọc, hủy, hoàn tất giao dịch để đảm bảo an toàn và minh bạch.
+- **💬 Trò chuyện:** Nhắn tin thời gian thực qua STOMP/WebSocket.
+- **🏪 Cửa hàng:** Gửi yêu cầu bán đồ cho cửa hàng; quản lý xác nhận hoặc từ chối.
+- **🔔 Thông báo:** Gửi thông báo đẩy qua Firebase Cloud Messaging (FCM).
+- **🔍 Tìm kiếm:** Hỗ trợ tìm kiếm nâng cao và lưu lịch sử để gợi ý thông minh.
+- **👥 Cộng đồng:** Theo dõi người dùng, tạo nhóm chia sẻ theo sở thích.
+- **🛠️ Quản trị:** Dashboard admin quản lý người dùng, danh mục, thương hiệu, giải ngân.
 
-Cấu trúc của một commit message:
-> < type >[optional scope]: < subject >
-> [optional description(body)]
-> [optional footer(s)]
+---
 
-- **Viết hoa chữ cái đầu tiên của `subject`.**
-- **Không kết thúc dòng `subject` bằng dấu chấm.**
+## 🧱 Kiến trúc hệ thống
 
-#### Các loại `type`:
+Hệ thống được xây dựng theo mô hình **Client - Server**, gồm các thành phần:
 
-- `feat`: Thêm tính năng mới
-- `fix`: Sửa lỗi
-- `refactor`: Thay đổi code mà không ảnh hưởng đến chức năng tổng thể
-- `chore`: Cập nhật không ảnh hưởng đến production code, liên quan đến công cụ, cấu hình hoặc thư viện
-- `docs`: Cập nhật hoặc sửa đổi tài liệu
-- `perf`: Thay đổi code để cải thiện hiệu suất
-- `style`: Cải thiện cách trình bày code
-- `test`: Thêm hoặc sửa các test
-- `build`: Sửa đổi ảnh hưởng đến hệ thống build hoặc các phụ thuộc bên ngoài
-- `ci`: Thay đổi các tệp hoặc cấu hình CI
-- `env`: Mô tả các thay đổi hoặc bổ sung trong cấu hình CI
+![Kiến trúc hệ thống](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613544/system_architecture_yo0jbb.png)
 
-#### `scope`:
+- **Frontend:** Flutter – giao tiếp với backend qua HTTP (REST API) và STOMP (WebSocket).
+- **Backend:** Spring Boot – xử lý nghiệp vụ, cung cấp API và WebSocket.
+- **Kafka & Zookeeper:** Hàng đợi tin nhắn và điều phối xử lý bất đồng bộ.
+- **MySQL:** Lưu trữ dữ liệu quan hệ.
+- **Firebase:** Gửi thông báo và xác thực qua SMS.
+- **Momo:** Tích hợp thanh toán.
+- **Cloudinary:** Lưu trữ và quản lý hình ảnh, video.
+- **Docker:** Đóng gói và triển khai container.
 
-Phạm vi có thể thêm vào sau `type` để cung cấp thêm thông tin về ngữ cảnh.
+---
 
-- Ví dụ: `fix(ui)`, `feat(auth)`
+## 🛠️ Công nghệ sử dụng
 
-#### `description/body`:
+| Thành phần         | Công nghệ / Công cụ                                     |
+|--------------------|---------------------------------------------------------|
+| Backend            | Java, Spring Boot                                       |
+| Frontend           | Flutter                                                 |
+| Cơ sở dữ liệu      | MySQL                                                   |
+| Khác               | Docker, Firebase, Cloudinary, Momo, Ngrok, Scrcpy       |
 
-- Ví dụ: `feat: Add new functionality to handle user authentication.`
+---
 
-#### `footer`:
+## 📱 Giao diện ứng dụng
 
-- Ví dụ: `Signed-off-by: John <john.doe@example.com>`
-- Ví dụ: `Reviewed-by: Anthony <anthony@example.com>`
+| Giới thiệu | Đăng nhập | Trang chủ |
+|---------------------|-----------|-----------|
+| ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613544/0_zbrvtx.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613543/1_agy36f.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613545/2_t5n3b3.png) |
 
-> ##### Ví dụ 1 commit hoàn chỉnh:<br>
-> feat(profile): Allow users to update personal information<br>
-> Add functionality to update user details such as name, email, and phone number.<br>
-> Validate user input to ensure data integrity before saving changes to the database.<br>
-> Signed-off-by: Pblues <pbluest.rong@gmail.com>
+| Khám phá | Đăng bài | Chọn media |
+|----------|------------|----------|
+| ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613544/3_ksi6j5.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613544/4_odeiao.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613545/5_t1yg48.png) |
 
-## Liên hệ
+| Nhắn tin | Mua hàng (đặt cọc) | Mua hàng (không đặt cọc) |
+|----------|--------------------|---------------------------|
+| ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613545/6_tz1f3n.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613545/7_bdmr2j.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613546/9_f4j5bp.png) |
 
-> **Lê Bá Phụng**  
-> Email: **pbluest.rong@gmail.com**
+| Thanh toán | Hồ sơ người dùng | Chỉnh sửa thông tin |
+|------------|------------------|----------------------|
+| ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613545/8_udtxtu.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613546/10_nazn8v.png) | ![](https://res.cloudinary.com/dskq8cjqn/image/upload/v1752613546/12_ktesur.png) |
+
+---
+
+## 🎥 Demo chi tiết
+
+🔗 [Xem demo trên YouTube](https://www.youtube.com/watch?v=i6rknCfkpR4)
+
+---
